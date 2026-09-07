@@ -21,14 +21,33 @@ def local_state(path: Path) -> bool:
 ####
 
 
-def hashes(root: Path) -> dict[str, str]:
+def hashes(root: Path, source_roots: list[str] | None = None) -> dict[str, str]:
+    """Hash the declared design and library roots, excluding local KiCad state."""
+    roots: list[str] = ["boards"] if source_roots is None else source_roots
+    if not isinstance(roots, list) or not roots or any(not isinstance(item, str) or not item for item in roots):
+        raise ValueError("source_roots must be a non-empty list of relative directories")
+    ####
     result: dict[str, str] = {}
-    for path in sorted((root / "boards").rglob("*")):
-        if path.is_symlink():
-            raise ValueError(f"Source symlink is not allowed: {path}")
+    for item in roots:
+        relative: Path = Path(item)
+        if relative.is_absolute() or ".." in relative.parts or relative == Path("."):
+            raise ValueError(f"Invalid source root: {item!r}")
         ####
-        if path.is_file() and not local_state(path):
-            result[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
+        directory: Path = root / relative
+        if not directory.is_dir():
+            raise ValueError(f"Declared source root is missing: {item}")
+        ####
+        for path in sorted(directory.rglob("*")):
+            if path.is_symlink():
+                raise ValueError(f"Source symlink is not allowed: {path}")
+            ####
+            if path.is_file() and not local_state(path):
+                # Git manifests use forward-slash repository paths on every OS.
+                key: str = path.relative_to(root).as_posix()
+                if key in result:
+                    raise ValueError(f"Overlapping source roots include: {key}")
+                ####
+                result[key] = hashlib.sha256(path.read_bytes()).hexdigest()
         ####
     ####
     return result
@@ -151,9 +170,11 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
         "pr_head_commit": os.environ.get("PR_HEAD_SHA"), "checks": checks,
     }
     before: dict[str, str] = {}
+    source_roots: list[str] = ["boards"]
     try:
         config: dict[str, Any] = json.loads((root / "pilot.json").read_text())
-        before = hashes(root)
+        source_roots: list[str] = config.get("source_roots", ["boards"])
+        before = hashes(root, source_roots)
         required: set[str] = set(config["required_inputs"])
         if set(before) != required or config.get("not_for_manufacture") is not True:
             raise ValueError(f"Input inventory differs; missing={required-set(before)}, extra={set(before)-required}")
@@ -215,10 +236,12 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
     ####
     try:
         summary["local_only_files"] = [
-            str(p.relative_to(root)) for p in sorted((root / "boards").rglob("*"))
+            p.relative_to(root).as_posix()
+            for item in source_roots
+            for p in sorted((root / item).rglob("*"))
             if p.is_file() and local_state(p)
         ]
-        after: dict[str, str] = hashes(root)
+        after: dict[str, str] = hashes(root, source_roots)
         checks["source_unchanged"] = {"status": "PASS" if before == after else "FAIL", "sha256_after": after}
     except (OSError, ValueError) as exc:
         checks["source_unchanged"] = {"status": "FAIL", "error": str(exc)}

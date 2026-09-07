@@ -1,0 +1,13 @@
+# Optional policy: append after maintainer review, not by default.
+# This makes standard Git stop file-level content merges so KiCad source changes
+# receive deliberate resolution and review. It is not a lock or a server gate.
+*.kicad_pro -merge
+*.kicad_sch -merge
+*.kicad_pcb -merge
+*.kicad_sym -merge
+*.kicad_mod -merge
+*.kicad_dru -merge
+*.kicad_wks -merge
+*.kicad_jobset -merge
+sym-lib-table -merge
+fp-lib-table -merge

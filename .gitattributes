@@ -1,4 +1,6 @@
 * text=auto
+.gitattributes text eol=lf
+.gitignore text eol=lf
 *.kicad_sch text eol=lf
 *.kicad_pcb text eol=lf
 *.kicad_pro text eol=lf
@@ -9,3 +11,5 @@ fp-lib-table text eol=lf
 *.py text eol=lf
 *.md text eol=lf
 *.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf

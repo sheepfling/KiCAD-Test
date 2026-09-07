@@ -4,6 +4,9 @@
   "kicad_version": "10.0.5",
   "image": "ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c",
   "project": "boards/controller/controller",
+  "source_roots": [
+    "boards"
+  ],
   "required_inputs": [
     "boards/controller/Pilot.kicad_sym",
     "boards/controller/Pilot.pretty/R_Test.kicad_mod",

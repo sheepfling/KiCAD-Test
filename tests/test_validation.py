@@ -76,7 +76,7 @@ class ValidationTests(unittest.TestCase):
 
     def test_fixture_inventory_matches(self) -> None:
         config: dict[str, Any] = json.loads((ROOT / "pilot.json").read_text())
-        self.assertEqual(set(hashes(ROOT)), set(config["required_inputs"]))
+        self.assertEqual(set(hashes(ROOT, config["source_roots"])), set(config["required_inputs"]))
     ####
 
     def test_missing_tool_is_failure(self) -> None:
@@ -116,6 +116,17 @@ class ValidationTests(unittest.TestCase):
         before: dict[str, str] = hashes(self.root)
         (self.root / "boards/controller/controller.kicad_pro").write_text("{}")
         self.assertNotEqual(before, hashes(self.root))
+    ####
+
+    def test_declared_shared_library_root_is_hashed(self) -> None:
+        self.fixture()
+        library: Path = self.root / "libraries/shared"
+        library.mkdir(parents=True)
+        source: Path = library / "Example.kicad_sym"
+        source.write_text("(kicad_symbol_lib (version 20231120) (generator test))")
+        scoped: dict[str, str] = hashes(self.root, ["boards", "libraries/shared"])
+        self.assertIn("libraries/shared/Example.kicad_sym", scoped)
+        self.assertNotEqual(hashes(self.root), scoped)
     ####
 ####
 

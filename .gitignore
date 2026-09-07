@@ -1,12 +1,21 @@
+# KiCad local preferences, locks, caches, and backup copies.
+# Tracked source includes .kicad_pro, .kicad_sch, .kicad_pcb, tables, symbols,
+# footprints, drawings, and any approved release record.
 *.kicad_prl
 *.kicad_sch.lck
 *.kicad_pcb.lck
+*.kicad_pro-bak
+*.kicad_pcb-bak
+*.kicad_sch-bak
+fp-lib-table.bak
+sym-lib-table.bak
 ~*.lck
 ~*.kicad_pcb
 ~*.kicad_sch
 *-backups/
 _autosave-*
 fp-info-cache
+.history/
 __pycache__/
 .pytest_cache/
 build/
