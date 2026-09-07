@@ -15,13 +15,19 @@ from pathlib import Path
 from typing import Any
 
 
+def local_state(path: Path) -> bool:
+    """Only known non-source KiCad preferences/cache files are excluded."""
+    return path.suffix == ".kicad_prl" or path.name == "fp-info-cache"
+####
+
+
 def hashes(root: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     for path in sorted((root / "boards").rglob("*")):
         if path.is_symlink():
             raise ValueError(f"Source symlink is not allowed: {path}")
         ####
-        if path.is_file():
+        if path.is_file() and not local_state(path):
             result[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
         ####
     ####
@@ -29,16 +35,41 @@ def hashes(root: Path) -> dict[str, str]:
 ####
 
 
-def check_report(path: Path, kind: str) -> int:
+def check_report(path: Path, kind: str, config: dict[str, Any] | None = None) -> int:
     data: Any = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or not data.get("kicad_version"):
         raise ValueError("Missing KiCad report identity")
+    ####
+    if kind not in {"erc", "drc"}:
+        raise ValueError("Unsupported report kind")
+    ####
+    if config is not None:
+        if data["kicad_version"] != config["kicad_version"]:
+            raise ValueError("Report toolchain identity differs")
+        ####
+        if data.get("$schema") != f"https://schemas.kicad.org/{kind}.v1.json":
+            raise ValueError("Unexpected report schema")
+        ####
+        if data.get("included_severities") != ["error", "warning", "exclusion"]:
+            raise ValueError("Report must include errors, warnings and exclusions")
+        ####
+        ignored: Any = data.get("ignored_checks")
+        if not isinstance(ignored, list) or any(not isinstance(v, dict) for v in ignored):
+            raise ValueError("Missing ignored-check inventory")
+        ####
+        keys: list[str] = [str(item.get("key", "")) for item in ignored]
+        if sorted(keys) != sorted(config["expected_ignored_checks"][kind]):
+            raise ValueError(f"Disabled-check inventory changed: {keys}")
+        ####
     ####
     lists: list[Any]
     if kind == "erc":
         sheets: Any = data.get("sheets")
         if not isinstance(sheets, list) or not sheets:
             raise ValueError("Missing ERC sheets")
+        ####
+        if any(not isinstance(sheet, dict) for sheet in sheets):
+            raise ValueError("Malformed ERC sheet")
         ####
         lists = [sheet.get("violations") for sheet in sheets]
     else:
@@ -75,6 +106,23 @@ def check_netlist(path: Path, config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"Independent netlist contract mismatch: {components=}, {nets=}")
     ####
     return {"components": components, "nets": nets}
+####
+
+
+def svg_files(output: Path, name: str) -> list[Path]:
+    files: list[Path] = (
+        list((output / "schematic").glob("*.svg"))
+        if name == "schematic_svg" else [output / "pcb.svg"]
+    )
+    if not files or any(not p.is_file() or p.stat().st_size == 0 for p in files):
+        raise ValueError("Missing SVG export")
+    ####
+    for path in files:
+        if ET.parse(path).getroot().tag != "{http://www.w3.org/2000/svg}svg":
+            raise ValueError("Export is not an SVG document")
+        ####
+    ####
+    return files
 ####
 
 
@@ -127,7 +175,7 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
             "drc": ["pcb", "drc", "--format", "json", "--severity-all", "--exit-code-violations", "--schematic-parity", "--refill-zones", "--output", str(output / "drc.json"), str(base.with_suffix(".kicad_pcb"))],
             "netlist": ["sch", "export", "netlist", "--format", "kicadxml", "--output", str(output / "netlist.xml"), str(base.with_suffix(".kicad_sch"))],
             "schematic_svg": ["sch", "export", "svg", "--output", str(output / "schematic"), str(base.with_suffix(".kicad_sch"))],
-            "pcb_svg": ["pcb", "export", "svg", "--layers", "F.Cu,F.SilkS,Edge.Cuts,Cmts.User", "--output", str(output / "pcb"), str(base.with_suffix(".kicad_pcb"))],
+            "pcb_svg": ["pcb", "export", "svg", "--layers", "F.Cu,F.SilkS,Edge.Cuts,Cmts.User", "--output", str(output / "pcb.svg"), str(base.with_suffix(".kicad_pcb"))],
         }
         for name, args in commands.items():
             record: dict[str, Any] = execute([executable, *args], root, output, name)
@@ -137,8 +185,9 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
                     raise ValueError(f"KiCad command failed with {record['returncode']}")
                 ####
                 if name in {"erc", "drc"}:
-                    count: int = check_report(output / f"{name}.json", name)
+                    count: int = check_report(output / f"{name}.json", name, config)
                     checks[name]["findings"] = count
+                    checks[name]["expected_ignored_checks"] = config["expected_ignored_checks"][name]
                     if count:
                         raise ValueError(f"{count} findings, including exclusions")
                     ####
@@ -152,14 +201,9 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
                         ####
                     ####
                 else:
-                    directory: str = "schematic" if name == "schematic_svg" else "pcb"
-                    files: list[Path] = list((output / directory).glob("*.svg"))
-                    if not files or any(p.stat().st_size == 0 for p in files):
-                        raise ValueError("Missing SVG export")
-                    ####
-                    for path in files:
-                        ET.parse(path)
-                    ####
+                    checks[name]["files"] = [
+                        str(p.relative_to(output)) for p in svg_files(output, name)
+                    ]
                 ####
                 checks[name]["status"] = "PASS"
             except (ValueError, OSError, KeyError, TypeError, ET.ParseError) as exc:
@@ -170,6 +214,10 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
         checks["preflight"] = {"status": "FAIL", "error": str(exc)}
     ####
     try:
+        summary["local_only_files"] = [
+            str(p.relative_to(root)) for p in sorted((root / "boards").rglob("*"))
+            if p.is_file() and local_state(p)
+        ]
         after: dict[str, str] = hashes(root)
         checks["source_unchanged"] = {"status": "PASS" if before == after else "FAIL", "sha256_after": after}
     except (OSError, ValueError) as exc:

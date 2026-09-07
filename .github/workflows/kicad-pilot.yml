@@ -36,6 +36,7 @@ jobs:
           echo "KICAD_IMAGE=$(python3 -c 'import json; print(json.load(open("pilot.json"))["image"])')" >> "$GITHUB_ENV"
           git status --porcelain=v1 > build/status-before.txt
           git rev-parse HEAD > build/checked-commit.txt
+          git archive --format=tar.gz --output=build/checked-source.tar.gz HEAD
       - name: Pull digest-pinned official KiCad
         run: docker pull "$KICAD_IMAGE"
       - name: Check real schematic and PCB
