@@ -2,20 +2,83 @@ name: KiCad pilot
 on:
   pull_request:
   push:
-    branches: [main, 'pilot/**']
+    branches: [main]
 permissions:
   contents: read
 concurrency:
   group: kicad-pilot-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  toolchain-probe:
-    name: Toolchain probe (not engineering acceptance)
+  python-tests:
+    name: Checker unit tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Verify pinned official KiCad binary
-        run: >-
-          docker run --rm --entrypoint kicad-cli
-          ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c
-          version
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests -v
+  kicad:
+    name: KiCad ERC, DRC, parity and fault probes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Record integration candidate and pinned image
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p build
+          echo "CHECKED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "PR_HEAD_SHA=$PR_HEAD" >> "$GITHUB_ENV"
+          echo "KICAD_IMAGE=$(python3 -c 'import json; print(json.load(open("pilot.json"))["image"])')" >> "$GITHUB_ENV"
+          git status --porcelain=v1 > build/status-before.txt
+          git rev-parse HEAD > build/checked-commit.txt
+      - name: Pull digest-pinned official KiCad
+        run: docker pull "$KICAD_IMAGE"
+      - name: Check real schematic and PCB
+        id: baseline
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python3 \
+            -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
+            -e CHECKED_SHA -e PR_HEAD_SHA \
+            -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
+            tools/validate.py --output build/review
+      - name: Verify deliberate defects cannot pass
+        if: steps.baseline.outcome == 'success'
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python3 \
+            -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
+            -e CHECKED_SHA -e PR_HEAD_SHA \
+            -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
+            tools/fault_probe.py --output build/fault-probes
+      - name: Confirm tracked source remains unchanged
+        if: always()
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Retain review and failure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kicad-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/
+          if-no-files-found: error
+          retention-days: 30
+  engineering-gate:
+    name: Engineering acceptance (synthetic pilot only)
+    if: always()
+    needs: [python-tests, kicad]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Reject failed, skipped, missing or cancelled prerequisites
+        env:
+          UNIT_RESULT: ${{ needs.python-tests.result }}
+          KICAD_RESULT: ${{ needs.kicad.result }}
+        run: |
+          test "$UNIT_RESULT" = success
+          test "$KICAD_RESULT" = success
+          echo "Synthetic checks executed successfully. NOT FOR MANUFACTURE."

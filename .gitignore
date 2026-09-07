@@ -1,0 +1,15 @@
+*.kicad_prl
+*.kicad_sch.lck
+*.kicad_pcb.lck
+~*.lck
+~*.kicad_pcb
+~*.kicad_sch
+*-backups/
+_autosave-*
+fp-info-cache
+__pycache__/
+.pytest_cache/
+build/
+.evidence/
+.DS_Store
+Thumbs.db
