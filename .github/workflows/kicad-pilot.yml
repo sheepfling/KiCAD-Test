@@ -1,0 +1,21 @@
+name: KiCad pilot
+on:
+  pull_request:
+  push:
+    branches: [main, 'pilot/**']
+permissions:
+  contents: read
+concurrency:
+  group: kicad-pilot-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  toolchain-probe:
+    name: Toolchain probe (not engineering acceptance)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Verify pinned official KiCad binary
+        run: >-
+          docker run --rm --entrypoint kicad-cli
+          ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c
+          version
