@@ -9,6 +9,19 @@ concurrency:
   group: kicad-pilot-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  project-matrix:
+    name: Build declared-project matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - id: matrix
+        name: Resolve project-specific KiCad images
+        run: echo "matrix=$(python3 tools/ci_matrix.py)" >> "$GITHUB_OUTPUT"
   python-tests:
     name: Checker unit tests
     runs-on: ubuntu-24.04
@@ -17,11 +30,23 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - run: python3 -m unittest discover -s tests -v
+      - name: Lint declared projects, parts, interfaces, and libraries
+        run: |
+          mkdir -p build
+          python3 tools/lint_registry.py --all --output build/governance-lint.json
+      - name: Run checker unit tests
+        run: python3 -m unittest discover -s tests -v
   kicad:
-    name: KiCad ERC, DRC, parity and fault probes
+    name: KiCad ${{ matrix.project }} (${{ matrix.kicad_version }})
+    needs: [project-matrix, python-tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.project-matrix.outputs.matrix) }}
+    env:
+      KICAD_IMAGE: ${{ matrix.image }}
+      PROJECT_ID: ${{ matrix.project }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -33,22 +58,21 @@ jobs:
           mkdir -p build
           echo "CHECKED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           echo "PR_HEAD_SHA=$PR_HEAD" >> "$GITHUB_ENV"
-          echo "KICAD_IMAGE=$(python3 -c 'import json; print(json.load(open("pilot.json"))["image"])')" >> "$GITHUB_ENV"
           git status --porcelain=v1 > build/status-before.txt
           git rev-parse HEAD > build/checked-commit.txt
           git archive --format=tar.gz --output=build/checked-source.tar.gz HEAD
       - name: Pull digest-pinned official KiCad
         run: docker pull "$KICAD_IMAGE"
-      - name: Check real schematic and PCB
+      - name: Check declared KiCad project
         id: baseline
         run: |
           docker run --rm --user "$(id -u):$(id -g)" --entrypoint python3 \
             -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
             -e CHECKED_SHA -e PR_HEAD_SHA \
             -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
-            tools/validate.py --output build/review
+            tools/check_all.py --project "$PROJECT_ID" --output build/review
       - name: Verify deliberate defects cannot pass
-        if: steps.baseline.outcome == 'success'
+        if: matrix.project == 'controller' && steps.baseline.outcome == 'success'
         run: |
           docker run --rm --user "$(id -u):$(id -g)" --entrypoint python3 \
             -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
@@ -64,7 +88,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kicad-review-${{ github.run_id }}-${{ github.run_attempt }}
+          name: kicad-review-${{ matrix.project }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/
           if-no-files-found: error
           retention-days: 30

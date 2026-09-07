@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from check_all import check_all
 from validate import check_netlist, check_report, hashes, validate
 
 ROOT: Path = Path(__file__).resolve().parents[1]
@@ -30,6 +31,7 @@ class ValidationTests(unittest.TestCase):
 
     def fixture(self) -> None:
         shutil.copytree(ROOT / "boards", self.root / "boards")
+        shutil.copytree(ROOT / "catalog", self.root / "catalog")
         shutil.copy2(ROOT / "pilot.json", self.root / "pilot.json")
     ####
 
@@ -116,6 +118,15 @@ class ValidationTests(unittest.TestCase):
         before: dict[str, str] = hashes(self.root)
         (self.root / "boards/controller/controller.kicad_pro").write_text("{}")
         self.assertNotEqual(before, hashes(self.root))
+    ####
+
+    def test_all_project_check_reports_missing_tool(self) -> None:
+        self.fixture()
+        result: dict[str, Any] = check_all(self.root, self.root / "all-out", "intentionally-absent-kicad")
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["governance"]["status"], "PASS")
+        self.assertEqual(result["projects"][0]["id"], "controller")
+        self.assertEqual(result["projects"][0]["status"], "FAIL")
     ####
 
     def test_declared_shared_library_root_is_hashed(self) -> None:

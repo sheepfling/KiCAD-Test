@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "parts": [
+    {
+      "id": "PART-EXAMPLE-0001",
+      "manufacturer": "REPLACE WITH MANUFACTURER",
+      "mpn": "REPLACE WITH MPN",
+      "datasheet_url": "https://example.invalid/datasheet",
+      "lifecycle": "unknown",
+      "status": "example_only",
+      "preferred_supplier": "REPLACE WITH SUPPLIER",
+      "supplier_sku": "REPLACE WITH SUPPLIER SKU",
+      "approved_alternates": []
+    }
+  ]
+}

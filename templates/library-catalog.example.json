@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "libraries": [
+    {
+      "id": "LIB-EXAMPLE-001",
+      "version": "0.1.0",
+      "path": "libraries/example-library",
+      "owner": "REPLACE WITH OWNER",
+      "status": "example_only",
+      "provenance": "REPLACE WITH DATASHEET, SOURCE, AND LICENSE RECORD"
+    }
+  ]
+}

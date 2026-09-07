@@ -20,6 +20,8 @@ The native desktop rehearsal found that KiCad 10.0.6 expanded this fixture's min
 - [Mechanical handoff](docs/MECHANICAL_HANDOFF.md): interface details a board project must publish for mechanical work.
 - [Versioning and releases](docs/VERSIONING.md): toolchain pins, tags, release records, and migrations.
 - [Release-manifest example](docs/release-manifest.example.yaml): fields required before a release can be considered.
+- [Checks and CI](docs/CHECKS_AND_CI.md): individual-project and repository-wide gates.
+- [Identity and sourcing](docs/IDENTITY_AND_SOURCING.md): controlled part, pinout, supplier, and price records.
 
 The earlier [employee guide](docs/EMPLOYEE_GUIDE_v0.2_candidate.md) and [desk card](docs/QUICK_REFERENCE_v0.2_candidate.md) remain historical public-pilot candidates. They are not approval records.
 
@@ -31,7 +33,10 @@ From the repository root, with Python 3.12+ and KiCad 10.0.5 on PATH:
 
 ```sh
 python -m unittest discover -s tests -v
+python tools/lint_registry.py --all
+python tools/lint_registry.py --project controller
 python tools/validate.py --output build/review-001
+python tools/check_all.py --all --output build/all-review-001
 python tools/fault_probe.py --output build/faults-001
 ```
 

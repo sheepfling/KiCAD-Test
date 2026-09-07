@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "catalogs": {
+    "parts": "catalog/parts.json",
+    "interfaces": "catalog/interfaces.json",
+    "libraries": "catalog/libraries.json"
+  },
+  "projects": [
+    {
+      "id": "controller",
+      "status": "training_fixture",
+      "config": "pilot.json",
+      "project": "boards/controller/controller.kicad_pro",
+      "component_identity": {
+        "required": false,
+        "part_ids": []
+      },
+      "interfaces": [],
+      "library_ids": []
+    }
+  ]
+}

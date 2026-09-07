@@ -160,7 +160,8 @@ def execute(argv: list[str], cwd: Path, output: Path, name: str) -> dict[str, An
 ####
 
 
-def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
+def validate(root: Path, output: Path, cli: str, config_path: Path | None = None) -> dict[str, Any]:
+    """Run a fail-closed KiCad check for one declared project configuration."""
     output.mkdir(parents=True, exist_ok=False)
     checks: dict[str, Any] = {}
     summary: dict[str, Any] = {
@@ -171,15 +172,21 @@ def validate(root: Path, output: Path, cli: str) -> dict[str, Any]:
     }
     before: dict[str, str] = {}
     source_roots: list[str] = ["boards"]
+    selected_config: Path = root / (Path("pilot.json") if config_path is None else config_path)
     try:
-        config: dict[str, Any] = json.loads((root / "pilot.json").read_text())
+        if root not in selected_config.resolve().parents and selected_config.resolve() != root:
+            raise ValueError("Configuration path must remain inside the repository root")
+        ####
+        config: dict[str, Any] = json.loads(selected_config.read_text())
         source_roots: list[str] = config.get("source_roots", ["boards"])
         before = hashes(root, source_roots)
         required: set[str] = set(config["required_inputs"])
         if set(before) != required or config.get("not_for_manufacture") is not True:
             raise ValueError(f"Input inventory differs; missing={required-set(before)}, extra={set(before)-required}")
         ####
-        checks["source_scope"] = {"status": "PASS", "sha256": before}
+        checks["source_scope"] = {
+            "status": "PASS", "sha256": before, "config": selected_config.relative_to(root).as_posix(),
+        }
         executable: str | None = shutil.which(cli)
         if executable is None:
             raise ValueError("KiCad executable is missing")
@@ -263,8 +270,9 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cli", default="kicad-cli")
+    parser.add_argument("--config", type=Path, default=Path("pilot.json"))
     args: argparse.Namespace = parser.parse_args()
-    summary: dict[str, Any] = validate(args.root.resolve(), args.output.resolve(), args.cli)
+    summary: dict[str, Any] = validate(args.root.resolve(), args.output.resolve(), args.cli, args.config)
     print(json.dumps(summary, indent=2))
     return 0 if summary["status"] == "PASS" else 1
 ####
