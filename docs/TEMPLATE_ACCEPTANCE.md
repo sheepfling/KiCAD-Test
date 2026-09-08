@@ -76,11 +76,16 @@ generator now emits portable artifact paths, the container runner guards Unix-on
 user IDs, and the Raspberry Pi test supplies its platform-specific signal stub.
 The subsequent successful run verifies those fixes on the actual hosted platforms.
 
+The [deliberate missing-source probe](https://github.com/sheepfling/KiCAD-Test/pull/4)
+used the corrected code with one nonexistent controller input. Its
+[rejected run](https://github.com/sheepfling/KiCAD-Test/actions/runs/34255940637)
+checked head `bb2808bdca60c742f46b0fadf0dcf73dc15c8311`: the matrix and portable
+jobs failed, native/release jobs were skipped, and `Template acceptance` failed.
+The defect is confined to the probe branch and must never be merged.
+
 ## Remaining baseline acceptance
 
-A separate [deliberate missing-source probe](https://github.com/sheepfling/KiCAD-Test/pull/4)
-checks final-gate rejection; its current run is recorded after completion. The public
-repository's `main` branch reports no protection. Production enforcement must still
+The public repository's `main` branch reports no protection. Production enforcement must still
 be configured and verified with repository-administration access; the connected
 GitHub integration returns HTTP 403 for that administration endpoint.
 
