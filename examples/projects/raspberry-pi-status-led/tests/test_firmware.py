@@ -12,7 +12,8 @@ class StatusFirmwareTests(unittest.TestCase):
         led = Mock()
         gpiozero.LED = Mock(return_value=led)
         firmware = Path(__file__).resolve().parents[1] / "firmware/status_led.py"
-        with patch.dict("sys.modules", {"gpiozero": gpiozero}), patch("signal.pause") as pause:
+        # Raspberry Pi exposes pause(); the portable test host may be Windows.
+        with patch.dict("sys.modules", {"gpiozero": gpiozero}), patch("signal.pause", create=True) as pause:
             runpy.run_path(str(firmware))
         gpiozero.LED.assert_called_once_with(17)
         led.blink.assert_called_once_with(on_time=0.5, off_time=0.5)
