@@ -11,6 +11,7 @@ mapping remains in the [plan completion matrix](PLAN_COMPLETION_MATRIX.md).
 | Concern | Executable evidence |
 | --- | --- |
 | Fork initialization | Empty live catalogs, retained independent fixtures, repeatable initialization, refusal to overwrite adopter work |
+| Company licensing | Known root 0BSD notice removed before the first company commit; custom/nested notices preserved; failure rollback and repeatability |
 | Project islands | Automatic discovery of manifests, READMEs, local suites and dependent product suites; selected and shared CI entry points |
 | Import | Dry run, atomic no-overwrite copy, hierarchy/dependency inventory, import receipt and unchanged original source |
 | Source hygiene | Generated/local output rejection, portable dependency paths, authored docs assets and preserved legal text |
@@ -58,6 +59,14 @@ restore, stale evidence, failed native checks and corrupt/unsafe packages. Their
 synthetic report data are explicitly test fixtures; hosted release rehearsal executes
 real KiCad separately.
 
+A company-adoption rehearsal used the actual bootstrap and initialization commands
+in disposable folders. Bootstrap omitted the known root license and created no Git
+history. A synthetic company notice was added before the first commit
+(`0eb9fcd5b964813d8adc68d98e96983d9aec2da4`); the full portable pipeline then passed
+with empty live catalogs, all 182 shared tests, and an unchanged source tree. The
+licensing regression tests also cover custom and nested notice preservation,
+repeat initialization, and rollback after an interrupted license removal.
+
 ## Verified on GitHub on 2026-09-08
 
 [PR #3](https://github.com/sheepfling/KiCAD-Test/pull/3) publishes the scaffold candidate.
@@ -89,7 +98,8 @@ The public repository's `main` branch reports no protection. Production enforcem
 be configured and verified with repository-administration access; the connected
 GitHub integration returns HTTP 403 for that administration endpoint.
 
-The root license choice is pending. The final reviewed baseline, version tag and
+The original scaffold is licensed under 0BSD. [Adoption cleanup](LICENSING.md)
+leaves the company's root terms to its owner before the first commit. The final reviewed baseline, version tag and
 upgrade instructions follow completion of these acceptance steps. These are tracked
 work items, not claims satisfied by local test success.
 

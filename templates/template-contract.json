@@ -29,7 +29,10 @@
     "tools/hwrepo/releasing.py",
     "tools/hwrepo/packaging.py",
     "tools/hwrepo/exports.py",
-    "tests/test_release_evidence.py"
+    "tests/test_release_evidence.py",
+    "docs/LICENSING.md",
+    "tools/hwrepo/licensing.py",
+    "tests/fixtures/scaffold-license.txt"
   ],
   "adoption_guide": "docs/TEMPLATE_ADOPTION.md",
   "upgrades_catalog": "templates/template-upgrades.json"

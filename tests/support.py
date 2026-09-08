@@ -35,6 +35,9 @@ def reference_root() -> Path:
         shutil.copytree(SOURCE_ROOT / directory, destination / directory, ignore=ignore_local)
     for name in ("README.md", ".gitignore", ".gitattributes", "pyproject.toml"):
         shutil.copy2(SOURCE_ROOT / name, destination / name)
+    # Adopters may have their own root license or none yet; shared-tool tests
+    # always exercise the original template notice in a disposable checkout.
+    shutil.copy2(SOURCE_ROOT / "tests/fixtures/scaffold-license.txt", destination / "LICENSE")
     for directory in ("catalog", "projects", "products", "libraries",
                       "generated", "schemas"):
         (destination / directory).mkdir()

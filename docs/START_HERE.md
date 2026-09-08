@@ -5,7 +5,9 @@ to understand what belongs with each board and what is shared.
 
 ## Start development
 
-1. Fork or copy the repository and complete the [Python setup](../README.md#first-run-setup).
+1. For private company work, start with [bootstrap](TEMPLATE_ADOPTION.md#bootstrap)
+   and choose [company licensing terms](LICENSING.md) before the first commit.
+   For a public fork or existing copy, complete the [Python setup](../README.md#first-run-setup).
    Run `python -B -m tools.template init --project-id my-hardware`, then `python -B -m tools.ci`.
 2. For an optional [reference-project rehearsal](../examples/README.md), use a separate
    uninitialized template checkout: initialization disables live example discovery.
@@ -26,6 +28,8 @@ reference product/part/interface/library catalogs, and keeps toolchain and polic
 defaults. It preserves `examples/` for independent shared-tool regression tests.
 It refuses to replace customized catalogs or existing designs. Run it before imports;
 after initialization, repeating it is a no-op for the same repository identity.
+First-time initialization removes only the exact root template license; custom
+company licenses and nested notices are preserved.
 
 ## Before production
 

@@ -35,6 +35,7 @@
       "steps": [
         "Update the shared tools, tests, workflow, templates and documentation while preserving template-adoption.json until migration review is complete. upgrade-plan reads the adopted version even when the upstream template contract changed.",
         "For a fresh fork only, run tools.template init before adding designs. Existing adopters retain their live catalogs and projects; do not replace them with reference fixtures. Keep projects as an enabled discovery root.",
+        "The upstream scaffold uses 0BSD. Fresh bootstrap/init removes only its exact root LICENSE before company terms are chosen. Preserve adopter root licenses during upgrades and all required third-party notices; do not rerun initialization on established projects.",
         "Review catalog/team-policy.json and project-local governance assignments. The default permits two actors with independent review. Match hosted branch controls to the named required checks.",
         "Bind each electrical component reference to part_id in tests/contract.json when component identity is required. Complete schematic electrical contracts before production; diagram-only views use their typed product relationships.",
         "Review board-local release_exports layer, origin and placement-unit settings. Commit source first, then regenerate portable/native reports and candidates with tools.release prepare; old PASS-only manifests do not satisfy release evidence requirements.",

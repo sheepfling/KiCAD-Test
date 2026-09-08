@@ -931,6 +931,7 @@ class TemplateInitReport(StrictModel):
     status: Literal["PASS", "FAIL"]
     project_id: str
     changed: tuple[RepositoryPath, ...] = ()
+    removed: tuple[RepositoryPath, ...] = ()
     issues: tuple[PolicyIssue, ...] = ()
 
 
@@ -951,6 +952,7 @@ class TemplateBootstrapReport(StrictModel):
     destination: NonEmptyText
     status: Literal["PASS", "FAIL"]
     issues: tuple[PolicyIssue, ...]
+    removed: tuple[RepositoryPath, ...] = ()
 
 
 class TemplateUpgradePlan(StrictModel):

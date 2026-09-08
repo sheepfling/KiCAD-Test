@@ -20,6 +20,8 @@ This creates an empty live workspace with automatic discovery, preserves referen
 fixtures, and records the repository identity and template version. It validates all
 changes before writing, refuses customized catalogs/designs, and is repeatable after
 successful initialization. Empty CI means the scaffold passed; no hardware passed.
+Initialization also removes the exact root template license from the current
+workspace. It preserves custom licenses, nested notices and existing Git history.
 
 To create a new local copy from a **clean, committed** template source, choose a
 new, nonexistent directory outside the source template:
@@ -29,7 +31,8 @@ python -B -m tools.template bootstrap --destination ../my-hardware-repo --projec
 ```
 
 The command copies the controlled template into a staging directory and atomically
-places it only after writing `template-adoption.json`. It copies only Git-tracked source and excludes generated exports and local state;
+places it only after writing `template-adoption.json` and removing the known root
+template `LICENSE`. It copies only Git-tracked source and excludes generated exports and local state;
 ignored downloads and untracked files cannot be copied. It never overwrites a destination, initializes a
 remote, creates a commit, changes repository permissions, opens KiCad or modifies a
 design. Bootstrap copies the synthetic examples as regression inputs. Retain them while
@@ -42,6 +45,12 @@ maintainer must then initialize/attach the correct Git remote, complete
 governance and commit the adoption record. A generated `template-adoption.json` only
 records the chosen project identity and the source template version; it is not a
 release or approval record.
+
+For company work, add your organization's chosen root license or notice **before**
+that first commit. Bootstrap creates no `.git` directory, so no earlier template
+commit or root-license version enters the company's history. A custom root license
+already present in the source is preserved, as are all nested and third-party
+notices. See [licensing and adoption](LICENSING.md) for the precise cleanup boundary.
 
 ## Upgrade plan
 
@@ -89,7 +98,7 @@ updated upgrade catalog while retaining their old contract version to inspect th
 ## Version 1.0.0 workflow migration
 
 The 0.3.0-to-1.0.0 plan adds fresh-fork initialization, configurable team policy,
-per-reference component identities and the evidence-backed release/restore path.
+per-reference component identities, root-license cleanup and the evidence-backed release/restore path.
 Use `upgrade-plan --target-version 1.0.0` with the updated catalog. Existing adopters
 keep their live project and catalog records; initialization is for fresh forks.
 

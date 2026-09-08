@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from .contracts import read_model, repo_path, write_model
+from .licensing import template_license
 from .models import (
     PolicyIssue,
     TemplateAdoptionRecord,
@@ -80,7 +81,8 @@ def bootstrap(root: Path, destination: Path, project_id: str) -> TemplateBootstr
     """Copy a clean template into a new directory and record adoption as pending.
 
     The method never overwrites a destination, initializes a remote, creates a Git
-    commit, or changes KiCad sources. It first writes a sibling staging directory
+    commit, or changes KiCad sources. It omits the exact upstream root license,
+    preserving all other license records. It first writes a sibling staging directory
     and atomically renames it only after the typed adoption record is present.
     """
     resolved_root = root.resolve()
@@ -134,6 +136,7 @@ def bootstrap(root: Path, destination: Path, project_id: str) -> TemplateBootstr
 
     staging_parent = Path(tempfile.mkdtemp(prefix="kicad-template-bootstrap-", dir=resolved_destination.parent))
     staging = staging_parent / resolved_destination.name
+    removed: tuple[str, ...] = ()
     try:
         tracked = subprocess.run(
             ["git", "-c", f"safe.directory={resolved_root.as_posix()}",
@@ -148,6 +151,10 @@ def bootstrap(root: Path, destination: Path, project_id: str) -> TemplateBootstr
             target = repo_path(staging, name)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
+        license_path = template_license(staging)
+        if license_path is not None:
+            license_path.unlink()
+            removed = ("LICENSE",)
         write_model(
             staging / ADOPTION_RECORD_PATH,
             adoption,
@@ -167,6 +174,7 @@ def bootstrap(root: Path, destination: Path, project_id: str) -> TemplateBootstr
         destination=str(resolved_destination),
         status="PASS",
         issues=(),
+        removed=removed,
     )
 
 

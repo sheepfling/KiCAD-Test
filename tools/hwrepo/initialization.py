@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .contracts import read_model, repo_path
+from .licensing import template_license
 from .models import (
     InterfacesCatalog,
     LibrariesCatalog,
@@ -52,16 +53,25 @@ def initialize(root: Path, project_id: str) -> TemplateInitReport:
             "catalog/libraries.json": LibrariesCatalog(schema_version="0.1", libraries=()),
             "template-adoption.json": adoption,
         }
-        payloads = {repo_path(root, name): (model.model_dump_json(indent=2) + "\n").encode()
-                    for name, model in updates.items()}
+        payloads: dict[Path, bytes | None] = {
+            repo_path(root, name): (model.model_dump_json(indent=2) + "\n").encode()
+            for name, model in updates.items()
+        }
         readme = repo_path(root, "README.md")
         _, _, remaining = readme.read_text(encoding="utf-8").partition("\n")
         payloads[readme] = (f"# {project_id}\n" + remaining).encode()
+        license_path = template_license(root)
+        if license_path is not None:
+            payloads[license_path] = None
         before = {path: path.read_bytes() if path.exists() else None for path in payloads}
         for path, content in payloads.items():
-            path.write_bytes(content)
+            if content is None:
+                path.unlink()
+            else:
+                path.write_bytes(content)
         return TemplateInitReport(status="PASS", project_id=project_id,
-                                  changed=tuple(path.relative_to(root).as_posix() for path in payloads))
+                                  changed=tuple(path.relative_to(root).as_posix() for path in payloads),
+                                  removed=() if license_path is None else ("LICENSE",))
     except (OSError, ValueError) as exc:
         for path, content in before.items():
             if content is None:

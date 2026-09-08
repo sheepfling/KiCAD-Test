@@ -26,6 +26,11 @@ See also the [quick reference](docs/QUICK_REFERENCE.md),
 [mechanical handoff](docs/MECHANICAL_HANDOFF.md), [metrics](docs/METRICS.md)
 and [Markdown policy](docs/MARKDOWN_POLICY.md).
 
+The original scaffold uses 0BSD; adopters choose their own project terms. For a
+private company repository, use [bootstrap](docs/TEMPLATE_ADOPTION.md#bootstrap)
+to start without upstream Git history or its root license, then choose company
+terms before the first commit. See [licensing and adoption](docs/LICENSING.md).
+
 ## First-run setup
 
 Install Git and Python 3.12+ (`python3` may be the executable name on macOS/Linux).
