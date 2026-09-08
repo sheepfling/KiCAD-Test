@@ -56,6 +56,7 @@ jobs:
       - name: Confirm generation leaves tracked source unchanged
         run: git diff --exit-code
       - name: Retain generated review views and schemas
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: portable-review-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
