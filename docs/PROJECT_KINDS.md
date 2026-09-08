@@ -1,4 +1,4 @@
-# Project kinds: PCB, schematic, and system wiring
+# Project kinds: PCB, schematic, system wiring, and harness interface
 
 Every native KiCad project in this template has one explicit `kind`. Select it
 before creating source files; a project does not become a PCB merely because it
@@ -6,10 +6,10 @@ uses KiCad.
 
 | Kind | Controlled source root | Primary authority | Native KiCad gate | Explicitly not implied |
 | --- | --- | --- | --- | --- |
-| `pcb` | `boards/<id>/` | Schematic, board geometry, and typed board netlist contract | ERC, DRC with schematic parity, netlist identity, schematic/PCB SVG exports | Procurement, fabrication, fit, or release approval |
-| `schematic` | `schematics/<id>/` | Electrical intent and interface-review sheet | ERC and schematic SVG export | PCB layout, DRC, fabrication outputs, or a board BOM |
-| `system_wiring` | `systems/<id>/` | Typed product terminals, connection kinds, harnesses, and mechanical handoffs; the KiCad sheet is the review view | Complete typed traceability, ERC, and schematic SVG export | That a drawn line is copper/net continuity, a cable construction, or a fit analysis |
-| `harness_interface` | `harnesses/<id>/` | Typed electrical conductors, endpoint terminals, and harness attributes; the KiCad sheet is the interface-review view | Exact harness/conductor/endpoint coverage, ERC, and schematic SVG export | Cable construction instructions, a procurement approval, or system-level functional/mechanical claims |
+| `pcb` | `projects/pcb/<id>/` | Schematic, board geometry, and typed board netlist contract | ERC, DRC with schematic parity, netlist identity, schematic/PCB SVG exports | Procurement, fabrication, fit, or release approval |
+| `schematic` | `projects/schematic/<id>/` | Electrical intent and interface-review sheet | ERC and schematic SVG export | PCB layout, DRC, fabrication outputs, or a board BOM |
+| `system_wiring` | `projects/system-wiring/<id>/` | Typed product terminals, connection kinds, harnesses, and mechanical handoffs; the KiCad sheet is the review view | Complete typed traceability, ERC, and schematic SVG export | That a drawn line is copper/net continuity, a cable construction, or a fit analysis |
+| `harness_interface` | `projects/harness-interface/<id>/` | Typed electrical conductors, endpoint terminals, and harness attributes; the KiCad sheet is the interface-review view | Exact harness/conductor/endpoint coverage, ERC, and schematic SVG export | Cable construction instructions, a procurement approval, or system-level functional/mechanical claims |
 
 The source folder policy is enforced. A `pcb` project must contain and inventory
 both `.kicad_sch` and `.kicad_pcb`; `schematic`, `system_wiring`, and
@@ -26,9 +26,9 @@ unknown product, or a product-index mismatch. Connection types remain distinct:
 electrical, functional, protocol, and mechanical relationships are never silently
 recast as one electrical wire.
 
-Use `systems/status-indicator-wiring/` as the synthetic example. It is deliberately
+Use `examples/projects/system-wiring/status-indicator-wiring/` as the reference example. It is deliberately
 non-production. The relationship identifiers in the sheet map to
-`product/status-indicator-system.json`; that record, not a line on the sheet, owns
+`examples/products/status-indicator-system.json`; that record, not a line on the sheet, owns
 the connection semantics.
 
 A harness-interface view is deliberately narrower. It names one or more harnesses
@@ -36,13 +36,13 @@ and must cover exactly the electrical connections that use them, plus each condu
 endpoint. It cannot claim a functional status relationship or mechanical fit merely
 because those items appear in the broader product. The generated harness schedule
 is a typed planning/review artifact: it records revision, instance, length, conductor
-area, endpoints, assurance, and evidence, but remains NOT FOR MANUFACTURE. Use
-`harnesses/status-indicator-harness-interface/` as the synthetic example.
+area, endpoints, assurance, and evidence. Use
+`examples/projects/harness-interface/status-indicator-harness-interface/` as the synthetic example.
 
 ## Adding a deliverable
 
 1. Start from the matching project-config template and create the KiCad project
-   under its kind's controlled source root.
+   under its kind's canonical `projects/<domain>/` source root.
 2. Inventory every source input. Shared libraries, firmware, drawings, or models
    belong in `source_roots` only when the deliverable actually depends on them.
 3. Add a registry entry with the same `kind`, toolchain, tags, interfaces, and

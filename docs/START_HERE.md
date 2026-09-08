@@ -1,8 +1,12 @@
-# Start here — KiCad/Git template adoption
+# Start here — adopting the KiCad/Git template
 
-**Status: candidate template. The controller and status-LED examples are synthetic and NOT FOR MANUFACTURE.**
+This repository is the reference implementation of the team template. Read the
+[authority model](AUTHORITY_MODEL.md) first: the reusable process is in `docs/`,
+`templates/`, `tools/`, `tests/`, and the repository controls, while the complete
+sample system under `examples/` is discardable reference material.
 
-Complete this record before copying the structure to a real board repository. A blank field is a reason to stop and ask the designated maintainer, not a prompt to guess.
+Complete this record before copying the structure to a real repository. A blank
+field is a decision to make with the designated maintainer, not a value to guess.
 
 Run `python -B -m tools.template preflight` before bootstrap or adoption; see
 [template bootstrap and upgrades](TEMPLATE_ADOPTION.md) for the safe copy and
@@ -11,7 +15,7 @@ migration-plan commands.
 | Required decision | Record before adoption |
 | --- | --- |
 | Repository and default branch | URL and protected branch name |
-| Project identity | Board/project ID and `boards/<project-id>/<project-id>.kicad_pro` |
+| Project identity | Project ID and `projects/<domain>/<project-id>/<project-id>.kicad_pro` |
 | Approved KiCad build | Exact version, installer source, and rollout owner |
 | Library model | Project-local, shared, or both; approved versions and owners |
 | Mechanical owner | Interface reviewer and backup |
@@ -31,19 +35,21 @@ migration-plan commands.
 4. Make one non-electrical text change on a short-lived branch, run ERC/DRC and the repository checks, then complete a reviewed PR rehearsal.
 5. Run a separate toolchain-migration rehearsal before deploying a newer KiCad build to the team.
 
-Do not promote the controller fixture, a green CI run, or a copied directory to a hardware approval.
+The examples demonstrate repository mechanics; a real design still needs its own
+identity, review, sourcing, mechanical handoff, and release record.
 
-Before editing, run `python -m tools.check_toolchain --toolchain kicad-10.0.5`.
+Before editing, run `python -m tools.check_toolchain --toolchain <toolchain-id>`;
+the smallest bundled controller reference uses `kicad-10.0.0` and the LED
+references use `kicad-10.0.5`.
 A failure means the installed KiCad is read-only for this repository: do not save or
 convert; use the approved build or open a dedicated migration branch.
 
-## Training examples
+## Reference examples
 
-Use these only to practice the project, library, firmware, catalog, and review workflow:
+Use these to learn the project, library, firmware, catalog, and review workflow:
 
 - [Arduino Uno R3 D13 status LED](examples/arduino-uno-status-led.md)
 - [Raspberry Pi 40-pin GPIO17 status LED](examples/raspberry-pi-status-led.md)
 
-They intentionally use generic, non-procurable parts and a two-pin host harness. They
-are not shields, HATs, wiring instructions for a production system, or electrical
-release artifacts.
+They are deliberately small and synthetic. They are examples of organization and
+review flow, not product requirements.

@@ -1,43 +1,35 @@
 {
   "schema_version": "0.1",
-  "kind": "system_wiring",
+  "kind": "harness_interface",
   "assurance_profile": "training",
   "not_for_manufacture": true,
-  "project_id": "status-indicator-wiring",
+  "project_id": "status-indicator-harness-interface",
   "toolchain_id": "kicad-10.0.5",
   "kicad_version": "10.0.5",
   "image": "ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c",
-  "project": "systems/status-indicator-wiring/status-indicator-wiring.kicad_pro",
+  "project": "examples/projects/harness-interface/status-indicator-harness-interface/status-indicator-harness-interface.kicad_pro",
   "source_roots": [
-    "systems/status-indicator-wiring"
+    "examples/projects/harness-interface/status-indicator-harness-interface"
   ],
   "required_inputs": [
-    "systems/status-indicator-wiring/status-indicator-wiring.kicad_pro",
-    "systems/status-indicator-wiring/status-indicator-wiring.kicad_sch"
+    "examples/projects/harness-interface/status-indicator-harness-interface/status-indicator-harness-interface.kicad_pro",
+    "examples/projects/harness-interface/status-indicator-harness-interface/status-indicator-harness-interface.kicad_sch"
   ],
   "validation": {
-    "kind": "system_wiring",
+    "kind": "harness_interface",
     "product_id": "status-indicator-system",
     "connection_ids": [
-      "C-MOUNT",
       "C-RETURN",
-      "C-SIGNAL",
-      "C-STATUS-ROLE"
+      "C-SIGNAL"
     ],
     "terminal_ids": [
-      "T-BOARD-MOUNT",
       "T-CABLE-1",
       "T-CABLE-2",
-      "T-ENC-MOUNT",
-      "T-PI-SIGNAL",
       "T-UNO-RETURN",
       "T-UNO-SIGNAL"
     ],
     "harness_ids": [
       "H-STATUS"
-    ],
-    "mechanical_handoff_ids": [
-      "M-ENVELOPE"
     ],
     "expected_ignored_checks": {
       "erc": [],

@@ -27,14 +27,11 @@ from tools.hwrepo.generation import (
     verify_snapshot,
 )
 from tools.hwrepo.models import (
-    HarnessSchedule,
-    LibrarySbom,
     ProductRecord,
     ProjectConfig,
     ReleaseManifest,
     ReleasePoliciesCatalog,
     TemplateContract,
-    TemplateMetricsReport,
 )
 from tools.hwrepo.product import (
     check,
@@ -91,19 +88,11 @@ class ProductTests(unittest.TestCase):
 
     def stage(self):
         for directory in (
-            "boards",
             "catalog",
-            "configs",
-            "product",
+            "examples",
             "docs",
-            "libraries",
-            "firmware",
-            "schematics",
-            "systems",
-            "harnesses",
         ):
             shutil.copytree(ROOT / directory, self.temp / directory)
-        shutil.copy2(ROOT / "pilot.json", self.temp / "pilot.json")
         return self.temp
 
     def test_valid_training_product(self):
@@ -115,7 +104,7 @@ class ProductTests(unittest.TestCase):
 
     def test_system_wiring_contract_requires_complete_typed_coverage(self):
         config = read_model(
-            ROOT / "configs/status-indicator-wiring.json", ProjectConfig
+            ROOT / "examples/configs/status-indicator-wiring.json", ProjectConfig
         )
         check_system_wiring_contract(ROOT, config)
         bad = config.model_copy(
@@ -130,7 +119,7 @@ class ProductTests(unittest.TestCase):
 
     def test_harness_interface_contract_and_schedule_are_typed(self):
         config = read_model(
-            ROOT / "configs/status-indicator-harness-interface.json", ProjectConfig
+            ROOT / "examples/configs/status-indicator-harness-interface.json", ProjectConfig
         )
         check_harness_interface_contract(ROOT, config)
         schedule = harness_schedule(self.product, self.product.variants[0])
@@ -346,12 +335,6 @@ class ProductTests(unittest.TestCase):
     def test_published_schema_matches_implementation(self):
         schema = json.loads((ROOT / "schemas/product-v1.schema.json").read_text(encoding="utf-8"))
         self.assertEqual(schema, ProductRecord.model_json_schema())
-        harness_schema = json.loads(
-            (ROOT / "schemas/harness-schedule-v1.schema.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        self.assertEqual(harness_schema, HarnessSchedule.model_json_schema())
         project_config_schema = json.loads(
             (ROOT / "schemas/project-config-v1.schema.json").read_text(
                 encoding="utf-8"
@@ -370,18 +353,10 @@ class ProductTests(unittest.TestCase):
             (ROOT / "schemas/template-contract-v1.schema.json").read_text(encoding="utf-8")
         )
         self.assertEqual(template_schema, TemplateContract.model_json_schema())
-        metrics_schema = json.loads(
-            (ROOT / "schemas/template-metrics-v1.schema.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual(metrics_schema, TemplateMetricsReport.model_json_schema())
-        sbom_schema = json.loads(
-            (ROOT / "schemas/library-sbom-v1.schema.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual(sbom_schema, LibrarySbom.model_json_schema())
 
     def test_unregistered_product_discovered(self):
         root = self.stage()
-        (root / "product/forgotten.json").write_text("{}", encoding="utf-8")
+        (root / "examples/products/forgotten.json").write_text("{}", encoding="utf-8")
         self.assertIn("PRODUCT_DISCOVERY", {issue.code for issue in load_repository(root).issues})
 
     def test_project_scope_checks_only_products_that_declare_the_project(self):
@@ -400,7 +375,7 @@ class ProductTests(unittest.TestCase):
 
     def test_unregistered_project_discovered_even_in_selected_check(self):
         root = self.stage()
-        (root / "boards/forgotten.kicad_pro").write_text("{}", encoding="utf-8")
+        (root / "examples/projects/pcb/forgotten.kicad_pro").write_text("{}", encoding="utf-8")
         self.assertTrue(any("project discovery" in issue for issue in lint(root, ["controller"]).issues))
 
     def test_native_netlist_identity_adapter(self):
@@ -447,16 +422,16 @@ class ProductTests(unittest.TestCase):
 
     def test_tracked_local_state_classification(self):
         for value in (
-            "boards/a.kicad_prl",
-            "boards/~a.lck",
-            "boards/a-backups/a.zip",
+            "examples/projects/pcb/a.kicad_prl",
+            "examples/projects/pcb/~a.lck",
+            "examples/projects/pcb/a-backups/a.zip",
             "build/bom.csv",
             "tools/__pycache__/a.pyc",
             "Desktop.ini",
             ".vscode/settings.json",
         ):
             self.assertTrue(ephemeral(value), value)
-        for value in ("boards/a.kicad_pro", "libraries/a.kicad_sym", "generated/product/a/STANDARD.bom.csv"):
+        for value in ("examples/projects/pcb/a.kicad_pro", "libraries/a.kicad_sym", "generated/product/a/STANDARD.bom.csv"):
             self.assertFalse(ephemeral(value), value)
 
     def test_unmanaged_artifacts_are_rejected_but_engineering_records_remain_available(self):
@@ -511,7 +486,7 @@ class ProductTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0)
         for source in (
-            "boards/controller/controller.kicad_pro",
+            "examples/projects/pcb/controller/controller.kicad_pro",
             "docs/released-drawing.pdf",
             "mechanical/enclosure.step",
             "mechanical/outline.dxf",
@@ -533,7 +508,7 @@ class ProductTests(unittest.TestCase):
         root = self.stage()
         output = root / "build/review"
         def fake_git(argv, **kwargs):
-            return subprocess.CompletedProcess(argv, 0, "a" * 40 if "rev-parse" in argv else " M product/status-indicator-system.json\n", "")
+            return subprocess.CompletedProcess(argv, 0, "a" * 40 if "rev-parse" in argv else " M examples/products/status-indicator-system.json\n", "")
         with patch("tools.hwrepo.generation.subprocess.run", side_effect=fake_git):
             manifest = snapshot(root, output)
             self.assertFalse(manifest.working_tree_clean)
@@ -549,7 +524,7 @@ class ProductTests(unittest.TestCase):
     def test_generation_does_not_write_invalid_product(self):
         root = self.stage()
         self.data["connections"][0]["to"] = "missing"
-        (root / "product/status-indicator-system.json").write_text(json.dumps(self.data), encoding="utf-8")
+        (root / "examples/products/status-indicator-system.json").write_text(json.dumps(self.data), encoding="utf-8")
         with self.assertRaises(ValueError):
             generate(root)
         self.assertFalse((root / "generated").exists())
@@ -558,13 +533,13 @@ class ProductTests(unittest.TestCase):
         from tools.validate import validate
         root = self.stage()
         self.data["connections"][0]["to"] = "missing"
-        (root / "product/status-indicator-system.json").write_text(json.dumps(self.data), encoding="utf-8")
+        (root / "examples/products/status-indicator-system.json").write_text(json.dumps(self.data), encoding="utf-8")
         with patch("tools.validate.execute") as execute:
             result = validate(
                 root,
                 root / "output",
                 "must-not-run",
-                Path("configs/arduino-uno-status-led.json"),
+                Path("examples/configs/arduino-uno-status-led.json"),
             )
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.checks["product_policy"].status, "FAIL")

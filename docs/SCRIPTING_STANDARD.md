@@ -40,6 +40,13 @@ use a typed Python name plus an explicit serialization alias.
 6. Treat KiCad report/XML formats as third-party adapter formats. Convert the
    minimal fields used by policy into typed adapter records before applying rules.
 
+Published schema policy: commit JSON Schema artifacts only for durable input,
+configuration, or release contracts that non-Python consumers may validate.
+Internal reports and generated review projections remain Pydantic models and
+generated JSON/CSV outputs; they do not receive a second committed schema file.
+Run `python -B -m tools.hardware generate` to refresh the published schemas and
+generated views. CI compares those artifacts with the models and fails on drift.
+
 ## Script layout
 
 - tools/hwrepo/models.py — versioned serialized contracts and typed report/view
@@ -54,6 +61,12 @@ use a typed Python name plus an explicit serialization alias.
   unsupported because it changes Python's import root.
   New substantial policy belongs under
   hwrepo/, not in an argument-parsing script.
+
+The `-m` module boundary is mandatory for every repository CLI. On a POSIX host
+whose interpreter is named `python3`, `python3 -m tools.<command>` is equivalent;
+the executable name may vary by host, but a script path may not replace the
+module invocation. CI must call the central `tools.ci` module rather than
+invoking a lower-level tool by file path.
 
 ## Tests and quality gates
 

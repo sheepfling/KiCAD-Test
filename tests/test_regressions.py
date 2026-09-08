@@ -36,13 +36,13 @@ class RegressionTests(unittest.TestCase):
         self.temp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root: Path = Path(self.temp.name)
-        self.config = read_model(ROOT / "pilot.json", ProjectConfig)
+        self.config = read_model(ROOT / "examples/configs/controller.json", ProjectConfig)
     ####
 
     def erc_report(self) -> ErcReport:
         return {
             "schema": "https://schemas.kicad.org/erc.v1.json",
-            "kicad_version": "10.0.5",
+            "kicad_version": "10.0.0",
             "included_severities": ["error", "warning", "exclusion"],
             "ignored_checks": [
                 {"key": key}
@@ -60,18 +60,18 @@ class RegressionTests(unittest.TestCase):
     ####
 
     def test_known_local_state_does_not_change_source_identity(self) -> None:
-        shutil.copytree(ROOT / "boards", self.root / "boards")
-        before = hashes(self.root)
-        (self.root / "boards/controller/controller.kicad_prl").write_text("local preferences")
-        (self.root / "boards/controller/fp-info-cache").write_text("local cache")
-        self.assertEqual(before, hashes(self.root))
+        shutil.copytree(ROOT / "examples/projects/pcb", self.root / "examples/projects/pcb")
+        before = hashes(self.root, self.config.source_roots)
+        (self.root / "examples/projects/pcb/controller/controller.kicad_prl").write_text("local preferences")
+        (self.root / "examples/projects/pcb/controller/fp-info-cache").write_text("local cache")
+        self.assertEqual(before, hashes(self.root, self.config.source_roots))
     ####
 
     def test_other_new_source_still_changes_inventory(self) -> None:
-        shutil.copytree(ROOT / "boards", self.root / "boards")
-        before = hashes(self.root)
-        (self.root / "boards/controller/new.kicad_sch").write_text("unregistered")
-        self.assertNotEqual(before, hashes(self.root))
+        shutil.copytree(ROOT / "examples/projects/pcb", self.root / "examples/projects/pcb")
+        before = hashes(self.root, self.config.source_roots)
+        (self.root / "examples/projects/pcb/controller/new.kicad_sch").write_text("unregistered")
+        self.assertNotEqual(before, hashes(self.root, self.config.source_roots))
     ####
 
     def test_pcb_svg_is_a_file_not_a_directory(self) -> None:

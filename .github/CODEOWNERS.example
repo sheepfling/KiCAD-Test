@@ -1,7 +1,8 @@
 # Example only, deliberately inactive. Replace with real independently reviewing
 # users/teams with write access, then configure required ownership review.
-# /boards/controller/ @YOUR-HARDWARE-REVIEWER
+# /projects/ @YOUR-HARDWARE-REVIEWER
 # /tools/ @YOUR-PROCESS-MAINTAINER
-# /pilot.json @YOUR-HARDWARE-REVIEWER @YOUR-PROCESS-MAINTAINER
+# /catalog/ @YOUR-HARDWARE-REVIEWER @YOUR-PROCESS-MAINTAINER
+# /examples/ @YOUR-HARDWARE-REVIEWER @YOUR-PROCESS-MAINTAINER
 # /.github/ @YOUR-PROCESS-MAINTAINER
 # Listing two owners does not require an approval from each discipline.

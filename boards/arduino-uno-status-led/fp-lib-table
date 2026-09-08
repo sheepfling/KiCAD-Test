@@ -1,3 +1,0 @@
-(fp_lib_table (version 7)
- (lib (name "StatusLedTraining")(type "KiCad")(uri "${KIPRJMOD}/../../libraries/status-led/status-led.pretty")(options "")(descr "shared status-LED training footprints"))
-)

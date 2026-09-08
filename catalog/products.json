@@ -3,7 +3,7 @@
   "products": [
     {
       "id": "status-indicator-system",
-      "path": "product/status-indicator-system.json",
+      "path": "examples/products/status-indicator-system.json",
       "project_ids": [
         "arduino-uno-status-led",
         "raspberry-pi-status-led",

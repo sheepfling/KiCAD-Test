@@ -467,11 +467,17 @@ def load_repository(
         for entry in index.products:
             path = repo_path(root, entry.path)
             if (
-                not entry.path.startswith("product/")
+                not (
+                    entry.path.startswith("products/")
+                    or entry.path.startswith("examples/products/")
+                )
                 or path.suffix != ".json"
                 or entry.path in declared
             ):
-                raise ValueError("Products need unique product/*.json paths")
+                raise ValueError(
+                    "Products need unique products/*.json paths "
+                    "(or examples/products/*.json in the template)"
+                )
             declared.add(entry.path)
             if len(set(entry.project_ids)) != len(entry.project_ids):
                 issues.append(
@@ -553,13 +559,15 @@ def load_repository(
         if selected is None:
             found = {
                 path.relative_to(root).as_posix()
-                for path in (root / "product").rglob("*.json")
+                for product_root in ("products", "examples/products")
+                for path in (root / product_root).rglob("*.json")
+                if (root / product_root).is_dir()
             }
             if declared != found:
                 issues.append(
                     PolicyIssue(
                         code="PRODUCT_DISCOVERY",
-                        location="product",
+                        location="products",
                         message=f"Unregistered or missing products: {sorted(declared ^ found)}",
                     )
                 )

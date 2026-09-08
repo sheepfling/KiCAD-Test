@@ -1,14 +1,19 @@
 # Instantiating the team template
 
-Use this repository as a GitHub template only after the adoption record in `docs/START_HERE.md` is complete. The included `boards/controller` files are a synthetic golden fixture, not a production starting design.
+Use this repository as a GitHub template after the adoption record in
+`docs/START_HERE.md` is complete. The reusable process is in `docs/`,
+`templates/`, `tools/`, and `tests/`; the complete worked system is grouped in
+`examples/` so it is easy to review, replace, or remove.
 
-Choose the deliverable kind before creating source: PCB projects live in `boards/`,
-schematic-only projects in `schematics/`, system-wiring views in `systems/`, and
-harness-interface views in `harnesses/`. Every kind commits `.kicad_pro` and
-`.kicad_sch`; only PCB projects commit `.kicad_pcb`. Use the matching configuration
-template, source-root inventory, and typed validation contract before relying on CI.
+Choose the deliverable kind before creating source in an adopted repository: PCB
+projects live in `projects/pcb/`, schematic-only projects in
+`projects/schematic/`, system-wiring views in `projects/system-wiring/`, and
+harness-interface views in `projects/harness-interface/`. Every kind commits
+`.kicad_pro` and `.kicad_sch`; only PCB projects commit `.kicad_pcb`. Use the
+matching configuration template, source-root inventory, and typed validation
+contract before relying on CI.
 
-Copy the release-manifest example and [mechanical-handoff template](mechanical-handoff.production.md); replace every placeholder with reviewed project facts. Do not carry the `NOT FOR MANUFACTURE` fixture label into a release record without an explicit disposition.
+Copy the release-manifest example and [mechanical-handoff template](mechanical-handoff.production.md); replace every placeholder with reviewed project facts. Example labels describe the bundled reference data; record the actual assurance and release disposition for an adopted project.
 
 The typed [release-manifest template](release-manifest.example.json) is the candidate
 record validated by `python -m tools.ci --release`; the YAML example in `docs/` remains a

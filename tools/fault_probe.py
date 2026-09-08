@@ -26,15 +26,15 @@ def probe(root: Path, output: Path) -> FaultProbeReport:
             # dependency masks the intended ERC/DRC defect.
             shutil.copytree(root, copy, dirs_exist_ok=True,
                             ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"))
-            board: Path = copy / "boards/controller/controller.kicad_pcb"
-            sch: Path = copy / "boards/controller/controller.kicad_sch"
+            board: Path = copy / "examples/projects/pcb/controller/controller.kicad_pcb"
+            sch: Path = copy / "examples/projects/pcb/controller/controller.kicad_sch"
             cli: str = "kicad-cli"
             expected: str = "preflight"
             if name == "malformed_pcb":
                 board.write_text("This is not a KiCad PCB.\n")
                 expected = "drc"
             elif name == "missing_library":
-                (copy / "boards/controller/Pilot.kicad_sym").unlink()
+                (copy / "examples/projects/pcb/controller/Pilot.kicad_sym").unlink()
             elif name == "erc_open_pin":
                 text: str = sch.read_text()
                 if "(xy 76.2 71.12)" not in text:
@@ -54,11 +54,11 @@ def probe(root: Path, output: Path) -> FaultProbeReport:
                 board.write_text(text.replace('(property "Value" "1k"', '(property "Value" "999k"', 1))
                 expected = "drc"
             elif name == "missing_tool":
-                cli = "intentionally-missing-kicad-pilot-executable"
+                cli = "intentionally-missing-kicad-executable"
             else:
-                (copy / "boards/unregistered").mkdir()
-                (copy / "boards/unregistered/ghost.kicad_pro").write_text("{}\n")
-                (copy / "boards/unregistered/ghost.kicad_pcb").write_text("undeclared board\n")
+                (copy / "examples/projects/pcb/unregistered").mkdir()
+                (copy / "examples/projects/pcb/unregistered/ghost.kicad_pro").write_text("{}\n")
+                (copy / "examples/projects/pcb/unregistered/ghost.kicad_pcb").write_text("undeclared board\n")
             report = validate(copy, output / name, cli)
             observed = report.checks.get(expected)
             passed = report.status == "FAIL" and observed is not None and observed.status == "FAIL"

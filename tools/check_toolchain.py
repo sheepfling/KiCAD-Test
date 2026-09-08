@@ -72,7 +72,7 @@ def observed_version(cli: str) -> str | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--toolchain", default="kicad-10.0.5")
+    parser.add_argument("--toolchain", default="kicad-10.0.0")
     parser.add_argument("--cli", default="kicad-cli")
     args = parser.parse_args()
     result = assessment(toolchain(args.root.resolve(), args.toolchain), observed_version(args.cli))

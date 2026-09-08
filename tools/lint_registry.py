@@ -197,8 +197,9 @@ def lint(
     discovered = {
         path.relative_to(root).as_posix()
         for kind in ProjectKind
-        for path in (root / kind.design_root).rglob("*.kicad_pro")
-        if (root / kind.design_root).is_dir()
+        for design_root in kind.accepted_roots
+        for path in (root / design_root).rglob("*.kicad_pro")
+        if (root / design_root).is_dir()
         and not any(part.endswith("-backups") for part in path.parts)
     }
     if declared != discovered:
@@ -226,10 +227,14 @@ def lint(
             issues.append(f"project {identifier}: config project_id must match registry id")
         if config.kind is not project.kind:
             issues.append(f"project {identifier}: config kind must match registry kind")
-        if Path(project.project).parts[0] != project.kind.design_root:
+        project_path = Path(project.project).as_posix()
+        if not any(
+            project_path == design_root or project_path.startswith(f"{design_root}/")
+            for design_root in project.kind.accepted_roots
+        ):
             issues.append(
                 f"project {identifier}: {project.kind.value} projects belong under "
-                f"{project.kind.design_root}/"
+                f"{project.kind.design_root}/ (fixtures may use {project.kind.example_root}/)"
             )
         if config.project != project.project:
             issues.append(f"project {identifier}: config project path must match registry")

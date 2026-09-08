@@ -36,7 +36,7 @@ def hashes(
     root: Path, source_roots: Sequence[str] | None = None
 ) -> dict[str, str]:
     """Hash the declared design and library roots, excluding local KiCad state."""
-    roots = ("boards",) if source_roots is None else tuple(source_roots)
+    roots = ("projects",) if source_roots is None else tuple(source_roots)
     if not roots or any(not item for item in roots):
         raise ValueError("source_roots must be a non-empty list of relative directories")
     result: dict[str, str] = {}
@@ -181,11 +181,13 @@ def validate(
     root = root.resolve()
     checks: dict[str, CheckEvidence] = {}
     before: dict[str, str] = {}
-    source_roots: tuple[str, ...] = ("boards",)
+    source_roots: tuple[str, ...] = ("projects",)
     config: ProjectConfig | None = None
     profile: Literal["training", "production"] | None = None
     not_for_manufacture: bool | None = None
-    selected_config = root / (Path("pilot.json") if config_path is None else config_path)
+    selected_config = root / (
+        Path("examples/configs/controller.json") if config_path is None else config_path
+    )
     try:
         if root not in selected_config.resolve().parents:
             raise ValueError("Configuration path must remain inside the repository root")
@@ -406,7 +408,9 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cli", default="kicad-cli")
-    parser.add_argument("--config", type=Path, default=Path("pilot.json"))
+    parser.add_argument(
+        "--config", type=Path, default=Path("examples/configs/controller.json")
+    )
     args: argparse.Namespace = parser.parse_args()
     summary = validate(args.root.resolve(), args.output.resolve(), args.cli, args.config)
     print(summary.model_dump_json(indent=2))

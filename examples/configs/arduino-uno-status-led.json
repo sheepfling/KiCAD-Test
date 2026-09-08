@@ -7,26 +7,26 @@
   "toolchain_id": "kicad-10.0.5",
   "kicad_version": "10.0.5",
   "image": "ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c",
-  "project": "boards/arduino-uno-status-led/arduino-uno-status-led.kicad_pro",
+  "project": "examples/projects/pcb/arduino-uno-status-led/arduino-uno-status-led.kicad_pro",
   "source_roots": [
-    "boards/arduino-uno-status-led",
-    "firmware/arduino-uno-status-led",
-    "libraries/status-led"
+    "examples/projects/pcb/arduino-uno-status-led",
+    "examples/firmware/arduino-uno-status-led",
+    "examples/libraries/status-led"
   ],
   "required_inputs": [
-    "boards/arduino-uno-status-led/arduino-uno-status-led.kicad_pcb",
-    "boards/arduino-uno-status-led/arduino-uno-status-led.kicad_pro",
-    "boards/arduino-uno-status-led/arduino-uno-status-led.kicad_sch",
-    "boards/arduino-uno-status-led/fp-lib-table",
-    "boards/arduino-uno-status-led/sym-lib-table",
-    "firmware/arduino-uno-status-led/arduino-uno-status-led.ino",
-    "libraries/status-led/LICENSE.md",
-    "libraries/status-led/PROVENANCE.md",
-    "libraries/status-led/README.md",
-    "libraries/status-led/status-led.kicad_sym",
-    "libraries/status-led/status-led.pretty/Header_1x02.kicad_mod",
-    "libraries/status-led/status-led.pretty/LED_5mm.kicad_mod",
-    "libraries/status-led/status-led.pretty/R_Axial_10mm.kicad_mod"
+    "examples/projects/pcb/arduino-uno-status-led/arduino-uno-status-led.kicad_pcb",
+    "examples/projects/pcb/arduino-uno-status-led/arduino-uno-status-led.kicad_pro",
+    "examples/projects/pcb/arduino-uno-status-led/arduino-uno-status-led.kicad_sch",
+    "examples/projects/pcb/arduino-uno-status-led/fp-lib-table",
+    "examples/projects/pcb/arduino-uno-status-led/sym-lib-table",
+    "examples/firmware/arduino-uno-status-led/arduino-uno-status-led.ino",
+    "examples/libraries/status-led/LICENSE.md",
+    "examples/libraries/status-led/PROVENANCE.md",
+    "examples/libraries/status-led/README.md",
+    "examples/libraries/status-led/status-led.kicad_sym",
+    "examples/libraries/status-led/status-led.pretty/Header_1x02.kicad_mod",
+    "examples/libraries/status-led/status-led.pretty/LED_5mm.kicad_mod",
+    "examples/libraries/status-led/status-led.pretty/R_Axial_10mm.kicad_mod"
   ],
   "validation": {
     "kind": "pcb",

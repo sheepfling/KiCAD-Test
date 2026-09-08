@@ -151,14 +151,29 @@ class ProjectKind(str, Enum):
     HARNESS_INTERFACE = "harness_interface"
 
     @property
-    def design_root(self) -> str:
-        """Return the one controlled repository root for this design kind."""
+    def domain_name(self) -> str:
+        """Return the human-facing directory name for this design kind."""
         return {
-            ProjectKind.PCB: "boards",
-            ProjectKind.SCHEMATIC: "schematics",
-            ProjectKind.SYSTEM_WIRING: "systems",
-            ProjectKind.HARNESS_INTERFACE: "harnesses",
+            ProjectKind.PCB: "pcb",
+            ProjectKind.SCHEMATIC: "schematic",
+            ProjectKind.SYSTEM_WIRING: "system-wiring",
+            ProjectKind.HARNESS_INTERFACE: "harness-interface",
         }[self]
+
+    @property
+    def design_root(self) -> str:
+        """Return the canonical root for adopted-repository project sources."""
+        return f"projects/{self.domain_name}"
+
+    @property
+    def example_root(self) -> str:
+        """Return the fixture root used by this template's reference projects."""
+        return f"examples/{self.design_root}"
+
+    @property
+    def accepted_roots(self) -> tuple[str, str]:
+        """Return canonical and template-fixture roots accepted by repository policy."""
+        return (self.design_root, self.example_root)
 
 
 class ProjectRecord(StrictModel):

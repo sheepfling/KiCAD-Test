@@ -107,8 +107,12 @@ class CiDriverTests(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue())["lane"], "TEMPLATE_METRICS")
 
     def test_workflow_delegates_policy_work_to_the_driver(self) -> None:
-        workflow = (ROOT / ".github/workflows/kicad-pilot.yml").read_text(
+        workflow = (ROOT / ".github/workflows/kicad-template.yml").read_text(
             encoding="utf-8"
+        )
+        self.assertNotRegex(
+            workflow,
+            r"\bpython(?:3)?\s+(?!-m\b)[^\n]*tools[/\\][^\n]*\.py",
         )
         for command in ("tools/ci_matrix.py", "tools/check_all.py", "tools/fault_probe.py"):
             self.assertNotIn(command, workflow)

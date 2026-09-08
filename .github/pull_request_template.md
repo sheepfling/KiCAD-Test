@@ -1,6 +1,14 @@
-## Training change — NOT FOR MANUFACTURE
+## Change classification
 
-Board assignment / issue:
+- [ ] Template/process guidance
+- [ ] Tooling or CI
+- [ ] Reference example
+- [ ] Adopted engineering project
+
+Project kind (`pcb`, `schematic`, `system_wiring`, or `harness_interface`):
+Assurance profile (`training` or `production`):
+
+Assignment / issue:
 Intended change:
 Source, library, rule, exclusion or expected-netlist changes:
 KiCad version and project-format status:
@@ -20,4 +28,6 @@ Reviewer and disposition (not the author):
 For a toolchain or project-format migration, use a dedicated PR. Do not mix it
 with electrical, PCB-layout, library, or mechanical-interface changes.
 
-A green run is not a board lock, branch protection or manufacturing approval.
+A green run is evidence for review; it is not a board lock, branch protection or
+manufacturing approval. Keep an explicit `NOT FOR MANUFACTURE` marker on training
+fixtures and their review views.

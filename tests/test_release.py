@@ -41,7 +41,7 @@ class ReleaseReadinessTests(unittest.TestCase):
             self.root,
             ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"),
         )
-        product_path = self.root / "product/status-indicator-system.json"
+        product_path = self.root / "examples/products/status-indicator-system.json"
         product = read_model(product_path, ProductRecord)
         write_model(product_path, product.model_copy(update={"maturity": "engineering_review"}))
 
@@ -140,7 +140,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         )
 
     def test_release_class_enforces_the_catalogued_assurance_floor(self) -> None:
-        product_path = self.root / "product/status-indicator-system.json"
+        product_path = self.root / "examples/products/status-indicator-system.json"
         product = read_model(product_path, ProductRecord)
         write_model(product_path, product.model_copy(update={"maturity": "prototype"}))
         manifest = self.manifest(release_class=ReleaseClass.PROTOTYPE)

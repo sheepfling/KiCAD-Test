@@ -52,7 +52,7 @@ def run_command(root: Path, *argv: str) -> CommandEvidence:
 def project_static_pipeline(
     root: Path, selected: tuple[str, ...]
 ) -> ProjectStaticPipelineReport:
-    """Run the fast local policy lane for selected boards and dependent products."""
+    """Run the fast local policy lane for selected projects and dependent products."""
     registry = lint(root, list(selected))
     repository = check_repository(root, selected)
     product = product_check(root, selected_project_ids=selected)
@@ -83,7 +83,7 @@ def project_static_pipeline(
 def static_pipeline(
     root: Path, selected: list[str] | None
 ) -> StaticPipelineReport | ProjectStaticPipelineReport:
-    """Run the full shared gate or the fast local lane for selected boards."""
+    """Run the full shared gate or the fast local lane for selected projects."""
     if selected is not None:
         return project_static_pipeline(root, tuple(selected))
     registry = lint(root)

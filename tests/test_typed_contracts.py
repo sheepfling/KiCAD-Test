@@ -58,18 +58,13 @@ class TypedContractsTests(unittest.TestCase):
 
     def stage(self) -> Path:
         for directory in (
-            "boards",
             "catalog",
-            "configs",
-            "product",
+            "examples",
             "docs",
             "generated",
-            "libraries",
-            "firmware",
             "schemas",
         ):
             shutil.copytree(ROOT / directory, self.temp / directory)
-        shutil.copy2(ROOT / "pilot.json", self.temp / "pilot.json")
         return self.temp
 
     def test_loaded_records_are_models_with_immutable_sequences(self) -> None:

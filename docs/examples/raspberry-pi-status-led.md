@@ -12,7 +12,7 @@ supply power.
 | 1 | 40-pin header physical 11 / BCM GPIO17 | GPIO17_STATUS | LED drive |
 | 2 | 40-pin header physical 6 / GND | GND | Return |
 
-The Python example is at firmware/raspberry-pi-status-led/status_led.py. It uses GPIO
+The Python example is at examples/firmware/raspberry-pi-status-led/status_led.py. It uses GPIO
 Zero's BCM numbering and blinks GPIO17.
 
 Raspberry Pi GPIO is a 3.3 V logic domain. Do not connect 5 V to GPIO17, and do not

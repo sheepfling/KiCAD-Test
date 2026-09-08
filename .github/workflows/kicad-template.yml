@@ -1,4 +1,4 @@
-name: KiCad pilot
+name: KiCad template acceptance
 on:
   pull_request:
   push:
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: kicad-pilot-${{ github.ref }}
+  group: kicad-template-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   project-matrix:
@@ -78,7 +78,7 @@ jobs:
         id: baseline
         run: |
           docker run --rm --user "$(id -u):$(id -g)" --entrypoint sh \
-            -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
+            -e HOME=/tmp/kicad-template -e PYTHONDONTWRITEBYTECODE=1 \
             -e CHECKED_SHA -e PR_HEAD_SHA \
             -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
             -ec 'python3 -m pip install --disable-pip-version-check pydantic==2.13.4; python3 -m tools.ci --kicad --project "$PROJECT_ID" --output build/review'
@@ -86,7 +86,7 @@ jobs:
         if: matrix.project == 'controller' && steps.baseline.outcome == 'success'
         run: |
           docker run --rm --user "$(id -u):$(id -g)" --entrypoint sh \
-            -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
+            -e HOME=/tmp/kicad-template -e PYTHONDONTWRITEBYTECODE=1 \
             -e CHECKED_SHA -e PR_HEAD_SHA \
             -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
             -ec 'python3 -m pip install --disable-pip-version-check pydantic==2.13.4; python3 -m tools.ci --fault-probes --output build/fault-probes'
@@ -104,7 +104,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   engineering-gate:
-    name: Engineering acceptance (synthetic pilot only)
+    name: Template acceptance
     if: always()
     needs: [python-tests, kicad]
     runs-on: ubuntu-24.04
@@ -117,4 +117,4 @@ jobs:
         run: |
           test "$UNIT_RESULT" = success
           test "$KICAD_RESULT" = success
-          echo "Synthetic checks executed successfully. NOT FOR MANUFACTURE."
+          echo "Reference checks executed successfully. These checks are workflow evidence, not manufacturing authorization."

@@ -2,7 +2,7 @@
 
 ## Before opening KiCad
 
-1. Confirm the board assignment, branch, and exact approved KiCad version. Run `python -m tools.check_toolchain --toolchain kicad-10.0.5`; a failure means do not save or convert.
+1. Confirm the project assignment, branch, and exact approved KiCad version. The template catalog currently includes exact KiCad 10.0.0 and 10.0.5 pins; run `python -m tools.check_toolchain --toolchain <toolchain-id>`. A failure means do not save or convert.
 2. Close KiCad before switching branches. Record `git status --short` and preserve every existing change.
 3. If the tree is not clean, continue on that branch or ask the maintainer. Never use `reset`, `clean`, a force push, or a discard prompt to make a branch operation succeed.
 

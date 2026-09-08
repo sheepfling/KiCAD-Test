@@ -4,7 +4,7 @@
   "status": "engineering",
   "assurance_profile": "production",
   "config": "configs/REPLACE-WITH-PROJECT-ID.json",
-  "project": "boards/REPLACE-WITH-PROJECT-ID/REPLACE-WITH-PROJECT-ID.kicad_pro",
+  "project": "projects/pcb/REPLACE-WITH-PROJECT-ID/REPLACE-WITH-PROJECT-ID.kicad_pro",
   "component_identity": {
     "required": true,
     "part_ids": [

@@ -106,11 +106,22 @@ class GovernanceLintTests(unittest.TestCase):
                 "status-indicator-harness-interface",
             ],
         )
+        expected_versions = {
+            "controller": "10.0.0",
+            "arduino-uno-status-led": "10.0.5",
+            "raspberry-pi-status-led": "10.0.5",
+            "status-indicator-wiring": "10.0.5",
+            "passive-signal-reference": "10.0.5",
+            "status-indicator-harness-interface": "10.0.5",
+        }
         for row in matrix.include:
-            self.assertEqual(row.kicad_version, "10.0.5")
+            self.assertEqual(row.kicad_version, expected_versions[row.project])
             self.assertIn("@sha256:", row.image)
 
     def test_toolchain_catalog_is_the_single_source_of_version_identity(self) -> None:
+        baseline = toolchain(ROOT, "kicad-10.0.0")
+        self.assertEqual(baseline.kicad_version, "10.0.0")
+        self.assertEqual(assessment(baseline, "10.0.0").status, "PASS")
         record = toolchain(ROOT, "kicad-10.0.5")
         self.assertEqual(record.kicad_version, "10.0.5")
         self.assertEqual(assessment(record, "10.0.5").status, "PASS")
@@ -124,7 +135,7 @@ class GovernanceLintTests(unittest.TestCase):
                 staged,
                 ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"),
             )
-            provenance = staged / "libraries/status-led/PROVENANCE.md"
+            provenance = staged / "examples/libraries/status-led/PROVENANCE.md"
             provenance.write_text(
                 provenance.read_text(encoding="utf-8") + "\nUnexpected change.\n",
                 encoding="utf-8",
@@ -172,7 +183,7 @@ class GovernanceLintTests(unittest.TestCase):
                 registry_path,
                 registry.model_copy(update={"projects": (project, *registry.projects[1:])}),
             )
-            config_path: Path = staged / "pilot.json"
+            config_path: Path = staged / "examples/configs/controller.json"
             config = read_model(config_path, ProjectConfig)
             write_model(
                 config_path,

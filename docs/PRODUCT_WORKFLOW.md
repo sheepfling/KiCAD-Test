@@ -1,12 +1,12 @@
 # Product, harness and electrical–mechanical workflow
 
-This is a reusable engineering-review foundation, not a production release system.
-All included assemblies, cable dimensions and procurement rows are synthetic and
-NOT FOR MANUFACTURE. A green check never grants build authorization.
+This document defines how projects, product records, BOMs, harness interfaces,
+and mechanical handoffs fit together. The bundled product record is a reference
+dataset; an adopted repository replaces it with its own reviewed product records.
 
 ## Start with the working example
 
-`product/status-indicator-system.json` adds a system layer around the existing
+`examples/products/status-indicator-system.json` adds a system layer around the existing
 Arduino and Raspberry Pi status-LED boards. It has a phantom system, two built
 board assemblies, one purchased cable assembly, an enclosure, three variants,
 typed terminals/relationships, and an explicitly unresolved mechanical handoff.
@@ -16,18 +16,18 @@ cable, or a complete physical product. The host GPIOs must not be wired together
 | Fact | Authoritative location | Checked/generated view |
 | --- | --- | --- |
 | Internal part identity, manufacturer, MPN, part revision | `catalog/parts.json` | Product memberships, KiCad `PART_ID`, review BOM |
-| PCB electrical connectivity, symbol reference, footprint, PCB geometry | `boards/<id>/` | Native netlist, ERC/DRC, golden contract for these fixtures |
-| Schematic-only electrical intent and interface review | `schematics/<id>/` | ERC and schematic SVG; no board/netlist/BOM claim |
-| System blockout/wiring review view | `systems/<id>/` plus typed `product/*.json` relationship records | Complete relation/terminal/harness/mechanical traceability, ERC, and schematic SVG; a diagram line alone is not electrical truth |
-| Harness-interface review view and schedule | `harnesses/<id>/` plus typed `product/*.json` harness records | Exact electrical conductor/endpoint/harness traceability; generated JSON/CSV schedule for review, never a purchase authorization |
-| Assembly membership and quantity | `product/*.json` | Expanded variant BOM |
+| PCB electrical connectivity, symbol reference, footprint, PCB geometry | `projects/pcb/<id>/` | Native netlist, ERC/DRC, reference contract |
+| Schematic-only electrical intent and interface review | `projects/schematic/<id>/` | ERC and schematic SVG; no board/netlist/BOM claim |
+| System blockout/wiring review view | `projects/system-wiring/<id>/` plus typed `products/*.json` relationship records | Complete relation/terminal/harness/mechanical traceability, ERC, and schematic SVG; a diagram line alone is not electrical truth |
+| Harness-interface review view and schedule | `projects/harness-interface/<id>/` plus typed `products/*.json` harness records | Exact electrical conductor/endpoint/harness traceability; generated JSON/CSV schedule for review |
+| Assembly membership and quantity | `products/*.json` | Expanded variant BOM |
 | Harness terminals and construction assumptions | Product terminals/harness records in this v1 example | Electrical connection JSON; future harness renderer consumes these IDs |
 | Functional, protocol and mechanical relationships | Typed product connections | Generated semantic system view; never exported as electrical continuity |
 | Datum, units, drawing reference, unresolved fit questions | Product mechanical record plus controlled drawing | Reference/units checks; physical fit still reviewed by engineers |
 | Evidence scope and immutable content identity | Product evidence records plus repository files | Claim/type/reference/SHA-256 checks |
 | Human approval and protected-branch enforcement | Actual review and hosting controls | Not established by text fields or this product checker |
 
-Do not introduce a second part catalog under `product/`. An external PLM/PDM
+Do not introduce a second part catalog under `products/`. An external PLM/PDM
 adapter can later own the same stable identities; choose one authority explicitly.
 Part revision, assembly revision, variant revision, Git commit and serialized unit
 identity are different things. Unit/as-built records belong in a separate controlled
@@ -54,7 +54,8 @@ Python quality suite. `--kicad` adds actual pinned KiCad checks; use a new evide
 directory every time. KiCad must be closed and exactly match the declared version.
 No command stashes, resets, commits, pushes, merges, buys parts or changes permissions.
 
-`generate` overwrites only the documented generated product/schema paths. It does
+`generate` overwrites only the documented generated product views and published
+schema paths. It does
 not edit design source, identities, pins or assurance. Review its diff and rerun
 checks. Renamed/deleted variants leave old output files: the drift gate flags them;
 review and remove those specific obsolete outputs yourself. No automatic cleanup.

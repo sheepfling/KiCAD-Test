@@ -38,7 +38,6 @@ from .models import (
     SystemView,
     TemplateAdoptionRecord,
     TemplateContract,
-    TemplateMetricsReport,
     TemplateUpgradesCatalog,
     Variant,
 )
@@ -316,11 +315,6 @@ def expected_outputs(
             "schemas/template-upgrades-v1.schema.json": schema_json_bytes(
                 TemplateUpgradesCatalog
             ),
-            "schemas/template-metrics-v1.schema.json": schema_json_bytes(
-                TemplateMetricsReport
-            ),
-            "schemas/library-sbom-v1.schema.json": schema_json_bytes(LibrarySbom),
-            "schemas/harness-schedule-v1.schema.json": schema_json_bytes(HarnessSchedule),
             "generated/library-sbom-v1.json": model_json_bytes(library_sbom(root)),
             "schemas/sourcing-snapshot-v1.schema.json": schema_json_bytes(
                 SourcingSnapshot
@@ -407,14 +401,14 @@ def snapshot(root: Path, output: Path) -> SnapshotManifest:
     sources: set[Path] = set()
     for directory in (
         "catalog",
-        "product",
+        "configs",
+        "products",
+        "projects",
+        "examples",
+        "libraries",
         "tools",
         "tests",
         ".github",
-        "boards",
-        "libraries",
-        "configs",
-        "firmware",
         "docs",
     ):
         sources.update(
@@ -425,7 +419,6 @@ def snapshot(root: Path, output: Path) -> SnapshotManifest:
             and path.suffix not in {".kicad_prl", ".pyc"}
             and path.name != "fp-info-cache"
         )
-    sources.add(root / "pilot.json")
     source_hashes = {
         path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(sources)

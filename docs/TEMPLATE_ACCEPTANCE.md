@@ -8,7 +8,7 @@ Its ZIP SHA-256 is
 It was reference material, not executable policy or an imported agent instruction.
 No employer branding or proprietary design was incorporated.
 
-Keep `boards/`, `catalog/`, `libraries/` and the existing real KiCad lane. Add a
+Keep `projects/`, `catalog/`, `libraries/` and the existing real KiCad lane. Add a
 small Python product layer under `tools/hwrepo/`, not a replacement CAD tool. See
 the [plan completion matrix](PLAN_COMPLETION_MATRIX.md) for each packet requirement,
 the implemented evidence and the human/hosted boundaries that remain external.
@@ -59,12 +59,14 @@ recorded the dirty working tree.
 Native KiCad 10.0.6 diagnostic exports from disposable copies passed both LED
 boards' ERC/DRC/parity, golden netlist contracts and all three component PART_ID
 mirrors per board. Repository CAD/library/firmware source hashes stayed unchanged.
-The real pinned validator correctly rejected 10.0.6 because 10.0.5 is approved.
-These diagnostic results are not a pinned 10.0.5 acceptance run or hosted CI run.
+The real pinned validator correctly rejected 10.0.6 because the reference LED
+fixtures are pinned to 10.0.5. The controller reference is now pinned to the
+catalogued 10.0.0 baseline. These diagnostic results are not pinned 10.0.0 or
+10.0.5 acceptance runs or hosted CI runs.
 
 - Run the changed hosted workflow; exercise clean clones on supported workstations
-  and the exact approved native KiCad version. A different desktop patch build is
-  diagnostic evidence only until the toolchain baseline is deliberately migrated.
+  and both exact approved native KiCad versions. A different desktop patch build
+  is diagnostic evidence only until the toolchain baseline is deliberately migrated.
 - Demonstrate three real actors, independent review, protected-branch enforcement,
   concurrent editing, stale-branch update, conflict resolution, handoff and access
   revocation. Local JSON strings cannot prove server-side permissions.

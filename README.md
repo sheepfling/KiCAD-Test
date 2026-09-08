@@ -1,41 +1,44 @@
-# KiCad + Git team-template candidate
+# KiCad + Git team repository template
 
-**NOT FOR MANUFACTURE. Public synthetic training repository.**
+This repository is the reference implementation of a reusable, platform-agnostic
+KiCad/Git workflow. It is organized so a new team can understand the process,
+copy the templates, and run the same checks on PCB, schematic, system-wiring, and
+harness-interface work.
 
-The template is project-, vendor-, and employer-agnostic. Adopt it under your own
-repository, maintainers, and component sourcing policy. Arduino and Raspberry Pi
-appear only as concrete interface examples; the workflow and shared library do not
-require either platform or a particular parts supplier.
+Read the [authority model](docs/AUTHORITY_MODEL.md) before copying anything. It
+labels what is normative process, what becomes adopted project source, what is a
+copyable template, and what is safe to delete after rehearsal.
 
-This repository is a reusable starting point for a KiCad/Git workflow. Its `controller` project is a deliberately small golden fixture: two resistors, two local footprints, two nets and two routed tracks. It proves workflow mechanics only; it is not an electrical design, a mechanical interface definition, or an approved product.
+The authoritative process is deliberately separate from the worked examples:
 
-Two additional, equally non-production training examples show the full project/catalog pattern:
+| Area | Purpose |
+| --- | --- |
+| `docs/` | Authoritative workflow, review, sourcing, release, and collaboration guidance |
+| `templates/` | Copyable project, catalog, handoff, and governance records |
+| `tools/` | The executable policy, generation, and validation services |
+| `tests/` | Unit and policy tests that define expected behavior |
+| `catalog/`, [`configs/`](configs/README.md), [`products/`](products/README.md), `schemas/` | Controlled registries, adopted-project check contracts, cross-project product records, and published input/release contracts |
+| `generated/` | Deterministic review views produced by the tooling |
+| [`projects/`](projects/README.md) | Canonical source root for projects created from this template |
+| [`examples/`](examples/README.md) | A complete reference system showing how the process fits together |
 
-- [Arduino Uno R3 D13 status LED](docs/examples/arduino-uno-status-led.md)
-- [Raspberry Pi 40-pin GPIO17 status LED](docs/examples/raspberry-pi-status-led.md)
-
-The [product workflow](docs/PRODUCT_WORKFLOW.md) combines these independent boards
-into a synthetic assembly/variant/harness example with strict Python policy,
-deterministic BOMs and scoped evidence checks. Start with the checks in the
-[scripting standard](docs/SCRIPTING_STANDARD.md).
-
-KiCad deliverables are explicitly classified as a PCB, schematic-only,
-system-wiring, or harness-interface project. The last three are first-class source types with their own
-native-check profiles and typed semantic boundaries; see [project kinds](docs/PROJECT_KINDS.md).
-See [acceptance coverage](docs/TEMPLATE_ACCEPTANCE.md) for exactly what is enforced
-and what still needs engineering or hosted acceptance. None of these checks
-authorizes procurement, fabrication or release.
+Start with [Start here](docs/START_HERE.md). The examples are intentionally
+small so the workflow is easy to inspect; their organization and checks are the
+lesson, not their component choices or product claims.
 
 ## Use this template deliberately
 
 1. Read [Start here](docs/START_HERE.md), then set the adoption fields before editing a real board.
-2. Use the golden fixture and the status-LED examples to rehearse the workflow. Choose the deliverable kind first: PCBs live under `boards/`, schematic-only work under `schematics/`, system-wiring views under `systems/`, and harness interfaces under `harnesses/`. Each has a different required source inventory and native-check profile.
+2. Use the [reference examples](examples/README.md) to rehearse the workflow. For adopted work, choose the deliverable kind first: projects live under `projects/pcb/`, `projects/schematic/`, `projects/system-wiring/`, or `projects/harness-interface/`. Each has a different required source inventory and native-check profile.
 3. Put reusable assets under `libraries/` only after declaring them in the source scope and release metadata. See [Library policy](docs/LIBRARIES.md).
 4. Record the exact KiCad version, project/library revisions, and evidence before tagging a release. See [Versioning and releases](docs/VERSIONING.md).
 5. Promote a real board only through the production assurance profile and complete [GitHub governance](docs/GITHUB_GOVERNANCE.md).
 6. Bootstrap a clean template copy or plan a template update with the typed [template adoption guide](docs/TEMPLATE_ADOPTION.md).
 
-The native desktop rehearsal found that KiCad 10.0.6 expanded this fixture's minimal `controller.kicad_pro` immediately on open and created a local `.kicad_prl`. The checked fixture and CI remain pinned to **KiCad 10.0.5** until a dedicated, reviewed migration changes that baseline. Opening a project with a different build is therefore not a read-only action; follow [Project workflow](docs/PROJECT_WORKFLOW.md).
+The approved KiCad build is recorded in `catalog/toolchains.json`; check the exact
+project-selected pin before opening a project. The template currently supports
+catalogued KiCad 10.0.0 and 10.0.5 pins. Toolchain migration is a deliberate
+workflow change documented in [Project workflow](docs/PROJECT_WORKFLOW.md).
 
 ## Included guidance
 
@@ -57,27 +60,31 @@ The native desktop rehearsal found that KiCad 10.0.6 expanded this fixture's min
 - [Template metrics](docs/METRICS.md): read-only current-policy, stale-evidence and deviation counts.
 - [Markdown documentation policy](docs/MARKDOWN_POLICY.md): deterministic layout, local-link, anchor, portability and documentation-graph rules.
 - [Repository hygiene](docs/REPOSITORY_HYGIENE.md): two-layer protection against temporary, Office, media and downloaded files.
+- [Contributor guide](docs/CONTRIBUTOR_GUIDE.md): the normal assignment, edit, review, and handoff workflow.
+- [Quick reference](docs/QUICK_REFERENCE.md): the short version for day-to-day work.
 - [Arduino Uno R3 example](docs/examples/arduino-uno-status-led.md): a D13/LED_BUILTIN interface contract, KiCad project, and sketch.
 - [Raspberry Pi example](docs/examples/raspberry-pi-status-led.md): a GPIO17 interface contract, KiCad project, and GPIO Zero script.
 
-The earlier [contributor guide](docs/CONTRIBUTOR_GUIDE_v0.2_candidate.md) and [desk card](docs/QUICK_REFERENCE_v0.2_candidate.md) remain historical public-pilot candidates. They are not approval records.
+The contributor guide and quick reference are workflow guidance, not approval records.
 
 ## Checks
 
-On each pull request, Actions runs checker unit tests, real KiCad ERC/DRC with parity and zone refill, a netlist contract, SVG review exports, source-integrity checks, and deliberate defect probes. The final job rejects unsuccessful prerequisite jobs. See `pilot.json` for the exact pinned image/version and download the `kicad-review-*` artifact for review evidence.
+On each pull request, Actions runs checker unit tests, real KiCad ERC/DRC with parity and zone refill, a netlist contract, SVG review exports, source-integrity checks, and deliberate defect probes. The final job rejects unsuccessful prerequisite jobs. The selected reference configuration is under `examples/configs/`; download the `kicad-review-*` artifact for review evidence.
 
-From the repository root, with Python 3.12+ and KiCad 10.0.5 on PATH:
+From the repository root, with Python 3.12+ and the exact KiCad version selected by
+the project on PATH:
 
 ```sh
 python -B -m tools.ci
-# Fast local policy check for one board and the products that declare it
+# Fast local policy check for one project and the products that declare it
 python -B -m tools.ci --project arduino-uno-status-led
 # Select a group by metadata, or omit legacy fixtures
 python -B -m tools.ci --tag status-led
 python -B -m tools.ci --exclude-tag legacy
 python -B -m tools.ci --kicad --output build/complete-review-001
 python -m unittest discover -s tests -v
-python -m tools.check_toolchain --toolchain kicad-10.0.5
+python -m tools.check_toolchain --toolchain kicad-10.0.0  # controller baseline
+python -m tools.check_toolchain --toolchain kicad-10.0.5  # LED/reference fixtures
 python -m tools.lint_registry --all
 python -m tools.lint_registry --project controller
 python -m tools.lint_registry --project arduino-uno-status-led

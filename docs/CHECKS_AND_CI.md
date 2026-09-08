@@ -40,14 +40,16 @@ python -B -m tools.ci --metrics --manifest release/<release-id>.json
 # Focused checks when diagnosing a specific failure
 python -B -m tools.docs_policy
 python -m tools.check_toolchain --toolchain kicad-10.0.5
+# The same workflow supports the catalogued 10.0.0 baseline.
+python -m tools.check_toolchain --toolchain kicad-10.0.0
 python -m tools.lint_registry --project controller
 python -m tools.lint_registry --project arduino-uno-status-led
 python -m tools.lint_registry --tag status-led
 python -m tools.lint_registry --all
 
 # One project with its declared configuration
-python -m tools.validate --config pilot.json --output build/controller-review-001
-python -m tools.validate --config configs/arduino-uno-status-led.json --output build/arduino-review-001
+python -m tools.validate --config examples/configs/controller.json --output build/controller-review-001
+python -m tools.validate --config examples/configs/arduino-uno-status-led.json --output build/arduino-review-001
 
 # Every project declared in catalog/projects.json
 python -m tools.check_all --all --output build/all-review-001
@@ -58,7 +60,7 @@ Every output directory is write-once. Choose a new name for every run. Close KiC
 
 ## Adding a project
 
-1. Select `pcb`, `schematic`, `system_wiring`, or `harness_interface`; create the project under `boards/`, `schematics/`, `systems/`, or `harnesses/` respectively. See [project kinds](PROJECT_KINDS.md).
+1. Select `pcb`, `schematic`, `system_wiring`, or `harness_interface`; create the project under `projects/pcb/`, `projects/schematic/`, `projects/system-wiring/`, or `projects/harness-interface/` respectively. See [project kinds](PROJECT_KINDS.md).
 2. Choose `training` or `production` before creating its configuration. A production project starts from `templates/production-project-config.example.json` and must keep ERC/DRC ignored-check lists empty.
 3. Give it a project-specific JSON configuration with exact KiCad version, toolchain ID, kind, project path, source roots, required inputs, and the matching typed validation contract. System wiring names whole-product relation/terminal/harness/mechanical coverage; harness interface names its exact electrical conductor/terminal/harness coverage.
 4. Add it to `catalog/projects.json` with its assurance profile, status, configuration path, identity requirement, tags, interfaces, approved libraries, and—when production—mechanical and governance records.
@@ -79,7 +81,7 @@ Use `python -B -m tools.ci` for the full local/CI static gate; it runs Markdown
 documentation policy, Ruff, strict Pyright and all behavior tests in addition to
 repository-wide policy checks. Use `python -B -m tools.ci --project <id>` for a
 fast local board gate: it checks the selected board and products that explicitly
-depend on it, without running unrelated boards or the whole Python quality suite.
+depend on it, without running unrelated projects or the whole Python quality suite.
 Add `--kicad --project <id> --output build/review-001` to execute pinned native
 checks for that board too.
 The configured hosted Python matrix covers Windows, Linux and macOS; a local

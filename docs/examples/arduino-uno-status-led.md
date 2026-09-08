@@ -12,7 +12,7 @@ header or provide board power.
 | 1 | Uno R3 D13 / LED_BUILTIN | D13_STATUS | LED drive |
 | 2 | Uno R3 GND | GND | Return |
 
-The sketch is at firmware/arduino-uno-status-led/arduino-uno-status-led.ino. It uses
+The sketch is at examples/firmware/arduino-uno-status-led/arduino-uno-status-led.ino. It uses
 LED_BUILTIN, so the same sketch blinks the Uno's onboard indicator and this external
 training LED when the harness is fitted.
 
