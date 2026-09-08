@@ -16,7 +16,8 @@
     "kicad/controller.kicad_pro",
     "kicad/controller.kicad_sch",
     "kicad/fp-lib-table",
-    "kicad/sym-lib-table"
+    "kicad/sym-lib-table",
+    "kicad/ci-deliberately-missing.kicad_sch"
   ],
   "checks": "tests/contract.json",
   "shared_source_roots": [],
