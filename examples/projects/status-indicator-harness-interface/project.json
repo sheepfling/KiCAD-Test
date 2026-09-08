@@ -1,0 +1,31 @@
+{
+  "schema_version": "1",
+  "id": "status-indicator-harness-interface",
+  "kind": "harness_interface",
+  "status": "training_fixture",
+  "assurance_profile": "training",
+  "toolchain_id": "kicad-10.0.5",
+  "project": "kicad/status-indicator-harness-interface.kicad_pro",
+  "source_roots": [
+    "kicad"
+  ],
+  "required_inputs": [
+    "kicad/status-indicator-harness-interface.kicad_pro",
+    "kicad/status-indicator-harness-interface.kicad_sch"
+  ],
+  "checks": "tests/contract.json",
+  "shared_source_roots": [],
+  "shared_inputs": [],
+  "component_identity": {
+    "required": false,
+    "part_ids": []
+  },
+  "tags": [
+    "harness",
+    "interface",
+    "status-led",
+    "training"
+  ],
+  "interfaces": [],
+  "library_ids": []
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "catalogs": {
+    "parts": "catalog/parts.json",
+    "interfaces": "catalog/interfaces.json",
+    "libraries": "catalog/libraries.json",
+    "toolchains": "catalog/toolchains.json",
+    "release_policies": "catalog/release-policies.json"
+  },
+  "project_roots": [
+    "projects",
+    "examples/projects"
+  ]
+}

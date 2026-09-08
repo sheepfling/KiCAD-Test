@@ -1,0 +1,47 @@
+{
+  "schema_version": "1",
+  "upgrades": [
+    {
+      "id": "template-0.1-to-0.2",
+      "from_version": "0.1.0",
+      "to_version": "0.2.0",
+      "breaking": true,
+      "steps": [
+        "Apply the 0.2.0 tools, tests, workflow, ignore rules and documentation on a review branch.",
+        "Remove tracked generated exports and JSON schemas; keep only the README files in generated/ and schemas/. Retain any required historical artifacts outside source control before removal.",
+        "Keep the authored reference fixtures and examples/catalog/ inputs for regression tests. Replace live catalog registrations with adopted work as a coherent change; do not delete the native reference fixtures.",
+        "Install the development dependencies from pyproject.toml, run the portable gate and inspect the registry-driven matrix. Run each applicable pinned native lane before review.",
+        "Review the 0.2.0 folder and output policy and update the adopted template version after the migration is accepted."
+      ]
+    },
+    {
+      "id": "template-0.2-to-0.3",
+      "from_version": "0.2.0",
+      "to_version": "0.3.0",
+      "breaking": true,
+      "steps": [
+        "Move each project to projects/<id>/ with native source under kicad/, firmware under firmware/, and board documentation/tests beside it. Move products to products/<id>/product.json with their own docs/tests.",
+        "Convert each split project record/config to one local project.json manifest and tests/contract.json. Make project paths local and keep shared dependency paths explicitly repository-relative. Select a catalogued toolchain ID.",
+        "Replace catalog/projects.json project lists with shared catalog paths and enabled project_roots. Keep the reference fixtures for isolated tool tests; opt their live/native lanes in or out through discovery roots.",
+        "Review training/development/production profiles. Development boards remain NOT FOR MANUFACTURE without requiring production release records. Preserve approved release BOMs and authored assembly inputs in Git as appropriate.",
+        "Run the full portable gate, inspect the automatic matrix and run applicable pinned native checks. Commit the reviewed layout and update adoption metadata to 0.3.0."
+      ]
+    },
+    {
+      "id": "template-0.3-to-1.0",
+      "from_version": "0.3.0",
+      "to_version": "1.0.0",
+      "breaking": true,
+      "steps": [
+        "Update the shared tools, tests, workflow, templates and documentation while preserving template-adoption.json until migration review is complete. upgrade-plan reads the adopted version even when the upstream template contract changed.",
+        "For a fresh fork only, run tools.template init before adding designs. Existing adopters retain their live catalogs and projects; do not replace them with reference fixtures. Keep projects as an enabled discovery root.",
+        "The upstream scaffold uses 0BSD. Fresh bootstrap/init removes only its exact root LICENSE before company terms are chosen. Preserve adopter root licenses during upgrades and all required third-party notices; do not rerun initialization on established projects.",
+        "Review catalog/team-policy.json and project-local governance assignments. The default permits two actors with independent review. Match hosted branch controls to the named required checks.",
+        "Bind each electrical component reference to part_id in tests/contract.json when component identity is required. Complete schematic electrical contracts before production; diagram-only views use their typed product relationships.",
+        "Review board-local release_exports layer, origin and placement-unit settings. Commit source first, then regenerate portable/native reports and candidates with tools.release prepare; old PASS-only manifests do not satisfy release evidence requirements.",
+        "Keep working outputs and generated manifests under ignored build/. Use tools.release package and restore to retain exact outputs and source history. Preserve existing approved archives; never rewrite historical evidence to the new schema.",
+        "Preserve applicable licenses and attribution, and keep authored documentation images under docs/assets/. Run portable and pinned native gates, verify hosted acceptance and restore a package, then update the adoption record to 1.0.0 after review."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "schema_version": "1",
+  "minimum_actors": 2,
+  "independent_review": true,
+  "required_status_checks": ["Template acceptance"],
+  "rationale": "An author and independent reviewer are sufficient; either may integrate. Teams may require more people by reviewing this policy."
+}

@@ -1,0 +1,55 @@
+{
+  "schema_version": "1",
+  "id": "raspberry-pi-status-led",
+  "kind": "pcb",
+  "status": "training_fixture",
+  "assurance_profile": "training",
+  "toolchain_id": "kicad-10.0.5",
+  "project": "kicad/raspberry-pi-status-led.kicad_pro",
+  "source_roots": [
+    "kicad",
+    "firmware"
+  ],
+  "required_inputs": [
+    "kicad/fp-lib-table",
+    "kicad/raspberry-pi-status-led.kicad_pcb",
+    "kicad/raspberry-pi-status-led.kicad_pro",
+    "kicad/raspberry-pi-status-led.kicad_sch",
+    "kicad/sym-lib-table",
+    "firmware/requirements.txt",
+    "firmware/status_led.py"
+  ],
+  "checks": "tests/contract.json",
+  "shared_source_roots": [
+    "examples/libraries/status-led"
+  ],
+  "shared_inputs": [
+    "examples/libraries/status-led/LICENSE.md",
+    "examples/libraries/status-led/PROVENANCE.md",
+    "examples/libraries/status-led/README.md",
+    "examples/libraries/status-led/status-led.kicad_sym",
+    "examples/libraries/status-led/status-led.pretty/Header_1x02.kicad_mod",
+    "examples/libraries/status-led/status-led.pretty/LED_5mm.kicad_mod",
+    "examples/libraries/status-led/status-led.pretty/R_Axial_10mm.kicad_mod"
+  ],
+  "component_identity": {
+    "required": true,
+    "part_ids": [
+      "training-generic-header-1x02-2.54",
+      "training-generic-led-red-5mm",
+      "training-generic-resistor-1k-th"
+    ]
+  },
+  "tags": [
+    "raspberry-pi",
+    "reference",
+    "status-led",
+    "training"
+  ],
+  "interfaces": [
+    "iface-raspberry-pi-40pin-gpio17-status-v1"
+  ],
+  "library_ids": [
+    "library-status-led-training"
+  ]
+}

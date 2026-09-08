@@ -1,0 +1,111 @@
+# Prepare, verify and restore a release
+
+A board can release independently. Select it with `--project`; select an optional
+product variant with `--variant PRODUCT:VARIANT`. Each candidate uses one pinned
+KiCad toolchain. Different toolchains produce separate candidates.
+
+## Prepare from committed source
+
+Install `.[dev]`, start Docker, close KiCad, and commit the reviewed source. Then:
+
+```sh
+python -B -m tools.release prepare --project battery-board --release-id battery-review-001
+python -B -m tools.release check --manifest build/releases/battery-review-001/manifest.json
+```
+
+The command runs the full portable pipeline and native checks in the project's
+pinned image. Use `--cli /path/to/kicad-cli` to use an installed exact version instead.
+Use `--portable build/portable/portable.json` only to reuse a full passing report
+from the same clean commit. Dirty, stale, missing or partial evidence fails.
+
+Outputs and the generated manifest live in ignored `build/releases/<id>/`. A new
+attempt needs a new ID; previous evidence is never overwritten. The default
+`engineering_review` class is suitable for rehearsal and review, including the
+synthetic fixtures. It does not approve a board for manufacture.
+
+The verifier checks the actual commit, source-file hashes, source cleanliness,
+selected projects, toolchain, report results, native artifact hashes and native
+ERC/DRC/netlist content. A manifest containing only self-declared `PASS` labels fails.
+Integrity checks detect missing or altered evidence; trusted CI and reviewed release
+publication establish who produced and approved it.
+
+Boards requiring component identity bind each reference's `part_id` in
+`tests/contract.json`, in addition to value, footprint and nets. Native `PART_ID`
+fields must match those expectations and the declared catalog IDs even when no
+product references the board. Production electrical schematics also require a
+component/net contract; diagram-only training views are not production evidence.
+
+## Board fabrication and assembly exports
+
+Add reviewed `release_exports` settings to the board's `project.json` before the
+source commit. For a two-layer board, a starting point is:
+
+```json
+{
+  "gerber_layers": ["F.Cu", "B.Cu", "F.Mask", "B.Mask", "F.Paste", "B.Paste", "F.SilkS", "B.SilkS", "Edge.Cuts"],
+  "coordinate_origin": "absolute",
+  "position_units": "mm"
+}
+```
+
+This object is the value of `release_exports`, not a separate file. Specify inner
+copper layers for multilayer boards. Preparation generates Gerbers, separate plated
+and unplated Excellon drills, placement CSV, native BOM and a purchasing BOM joined
+to controlled `PART_ID` records. Plot origin is applied consistently to Gerbers,
+drills and placement. Review layers, holes, population, rotation/origin conventions
+and supplier requirements before approving the outputs.
+
+Exporter options follow the [KiCad 10 CLI](https://docs.kicad.org/10.0/en/cli/cli.html).
+Extend typed settings and the exporter table in `tools/hwrepo/exports.py`, then add
+a focused regression and native acceptance case. Shared checks, project unit tests
+and product tests still run through the common pipeline.
+
+## Approval and tag sequencing
+
+1. Commit the complete reviewed source and contracts first.
+2. Prepare the candidate from that clean commit. The manifest can now name its SHA.
+3. Review the frozen outputs. For a build release, use `--release-class prototype`,
+   `pilot` or `production` during preparation. Selected projects must be
+   `release_candidate` with the `production` assurance profile. Optional products
+   must also meet their class-specific maturity and assurance floor.
+4. Complete the manifest's named approval and retained evidence references; set its
+   status to `approved`. Record open questions as blockers, not fictional approvals.
+5. Create an annotated source tag pointing to the earlier source commit and record
+   its name in `source_tag`. Run `tools.release check` again.
+6. Package and retain the exact approved bytes in your release storage.
+
+The manifest is generated after the source commit. It does not belong in the commit
+whose SHA it records. Authored approval decisions can be committed later under an
+island's `releases/`, referencing that earlier source and retained package; package
+verification uses a checkout of the source commit. Checks never create approvals,
+release tags, purchases or manufacturing authorization.
+
+Non-review releases require approvals, the annotated source tag, appropriate
+artifacts, approved identity/governance and applicable product assurance. Production
+PCB releases also require successful native fabrication/assembly export evidence.
+Open, expired, unknown-scope or unevidenced deviations fail. A waiver never silently
+raises an engineering claim's assurance level.
+Deviation scope names selected project IDs or IDs within selected products. Its
+evidence references retained manifest artifact IDs or selected product evidence IDs;
+a standalone board can use an authored review record retained in its release package.
+
+## Package and restore
+
+```sh
+python -B -m tools.release package --manifest build/releases/battery-review-001/manifest.json --output build/battery-review-001.zip
+python -B -m tools.release verify --archive build/battery-review-001.zip
+python -B -m tools.release restore --archive build/battery-review-001.zip --destination ../battery-review-restored
+```
+
+Packaging first verifies the candidate, retains its source Git bundle and complete
+evidence inventory, and tests an actual restore before completing. The bundle
+contains source history reachable from the selected source commit and tag. Review
+that history before distributing a package outside the team. The archive has no
+dependency on the original checkout or a remote repository.
+
+Restore creates a new directory, checks archive inventory and hashes, rejects unsafe
+paths and links, checks out the exact source commit, and re-verifies retained release
+evidence. It never overwrites an existing checkout or executes the restored project's
+scripts. To reproduce checks, install its dependencies and rerun the documented
+commands separately. CI rehearsal artifacts expire after 30 days; approved release
+packages need the team's long-term immutable storage and retention policy.

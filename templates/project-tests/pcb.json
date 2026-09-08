@@ -1,0 +1,12 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "pcb",
+    "components": {},
+    "nets": {},
+    "expected_ignored_checks": {
+      "erc": [],
+      "drc": []
+    }
+  }
+}

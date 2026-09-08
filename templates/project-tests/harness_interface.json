@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "harness_interface",
+    "product_id": "REPLACE-WITH-TYPED-PRODUCT-ID",
+    "connection_ids": [
+      "REPLACE-WITH-ELECTRICAL-CONNECTION-ID"
+    ],
+    "terminal_ids": [
+      "REPLACE-WITH-ENDPOINT-TERMINAL-ID"
+    ],
+    "harness_ids": [
+      "REPLACE-WITH-HARNESS-ID"
+    ],
+    "expected_ignored_checks": {
+      "erc": [],
+      "drc": []
+    }
+  }
+}

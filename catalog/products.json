@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "products": [
+    {
+      "id": "status-indicator-system",
+      "path": "examples/products/status-indicator-system/product.json",
+      "project_ids": [
+        "arduino-uno-status-led",
+        "raspberry-pi-status-led",
+        "status-indicator-wiring",
+        "status-indicator-harness-interface"
+      ]
+    }
+  ]
+}

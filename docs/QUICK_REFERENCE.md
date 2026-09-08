@@ -1,0 +1,23 @@
+# KiCad + Git quick reference
+
+Get the project assignment. Close KiCad before changing branches. Preserve existing
+work. Fetch/pull current main, then create one issue-linked work branch. Use the
+branch and project path recorded by the adopted repository; do not guess when the
+assignment or starting state is unclear.
+
+Open the `.kicad_pro`, not a detached schematic copy. Edit, synchronize schematic/PCB as needed, run checks, and save. Review the changed source. Commit locally, push, and open a PR. These are four separate actions.
+
+Continue tomorrow on the same branch/PR. Pulling that branch does not automatically merge main. Do not reset, clean, or force-push to resolve uncertainty.
+
+Inspect the Actions review artifact and checked commit. A green run is not a
+substitute for independent approval or configured branch protection. Another
+qualified person reviews; the integrator accepts; then close KiCad, update local
+main and hand back the assignment.
+
+On conflict, missing libraries, new tool versions or unexpected changes: stop, preserve work and ask the maintainer with branch, SHA, status and error. Never guess ours/theirs.
+
+Run `python -B -m tools.ci --project <project-id>` for the selected board's portable
+checks and `python -B -m tools.ci` for the full shared gate. With its exact catalogued
+KiCad installed, run `python -B -m tools.ci --kicad --project <project-id> --output build/review-001`
+using a fresh output name each time. The template exercises KiCad 10.0.0 and 10.0.5.
+Use Python 3.12+ and preserve every declared local/shared library dependency.

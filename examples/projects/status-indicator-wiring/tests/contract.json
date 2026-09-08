@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "system_wiring",
+    "product_id": "status-indicator-system",
+    "connection_ids": [
+      "C-MOUNT",
+      "C-RETURN",
+      "C-SIGNAL",
+      "C-STATUS-ROLE"
+    ],
+    "terminal_ids": [
+      "T-BOARD-MOUNT",
+      "T-CABLE-1",
+      "T-CABLE-2",
+      "T-ENC-MOUNT",
+      "T-PI-SIGNAL",
+      "T-UNO-RETURN",
+      "T-UNO-SIGNAL"
+    ],
+    "harness_ids": [
+      "H-STATUS"
+    ],
+    "mechanical_handoff_ids": [
+      "M-ENVELOPE"
+    ],
+    "expected_ignored_checks": {
+      "erc": [
+        "single_global_label",
+        "four_way_junction",
+        "simulation_model_issue",
+        "footprint_filter"
+      ],
+      "drc": []
+    }
+  }
+}

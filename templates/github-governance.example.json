@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "branch": "main",
+  "required_status_checks": [
+    "Template acceptance"
+  ],
+  "authors": [
+    "REPLACE-WITH-ENGINEERING-AUTHOR"
+  ],
+  "reviewers": [
+    "REPLACE-WITH-INDEPENDENT-REVIEWER"
+  ],
+  "integrators": [
+    "REPLACE-WITH-MERGE-INTEGRATOR"
+  ],
+  "release_authorities": [
+    "REPLACE-WITH-RELEASE-AUTHORITY"
+  ],
+  "branch_protection_verified_at": "REPLACE-WITH-ISO-8601-TIMESTAMP",
+  "branch_protection_evidence": ["REPLACE-WITH-GITHUB-SETTINGS-URL-OR-APPROVED-EVIDENCE-REFERENCE"]
+}

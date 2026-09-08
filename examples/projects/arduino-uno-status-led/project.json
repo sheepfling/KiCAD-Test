@@ -1,0 +1,59 @@
+{
+  "schema_version": "1",
+  "id": "arduino-uno-status-led",
+  "kind": "pcb",
+  "status": "training_fixture",
+  "assurance_profile": "training",
+  "toolchain_id": "kicad-10.0.5",
+  "release_exports": {
+    "gerber_layers": ["F.Cu", "B.Cu", "F.Mask", "B.Mask", "F.Paste", "B.Paste", "F.SilkS", "B.SilkS", "Edge.Cuts"],
+    "coordinate_origin": "absolute",
+    "position_units": "mm"
+  },
+  "project": "kicad/arduino-uno-status-led.kicad_pro",
+  "source_roots": [
+    "kicad",
+    "firmware"
+  ],
+  "required_inputs": [
+    "kicad/arduino-uno-status-led.kicad_pcb",
+    "kicad/arduino-uno-status-led.kicad_pro",
+    "kicad/arduino-uno-status-led.kicad_sch",
+    "kicad/fp-lib-table",
+    "kicad/sym-lib-table",
+    "firmware/arduino-uno-status-led.ino"
+  ],
+  "checks": "tests/contract.json",
+  "shared_source_roots": [
+    "examples/libraries/status-led"
+  ],
+  "shared_inputs": [
+    "examples/libraries/status-led/LICENSE.md",
+    "examples/libraries/status-led/PROVENANCE.md",
+    "examples/libraries/status-led/README.md",
+    "examples/libraries/status-led/status-led.kicad_sym",
+    "examples/libraries/status-led/status-led.pretty/Header_1x02.kicad_mod",
+    "examples/libraries/status-led/status-led.pretty/LED_5mm.kicad_mod",
+    "examples/libraries/status-led/status-led.pretty/R_Axial_10mm.kicad_mod"
+  ],
+  "component_identity": {
+    "required": true,
+    "part_ids": [
+      "training-generic-header-1x02-2.54",
+      "training-generic-led-red-5mm",
+      "training-generic-resistor-1k-th"
+    ]
+  },
+  "tags": [
+    "arduino",
+    "reference",
+    "status-led",
+    "training"
+  ],
+  "interfaces": [
+    "iface-arduino-uno-r3-d13-status-v1"
+  ],
+  "library_ids": [
+    "library-status-led-training"
+  ]
+}

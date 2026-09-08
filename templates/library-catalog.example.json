@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "libraries": [
+    {
+      "id": "LIB-EXAMPLE-001",
+      "version": "0.1.0",
+      "path": "libraries/example-library",
+      "owner": "REPLACE WITH OWNER",
+      "status": "example_only",
+      "provenance_path": "libraries/example-library/PROVENANCE.md",
+      "provenance_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "licensing_path": "libraries/example-library/LICENSE.md",
+      "licensing_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

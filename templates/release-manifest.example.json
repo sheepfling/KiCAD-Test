@@ -1,0 +1,51 @@
+{
+  "schema_version": "1",
+  "release_id": "REPLACE-WITH-RELEASE-ID",
+  "release_class": "engineering_review",
+  "status": "candidate",
+  "source_commit": "0000000000000000000000000000000000000000",
+  "source_tag": null,
+  "toolchain_id": "REPLACE-WITH-TOOLCHAIN-ID",
+  "variants": [],
+  "libraries": [
+    {
+      "id": "REPLACE-WITH-LIBRARY-ID",
+      "version": "REPLACE-WITH-LIBRARY-VERSION",
+      "provenance_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "licensing_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "REPLACE-WITH-INTERFACE-ID",
+      "revision": "REPLACE-WITH-INTERFACE-REVISION"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "REPLACE-WITH-ARTIFACT-ID",
+      "kind": "review_record",
+      "path": "REPLACE-WITH-RETAINED-ARTIFACT",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "intended_use": "REPLACE-WITH-INTENDED-USE"
+    }
+  ],
+  "deviations": [],
+  "approval": null,
+  "projects": [
+    "REPLACE-WITH-PROJECT-ID"
+  ],
+  "evidence": {
+    "portable": {
+      "path": "build/REPLACE-WITH-PORTABLE-REPORT.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "native": {
+      "REPLACE-WITH-PROJECT-ID": {
+        "path": "build/REPLACE-WITH-NATIVE-REPORT/summary.json",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "exports": {}
+  }
+}

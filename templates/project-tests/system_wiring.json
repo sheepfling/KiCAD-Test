@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "system_wiring",
+    "product_id": "REPLACE-WITH-TYPED-PRODUCT-ID",
+    "connection_ids": [
+      "REPLACE-WITH-CONNECTION-ID"
+    ],
+    "terminal_ids": [
+      "REPLACE-WITH-TERMINAL-ID"
+    ],
+    "harness_ids": [
+      "REPLACE-WITH-HARNESS-ID"
+    ],
+    "mechanical_handoff_ids": [
+      "REPLACE-WITH-MECHANICAL-HANDOFF-ID"
+    ],
+    "expected_ignored_checks": {
+      "erc": [],
+      "drc": []
+    }
+  }
+}

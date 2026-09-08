@@ -1,0 +1,132 @@
+"""Fork adoption, automatic expansion and source-only generation regressions."""
+from __future__ import annotations
+
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from tests.support import initialize_git, reference_root
+from tools.ci_matrix import build_matrix
+from tools.hwrepo.contracts import read_model, write_model
+from tools.hwrepo.generation import check_generation, drift, generate
+from tools.hwrepo.initialization import initialize
+from tools.hwrepo.models import ProductIndex, ProjectDiscovery, ProjectManifest
+from tools.hwrepo.product import check as product_check
+from tools.hwrepo.repository import check_repository
+from tools.lint_registry import lint
+
+
+class ForkWorkflowTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory(prefix="kicad-fork-test-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve() / "repository"
+        shutil.copytree(reference_root(), self.root, ignore=shutil.ignore_patterns(".git"))
+        initialize_git(self.root)
+
+    def test_initialize_empty_fork_is_repeatable_and_retains_reference_tests(self) -> None:
+        result = initialize(self.root, "team-hardware")
+        self.assertEqual(result.status, "PASS", result.issues)
+        self.assertEqual(build_matrix(self.root).include, ())
+        self.assertEqual(product_check(self.root).status, "PASS")
+        self.assertEqual(check_generation(self.root), ())
+        self.add_project()
+        self.assertEqual(initialize(self.root, "team-hardware").changed, ())
+        self.assertEqual([row.project for row in build_matrix(self.root).include], ["team-signal"])
+        self.assertEqual(initialize(self.root, "different-name").status, "FAIL")
+        result = subprocess.run((sys.executable, "-B", "-m", "unittest", "tests.test_governance"),
+                                cwd=self.root, text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_initialize_never_overwrites_existing_work_or_partially_edits(self) -> None:
+        catalog = self.root / "catalog/parts.json"
+        catalog.write_text(catalog.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        before = (self.root / "catalog/projects.json").read_bytes()
+        self.assertEqual(initialize(self.root, "team-hardware").status, "FAIL")
+        self.assertEqual((self.root / "catalog/projects.json").read_bytes(), before)
+        self.assertFalse((self.root / "template-adoption.json").exists())
+        self.assertEqual(initialize(self.root, "../escape").status, "FAIL")
+
+    def test_disabling_live_discovery_cannot_turn_existing_designs_into_an_empty_pass(self) -> None:
+        self.add_project()
+        path = self.root / "catalog/projects.json"
+        policy = read_model(path, ProjectDiscovery)
+        write_model(path, policy.model_copy(update={"project_roots": ()}))
+        with self.assertRaisesRegex(ValueError, "invalid registry"):
+            build_matrix(self.root)
+
+    def test_authored_images_are_trackable_but_generated_images_are_rejected(self) -> None:
+        authored = "projects/board/docs/assets/connector.png"
+        path = self.root / authored
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"authored fixture")
+        subprocess.run(("git", "-C", str(self.root), "add", "--", authored), check=True)
+        self.assertEqual(check_repository(self.root).status, "PASS")
+        generated = "projects/board/build/connector.png"
+        path = self.root / generated
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"derived fixture")
+        subprocess.run(("git", "-C", str(self.root), "add", "-f", "--", generated), check=True)
+        self.assertIn(f"TRACKED_LOCAL_STATE: {generated}", check_repository(self.root).issues)
+
+    def test_fresh_policy_generation_needs_no_cached_exports_and_writes_no_source(self) -> None:
+        self.assertFalse((self.root / "schemas/product-v1.schema.json").exists())
+        self.assertEqual(check_generation(self.root), ())
+        self.assertFalse((self.root / "schemas/product-v1.schema.json").exists())
+        self.assertFalse((self.root / "generated/library-sbom-v1.json").exists())
+
+    def test_schema_missing_tampered_and_stale_outputs_are_detected(self) -> None:
+        generate(self.root)
+        path = self.root / "schemas/product-v1.schema.json"
+        path.unlink()
+        self.assertIn("GENERATION_DRIFT: schemas/product-v1.schema.json", drift(self.root))
+        generate(self.root)
+        path.write_text("{}", encoding="utf-8")
+        self.assertIn("GENERATION_DRIFT: schemas/product-v1.schema.json", drift(self.root))
+        (path.parent / "obsolete.schema.json").write_text("{}", encoding="utf-8")
+        self.assertIn("STALE_OUTPUT: schemas/obsolete.schema.json", drift(self.root))
+
+    def test_force_added_exports_are_rejected(self) -> None:
+        for name in ("generated/bom.csv", "schemas/product.schema.json", "projects/board.gbr"):
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("derived", encoding="utf-8")
+            subprocess.run(("git", "-C", str(self.root), "add", "-f", "--", name), check=True)
+        report = check_repository(self.root)
+        self.assertEqual(report.status, "FAIL")
+        for name in ("generated/bom.csv", "schemas/product.schema.json", "projects/board.gbr"):
+            self.assertIn(f"TRACKED_GENERATED_OUTPUT: {name}", report.issues)
+
+    def add_project(self) -> None:
+        directory = self.root / "projects/team-signal"
+        shutil.copytree(self.root / "examples/projects/passive-signal-reference", directory)
+        path = directory / "project.json"
+        manifest = read_model(path, ProjectManifest)
+        write_model(path, manifest.model_copy(update={"id": "team-signal", "tags": ("team",)}))
+
+    def test_registration_adds_a_lane_and_adoption_can_retire_live_examples(self) -> None:
+        self.add_project()
+        matrix = build_matrix(self.root)
+        self.assertEqual(matrix.include[-1].project, "team-signal")
+        self.assertFalse(matrix.include[-1].fault_probes)
+        self.assertTrue(next(row for row in matrix.include if row.project == "controller").fault_probes)
+        self.assertEqual(len(matrix.include), 7)
+        path = self.root / "catalog/projects.json"
+        discovery = read_model(path, ProjectDiscovery)
+        write_model(path, discovery.model_copy(update={"project_roots": ("projects",)}))
+        index = read_model(self.root / "catalog/products.json", ProductIndex)
+        write_model(self.root / "catalog/products.json", index.model_copy(update={"products": ()}))
+        self.assertEqual(lint(self.root).status, "PASS", lint(self.root).issues)
+        self.assertEqual(product_check(self.root).status, "PASS", product_check(self.root).issues)
+        self.assertEqual([row.project for row in build_matrix(self.root).include], ["team-signal"])
+        # A fork's live catalog changes must not rewrite the reference unit expectations.
+        result = subprocess.run((sys.executable, "-B", "-m", "unittest", "tests.test_governance"),
+                                cwd=self.root, text=True, capture_output=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()

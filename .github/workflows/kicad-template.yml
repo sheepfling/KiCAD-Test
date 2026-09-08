@@ -1,0 +1,202 @@
+name: KiCad template acceptance
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: kicad-template-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  project-matrix:
+    name: Build declared-project matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      has-projects: ${{ steps.matrix.outputs.has-projects }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12'
+      - name: Install the typed policy dependency
+        run: python -m pip install --disable-pip-version-check .
+      - id: matrix
+        name: Resolve project-specific KiCad images
+        run: |
+          python3 -m tools.ci --matrix > build-matrix.json
+          python3 -c 'import json, os; m=json.load(open("build-matrix.json")); f=open(os.environ["GITHUB_OUTPUT"], "a"); f.write("matrix="+json.dumps(m)+"\nhas-projects="+str(bool(m["include"])).lower()+"\n")'
+  python-tests:
+    name: Portable policy (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-14]
+        python: ['3.12']
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned Python quality tools
+        run: python -m pip install --disable-pip-version-check '.[dev]'
+      - name: Run the portable policy pipeline
+        run: python -B -m tools.ci --output build/portable
+      - name: Export reproducible review views and schemas
+        run: python -B -m tools.hardware generate
+      - name: Confirm generation leaves tracked source unchanged
+        run: git diff --exit-code
+      - name: Retain generated review views and schemas
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: portable-review-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/portable/
+            generated/
+            schemas/
+            products/*/build/
+            examples/products/*/build/
+          if-no-files-found: error
+  kicad:
+    name: KiCad ${{ matrix.project }} (${{ matrix.kicad_version }})
+    needs: [project-matrix, python-tests]
+    if: needs.project-matrix.outputs.has-projects == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.project-matrix.outputs.matrix) }}
+    env:
+      KICAD_IMAGE: ${{ matrix.image }}
+      PROJECT_ID: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Record integration candidate and pinned image
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p build
+          echo "CHECKED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "PR_HEAD_SHA=$PR_HEAD" >> "$GITHUB_ENV"
+          git status --porcelain=v1 > build/status-before.txt
+          git rev-parse HEAD > build/checked-commit.txt
+          git archive --format=tar.gz --output=build/checked-source.tar.gz HEAD
+      - name: Pull digest-pinned official KiCad
+        run: docker pull "$KICAD_IMAGE"
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12'
+      - name: Prepare dependencies for the container Python
+        run: |
+          python -m pip install --disable-pip-version-check .
+          python -B -m tools.native_deps --image "$KICAD_IMAGE"
+      - name: Check declared KiCad project
+        id: baseline
+        run: |
+          docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" --entrypoint sh \
+            -e HOME=/tmp/kicad-template -e PYTHONDONTWRITEBYTECODE=1 \
+            -e PYTHONPATH=/work/build/policy-deps \
+            -e CHECKED_SHA -e PR_HEAD_SHA -e PROJECT_ID \
+            -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
+            -ec 'python3 -m tools.ci --kicad --project "$PROJECT_ID" --output build/review'
+      - name: Verify deliberate defects cannot pass
+        if: matrix.fault_probes && steps.baseline.outcome == 'success'
+        run: |
+          docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" --entrypoint sh \
+            -e HOME=/tmp/kicad-template -e PYTHONDONTWRITEBYTECODE=1 \
+            -e PYTHONPATH=/work/build/policy-deps \
+            -e CHECKED_SHA -e PR_HEAD_SHA \
+            -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
+            -ec 'python3 -m tools.ci --fault-probes --output build/fault-probes'
+      - name: Confirm tracked source remains unchanged
+        if: always()
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+      - name: Retain review and failure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kicad-review-${{ matrix.project }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/
+            !build/policy-deps/
+          if-no-files-found: error
+          retention-days: 30
+  release-rehearsal:
+    name: Standalone release and restore
+    needs: [python-tests, kicad]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12'
+      - name: Install quality tools
+        run: python -m pip install --disable-pip-version-check '.[dev]'
+      - name: Restore independent reference catalogs for this rehearsal
+        run: python -B -c "from tests.support import reference_root; import shutil; shutil.copytree(reference_root(), 'build/rehearsal-source', ignore=shutil.ignore_patterns('.git'))"
+      - name: Commit disposable fixture source for release provenance
+        working-directory: build/rehearsal-source
+        run: |
+          git init -q
+          git add --all
+          git -c user.name='Scaffold CI fixture' -c user.email='fixture@example.invalid' commit -qm 'Disposable release rehearsal'
+      - name: Prepare and restore a standalone review package using pinned KiCad
+        working-directory: build/rehearsal-source
+        run: |
+          python -B -m tools.release prepare --project arduino-uno-status-led --release-id ci-review
+          python -B -m tools.release package --manifest build/releases/ci-review/manifest.json --output build/ci-review.zip
+          python -B -m tools.release verify --archive build/ci-review.zip
+          git diff --exit-code
+      - name: Retain release rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-rehearsal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/rehearsal-source/build/releases/
+            build/rehearsal-source/build/ci-review.zip
+          if-no-files-found: error
+          retention-days: 30
+  engineering-gate:
+    name: Template acceptance
+    if: always()
+    needs: [project-matrix, python-tests, kicad, release-rehearsal]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Reject failed, skipped, missing or cancelled prerequisites
+        env:
+          UNIT_RESULT: ${{ needs.python-tests.result }}
+          MATRIX_RESULT: ${{ needs.project-matrix.result }}
+          KICAD_RESULT: ${{ needs.kicad.result }}
+          HAS_PROJECTS: ${{ needs.project-matrix.outputs.has-projects }}
+          RELEASE_RESULT: ${{ needs.release-rehearsal.result }}
+        run: |
+          test "$UNIT_RESULT" = success
+          test "$MATRIX_RESULT" = success
+          if [ "$HAS_PROJECTS" = true ]; then
+            test "$KICAD_RESULT" = success
+            test "$RELEASE_RESULT" = success
+          else
+            test "$HAS_PROJECTS" = false
+            test "$KICAD_RESULT" = skipped
+            test "$RELEASE_RESULT" = skipped
+            echo "Scaffold checks passed. No live designs are declared; no hardware has been validated."
+          fi

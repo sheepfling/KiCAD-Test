@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "parts": [
+    {
+      "id": "PART-EXAMPLE-0001",
+      "revision": "A",
+      "description": "REPLACE WITH CONTROLLED PART DESCRIPTION",
+      "part_class": "REPLACE WITH PART CLASS",
+      "unit": "each",
+      "manufacturer": "REPLACE WITH MANUFACTURER",
+      "mpn": "REPLACE WITH MPN",
+      "datasheet_url": "https://example.invalid/datasheet",
+      "lifecycle": "unknown",
+      "status": "not_for_manufacture",
+      "approved_alternates": []
+    }
+  ]
+}

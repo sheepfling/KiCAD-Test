@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "schematic",
+    "expected_ignored_checks": {
+      "erc": [
+        "single_global_label",
+        "four_way_junction",
+        "simulation_model_issue",
+        "footprint_filter"
+      ],
+      "drc": []
+    }
+  }
+}

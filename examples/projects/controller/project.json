@@ -1,0 +1,35 @@
+{
+  "schema_version": "1",
+  "id": "controller",
+  "kind": "pcb",
+  "status": "training_fixture",
+  "assurance_profile": "training",
+  "toolchain_id": "kicad-10.0.0",
+  "project": "kicad/controller.kicad_pro",
+  "source_roots": [
+    "kicad"
+  ],
+  "required_inputs": [
+    "kicad/Pilot.kicad_sym",
+    "kicad/Pilot.pretty/R_Test.kicad_mod",
+    "kicad/controller.kicad_pcb",
+    "kicad/controller.kicad_pro",
+    "kicad/controller.kicad_sch",
+    "kicad/fp-lib-table",
+    "kicad/sym-lib-table"
+  ],
+  "checks": "tests/contract.json",
+  "shared_source_roots": [],
+  "shared_inputs": [],
+  "component_identity": {
+    "required": false,
+    "part_ids": []
+  },
+  "tags": [
+    "controller",
+    "legacy",
+    "training"
+  ],
+  "interfaces": [],
+  "library_ids": []
+}

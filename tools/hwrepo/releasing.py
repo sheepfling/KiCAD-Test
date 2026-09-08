@@ -1,0 +1,213 @@
+"""Prepare candidates from executed checks, without inventing review approvals."""
+from __future__ import annotations
+
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+from .contracts import read_model, repo_path, write_model
+from .discovery import load_config, load_registry
+from .evidence import digest, evidence_path, source_state, verify_portable
+from .generation import expected_outputs
+from .models import (
+    CommandEvidence,
+    EvidenceFile,
+    InterfacesCatalog,
+    LibrariesCatalog,
+    PolicyIssue,
+    ProjectManifest,
+    ProjectRecord,
+    ReleaseArtifact,
+    ReleaseArtifactKind,
+    ReleaseClass,
+    ReleaseEvidence,
+    ReleaseInterface,
+    ReleaseLibrary,
+    ReleaseManifest,
+    ReleaseStatus,
+    ReleaseVariant,
+    ValidationSummary,
+)
+from .product import load_repository
+from .release import configured_toolchains, selected_products, selected_project_records
+
+
+def reference(root: Path, path: Path) -> EvidenceFile:
+    return EvidenceFile(path=path.relative_to(root).as_posix(), sha256=digest(path))
+
+
+def run_native(root: Path, project: ProjectRecord, output: Path, cli: str | None,
+               dependencies: Path | None, export_only: bool = False) -> None:
+    if cli is not None:
+        if export_only:
+            from .exports import export
+
+            exported = export(root, project.config, output, cli)
+            if exported.status != "PASS":
+                raise ValueError(f"Release exports failed for {project.id}; see {output}")
+        else:
+            from ..validate import validate
+
+            native = validate(root, output, cli, Path(project.config))
+            if native.status != "PASS":
+                raise ValueError(f"Native checks failed for {project.id}; see {output}")
+        return
+    if dependencies is None:
+        raise ValueError("Container dependencies were not prepared")
+    config = load_config(root, project.config)
+    command = ("tools.release", "export", "--project", project.id) if export_only else (
+        "tools.validate", "--config", project.config)
+    user: tuple[str, ...] = ()
+    if sys.platform != "win32":
+        import os
+
+        user = ("--user", f"{os.getuid()}:{os.getgid()}")
+    argv = ("docker", "run", "--rm", "--platform", "linux/amd64", *user,
+                    "--entrypoint", "python3", "-e", "HOME=/tmp/kicad-release",
+                    "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", f"PYTHONPATH=/work/{dependencies.as_posix()}",
+                    "-v", f"{root}:/work", "-w", "/work", config.image, "-B", "-m", *command,
+                    "--root", "/work", "--output", output.relative_to(root).as_posix())
+    started = datetime.now(timezone.utc).isoformat()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    log_path = output.parent / f"{project.id}.container.command.json"
+    try:
+        result = subprocess.run(argv, cwd=root, capture_output=True, text=True, check=False, timeout=600)
+        record = CommandEvidence(argv=argv, started_utc=started, returncode=result.returncode,
+                                 stdout=result.stdout, stderr=result.stderr)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        record = CommandEvidence(argv=argv, started_utc=started, returncode=127, error=str(exc))
+    write_model(log_path, record)
+    if record.returncode != 0:
+        raise ValueError(f"Pinned container failed for {project.id}; see {log_path}")
+
+
+def prepare(root: Path, release_id: str, project_ids: tuple[str, ...],
+            variants: tuple[ReleaseVariant, ...] = (), release_class: ReleaseClass = ReleaseClass.ENGINEERING_REVIEW,
+            cli: str | None = None, portable: Path | None = None) -> ReleaseManifest:
+    """Commit source first; reports and the candidate are then written under build/."""
+    from ..ci import static_pipeline
+
+    root = root.resolve()
+    source = source_state(root)
+    if not source.clean or source.commit is None:
+        raise ValueError("Commit the reviewed source first; release preparation requires a clean checkout")
+    # Validate caller values before making any output directories.
+    candidate = ReleaseManifest(release_id=release_id, release_class=release_class,
+                                status=ReleaseStatus.CANDIDATE, source_commit=source.commit,
+                                toolchain_id="pending", projects=project_ids, variants=variants,
+                                libraries=(), interfaces=(), artifacts=())
+    repository = load_repository(root)
+    findings: list[PolicyIssue] = list(repository.issues)
+    products = selected_products(repository, candidate, findings)
+    projects = selected_project_records(repository, products, project_ids)
+    if findings or not projects:
+        raise ValueError(f"Invalid release selection: {findings}")
+    if release_class is not ReleaseClass.ENGINEERING_REVIEW and any(
+        project.assurance_profile != "production" or project.status != "release_candidate" for project in projects
+    ):
+        raise ValueError("Non-review releases require production-profile release_candidate projects")
+    toolchains = configured_toolchains(root, projects)
+    if len(toolchains) != 1:
+        raise ValueError("Prepare separate release candidates for different toolchains")
+    output = repo_path(root, f"build/releases/{release_id}")
+    output.mkdir(parents=True, exist_ok=False)
+    if portable is None:
+        portable = output / "portable.json"
+        report = static_pipeline(root, None)
+        write_model(portable, report)
+    else:
+        portable = repo_path(root, portable.as_posix())
+    portable_reference = reference(root, portable)
+    verify_portable(root, portable_reference, source)
+    dependencies: Path | None = None
+    if cli is None:
+        from ..native_deps import prepare as prepare_dependencies
+
+        dependencies = Path(f"build/release-deps/{release_id}")
+        prepare_dependencies(root, load_config(root, projects[0].config).image, dependencies)
+    native: dict[str, EvidenceFile] = {}
+    exports: dict[str, EvidenceFile] = {}
+    for project in projects:
+        native_output = output / "native" / project.id
+        run_native(root, project, native_output, cli, dependencies)
+        native[project.id] = reference(root, native_output / "summary.json")
+        manifest = read_model(repo_path(root, project.config), ProjectManifest)
+        if manifest.release_exports is not None:
+            export_output = output / "exports" / project.id
+            run_native(root, project, export_output, cli, dependencies, export_only=True)
+            exports[project.id] = reference(root, export_output / "exports.json")
+    # Only retain projections of selected product variants in this candidate.
+    projections = expected_outputs(root, tuple(project.id for project in projects))
+    for selection in variants:
+        for name, content in projections.items():
+            if f"/{selection.product}/build/{selection.variant}." in name:
+                destination = output / "products" / selection.product / Path(name).name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+    (output / "review.md").write_text(
+        f"# {release_id}\n\nSource: `{source.commit}`. Class: `{release_class.value}`.\n\n"
+        "Candidate for engineering review. This report records executed checks; it is not human approval.\n"
+        "Manufacturing and assembly files require review of layers, origin, population, and supplier requirements.\n",
+        encoding="utf-8")
+    artifacts = tuple(ReleaseArtifact(id=f"artifact-{index}", kind=artifact_kind(path, output),
+                        path=path.relative_to(root).as_posix(), sha256=digest(path),
+                        intended_use="Release candidate review; see approval and release class.")
+                      for index, path in enumerate(sorted(output.rglob("*"))) if path.is_file())
+    registry = load_registry(root)
+    library_ids = {identifier for project in projects for identifier in project.library_ids}
+    interface_ids = {identifier for project in projects for identifier in project.interfaces}
+    libraries = read_model(repo_path(root, registry.catalogs.libraries), LibrariesCatalog)
+    interfaces = read_model(repo_path(root, registry.catalogs.interfaces), InterfacesCatalog)
+    candidate = candidate.model_copy(update={
+        "toolchain_id": next(iter(toolchains)),
+        "libraries": tuple(ReleaseLibrary(id=library.id, version=library.version,
+            provenance_sha256=library.provenance_sha256, licensing_sha256=library.licensing_sha256)
+                           for library in libraries.libraries if library.id in library_ids),
+        "interfaces": tuple(ReleaseInterface(id=interface.id, revision=interface.revision)
+                            for interface in interfaces.interfaces if interface.id in interface_ids),
+        "artifacts": artifacts,
+        "evidence": ReleaseEvidence(portable=portable_reference, native=native, exports=exports),
+    })
+    if source_state(root) != source:
+        raise ValueError("Source changed while preparing the release; retained outputs are not a candidate")
+    write_model(output / "manifest.json", candidate)
+    return candidate
+
+
+def artifact_kind(path: Path, output: Path) -> ReleaseArtifactKind:
+    relative = path.relative_to(output)
+    if path.name == "review.md":
+        return ReleaseArtifactKind.REVIEW_RECORD
+    if "fabrication" in relative.parts:
+        return ReleaseArtifactKind.FABRICATION_PACKAGE
+    if "assembly" in relative.parts:
+        return ReleaseArtifactKind.ASSEMBLY_PACKAGE
+    if path.name.endswith("bom.csv"):
+        return ReleaseArtifactKind.BOM
+    if "schematic" in relative.parts and path.suffix == ".svg":
+        return ReleaseArtifactKind.SCHEMATIC_EXPORT
+    if path.name == "pcb.svg":
+        return ReleaseArtifactKind.PCB_EXPORT
+    if ".harness-schedule." in path.name:
+        return ReleaseArtifactKind.HARNESS_EXPORT
+    return ReleaseArtifactKind.VALIDATION_REPORT
+
+
+def retained_paths(root: Path, manifest: ReleaseManifest) -> set[str]:
+    """Close artifact inventories over every hashed native report dependency."""
+    paths = {artifact.path for artifact in manifest.artifacts}
+    if manifest.evidence is None:
+        raise ValueError("Candidate lacks evidence")
+    paths.add(manifest.evidence.portable.path)
+    for reference_file in manifest.evidence.native.values():
+        paths.add(reference_file.path)
+        report = read_model(evidence_path(root, reference_file), ValidationSummary)
+        paths.update((Path(reference_file.path).parent / name).as_posix() for name in report.artifacts_sha256)
+    for reference_file in manifest.evidence.exports.values():
+        from .models import ReleaseExportReport
+
+        paths.add(reference_file.path)
+        export_report = read_model(evidence_path(root, reference_file), ReleaseExportReport)
+        paths.update((Path(reference_file.path).parent / name).as_posix() for name in export_report.artifacts_sha256)
+    return paths
