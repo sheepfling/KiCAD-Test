@@ -58,13 +58,31 @@ restore, stale evidence, failed native checks and corrupt/unsafe packages. Their
 synthetic report data are explicitly test fixtures; hosted release rehearsal executes
 real KiCad separately.
 
+## Verified on GitHub on 2026-09-08
+
+[PR #3](https://github.com/sheepfling/KiCAD-Test/pull/3) publishes the scaffold candidate.
+The [successful hosted run](https://github.com/sheepfling/KiCAD-Test/actions/runs/34255105184)
+checked head `656d8e8e24d2450759d4ebdf4fa7fb79d1d7beab` through the PR integration
+checkout. Windows, macOS and Linux portable jobs passed, along with all six declared
+KiCad lanes, seven native defect probes, the standalone release/restore job and the
+final `Template acceptance` check. Review artifacts were retained by the workflow.
+The release rehearsal's disposable source commit was
+`7d967ed21d85e4a7c477e0a105ad9593dcbe53c8`; package creation and independent verification
+passed without granting manufacturing authorization.
+
+The [initial run](https://github.com/sheepfling/KiCAD-Test/actions/runs/34254198765)
+correctly rejected Windows path, platform-type and firmware-test-stub errors. The
+generator now emits portable artifact paths, the container runner guards Unix-only
+user IDs, and the Raspberry Pi test supplies its platform-specific signal stub.
+The subsequent successful run verifies those fixes on the actual hosted platforms.
+
 ## Remaining baseline acceptance
 
-The changed hosted workflow still needs a recorded successful run across all three
-portable platforms, both native versions and the new release/restore job. A deliberate
-rejected PR must demonstrate the final check failure. The current public repository's
-`main` branch reports no protection; production enforcement must be configured and
-verified with appropriate repository-administration access.
+A separate [deliberate missing-source probe](https://github.com/sheepfling/KiCAD-Test/pull/4)
+checks final-gate rejection; its current run is recorded after completion. The public
+repository's `main` branch reports no protection. Production enforcement must still
+be configured and verified with repository-administration access; the connected
+GitHub integration returns HTTP 403 for that administration endpoint.
 
 The root license choice is pending. The final reviewed baseline, version tag and
 upgrade instructions follow completion of these acceptance steps. These are tracked
