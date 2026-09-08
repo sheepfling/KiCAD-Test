@@ -1,0 +1,12 @@
+{
+  "meta": {
+    "filename": "passive-signal-reference.kicad_pro",
+    "version": 1
+  },
+  "erc": {
+    "erc_exclusions": [],
+    "meta": {
+      "version": 0
+    }
+  }
+}

@@ -7,20 +7,25 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import cast
 
-from validate import validate
+from .hwrepo.contracts import write_model
+from .hwrepo.models import FaultProbeCase, FaultProbeReport
+from .validate import validate
 
 
-def probe(root: Path, output: Path) -> dict[str, Any]:
+def probe(root: Path, output: Path) -> FaultProbeReport:
     output.mkdir(parents=True, exist_ok=False)
-    rows: list[dict[str, Any]] = []
+    rows: list[FaultProbeCase] = []
     for name in ("malformed_pcb", "missing_library", "erc_open_pin", "drc_unrouted", "parity_value", "missing_tool", "unknown_board"):
         with tempfile.TemporaryDirectory(prefix="kicad-negative-") as temp:
             copy: Path = Path(temp)
-            shutil.copytree(root / "boards", copy / "boards")
-            shutil.copy2(root / "pilot.json", copy / "pilot.json")
+            # Copy policy/catalog dependencies too, otherwise a missing preflight
+            # dependency masks the intended ERC/DRC defect.
+            shutil.copytree(root, copy, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"))
             board: Path = copy / "boards/controller/controller.kicad_pcb"
             sch: Path = copy / "boards/controller/controller.kicad_sch"
             cli: str = "kicad-cli"
@@ -34,57 +39,61 @@ def probe(root: Path, output: Path) -> dict[str, Any]:
                 text: str = sch.read_text()
                 if "(xy 76.2 71.12)" not in text:
                     raise ValueError("Open-pin mutation anchor missing")
-                ####
                 sch.write_text(text.replace("(xy 76.2 71.12)", "(xy 78.74 71.12)", 1))
                 expected = "erc"
             elif name == "drc_unrouted":
                 text, count = re.subn(r'  \(segment \(start 100 100\)[^\n]*\)\n', "", board.read_text(), count=1)
                 if count != 1:
                     raise ValueError("Track mutation anchor missing")
-                ####
                 board.write_text(text)
                 expected = "drc"
             elif name == "parity_value":
                 text = board.read_text()
                 if '(property "Value" "1k"' not in text:
                     raise ValueError("Parity mutation anchor missing")
-                ####
                 board.write_text(text.replace('(property "Value" "1k"', '(property "Value" "999k"', 1))
                 expected = "drc"
             elif name == "missing_tool":
                 cli = "intentionally-missing-kicad-pilot-executable"
             else:
                 (copy / "boards/unregistered").mkdir()
+                (copy / "boards/unregistered/ghost.kicad_pro").write_text("{}\n")
                 (copy / "boards/unregistered/ghost.kicad_pcb").write_text("undeclared board\n")
-            ####
-            report: dict[str, Any] = validate(copy, output / name, cli)
-            passed: bool = report["status"] == "FAIL" and report["checks"].get(expected, {}).get("status") == "FAIL"
+            report = validate(copy, output / name, cli)
+            observed = report.checks.get(expected)
+            passed = report.status == "FAIL" and observed is not None and observed.status == "FAIL"
             if name in {"erc_open_pin", "drc_unrouted", "parity_value"}:
-                passed = passed and report["checks"][expected].get("returncode") == 5
-            ####
+                passed = passed and observed is not None and observed.returncode == 5
             if name == "parity_value" and (output / name / "drc.json").exists():
-                data: dict[str, Any] = json.loads((output / name / "drc.json").read_text())
-                passed = passed and bool(data.get("schematic_parity"))
-            ####
-            rows.append({"id": name, "status": "PASS" if passed else "FAIL", "expected_failing_check": expected, "observed": report["checks"].get(expected)})
-        ####
-    ####
-    result: dict[str, Any] = {"lane": "KICAD_CLI", "not_for_manufacture": True, "cases": rows, "status": "PASS" if all(r["status"] == "PASS" for r in rows) else "FAIL"}
-    (output / "fault-summary.json").write_text(json.dumps(result, indent=2) + "\n")
+                raw: object = json.loads(
+                    (output / name / "drc.json").read_text(encoding="utf-8")
+                )
+                if isinstance(raw, dict):
+                    report_data = cast(Mapping[str, object], raw)
+                    passed = passed and bool(report_data.get("schematic_parity"))
+                else:
+                    passed = False
+            rows.append(
+                FaultProbeCase(
+                    id=name,
+                    status="PASS" if passed else "FAIL",
+                    expected_failing_check=expected,
+                    observed_status=None if observed is None else observed.status,
+                    observed_returncode=None if observed is None else observed.returncode,
+                )
+            )
+    result = FaultProbeReport(
+        cases=tuple(rows),
+        status="PASS" if all(row.status == "PASS" for row in rows) else "FAIL",
+    )
+    write_model(output / "fault-summary.json", result)
     return result
-####
-
-
 def main() -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args: argparse.Namespace = parser.parse_args()
-    result: dict[str, Any] = probe(Path(__file__).resolve().parents[1], args.output.resolve())
-    print(json.dumps(result, indent=2))
-    return 0 if result["status"] == "PASS" else 1
-####
-
-
+    result = probe(Path(__file__).resolve().parents[1], args.output.resolve())
+    print(result.model_dump_json(indent=2))
+    return 0 if result.status == "PASS" else 1
 if __name__ == "__main__":
     sys.exit(main())
-####

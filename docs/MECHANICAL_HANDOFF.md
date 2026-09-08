@@ -15,3 +15,9 @@ Every real board project needs a reviewed mechanical-interface record. Keep it w
 The PCB's `Edge.Cuts`, mechanical layers, footprints, and 3D models must agree with this record. Do not create a separate “mechanical copy” of a board as a handoff; publish the reviewed source revision and derived artifacts together.
 
 The synthetic controller fixture has no approved dimensions, stackup, or enclosure interface. It is for training only.
+
+The [system example](examples/status-system-mechanical.md) and
+[product workflow](PRODUCT_WORKFLOW.md) add machine-checked instance references,
+units, drawing paths and scoped evidence to this process. They intentionally leave
+physical fit, dimensional accuracy, collision/tolerance analysis and human review
+unapproved; an existing drawing path is not a passed mechanical review.

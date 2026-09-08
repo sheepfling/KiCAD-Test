@@ -1,4 +1,53 @@
 {
   "schema_version": "0.1",
-  "interfaces": []
+  "interfaces": [
+    {
+      "id": "iface-arduino-uno-r3-d13-status-v1",
+      "revision": "1.0",
+      "pins": [
+        {
+          "number": "D13",
+          "signal": "LED_BUILTIN_STATUS",
+          "direction": "host output",
+          "voltage_domain": "5 V logic; synthetic training reference",
+          "mating": "Generic two-position status-LED training header; no approved mating part",
+          "orientation": "Host signal concept mapped to training-board J1 pin 1",
+          "mechanical_clearance": "Not established; training fixture only"
+        },
+        {
+          "number": "GND",
+          "signal": "GND",
+          "direction": "return",
+          "voltage_domain": "0 V return; synthetic training reference",
+          "mating": "Generic two-position status-LED training header; no approved mating part",
+          "orientation": "Host return concept mapped to training-board J1 pin 2",
+          "mechanical_clearance": "Not established; training fixture only"
+        }
+      ]
+    },
+    {
+      "id": "iface-raspberry-pi-40pin-gpio17-status-v1",
+      "revision": "1.0",
+      "pins": [
+        {
+          "number": "physical 11 / BCM GPIO17",
+          "signal": "GPIO17_STATUS",
+          "direction": "host output",
+          "voltage_domain": "3.3 V logic; synthetic training reference",
+          "mating": "Generic two-position status-LED training header; no approved mating part",
+          "orientation": "Host signal concept mapped to training-board J1 pin 1",
+          "mechanical_clearance": "Not established; training fixture only"
+        },
+        {
+          "number": "physical 6",
+          "signal": "GND",
+          "direction": "return",
+          "voltage_domain": "0 V return; synthetic training reference",
+          "mating": "Generic two-position status-LED training header; no approved mating part",
+          "orientation": "Host return concept mapped to training-board J1 pin 2",
+          "mechanical_clearance": "Not established; training fixture only"
+        }
+      ]
+    }
+  ]
 }

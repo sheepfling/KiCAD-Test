@@ -3,17 +3,19 @@ from __future__ import annotations
 
 import json
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from check_all import check_all
-from validate import check_netlist, check_report, hashes, validate
+from tools.check_all import check_all
+from tools.hwrepo.contracts import read_model
+from tools.hwrepo.models import PcbValidationContract, ProjectConfig
+from tools.validate import check_netlist, check_report, hashes, validate
 
 ROOT: Path = Path(__file__).resolve().parents[1]
+JsonScalar = str | int | float | bool | None
+JsonValue = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+JsonObject = dict[str, JsonValue]
 
 
 class ValidationTests(unittest.TestCase):
@@ -23,25 +25,36 @@ class ValidationTests(unittest.TestCase):
         self.root: Path = Path(self.temp.name)
     ####
 
-    def report(self, data: Any) -> Path:
+    def report(self, data: JsonValue) -> Path:
         path: Path = self.root / "report.json"
         path.write_text(json.dumps(data))
         return path
     ####
 
     def fixture(self) -> None:
-        shutil.copytree(ROOT / "boards", self.root / "boards")
-        shutil.copytree(ROOT / "catalog", self.root / "catalog")
+        for directory in (
+            "boards",
+            "catalog",
+            "configs",
+            "product",
+            "libraries",
+            "firmware",
+            "docs",
+            "schematics",
+            "systems",
+            "harnesses",
+        ):
+            shutil.copytree(ROOT / directory, self.root / directory)
         shutil.copy2(ROOT / "pilot.json", self.root / "pilot.json")
     ####
 
     def test_erc_clean(self) -> None:
-        data: dict[str, Any] = {"kicad_version": "10.0.5", "sheets": [{"violations": []}]}
+        data: JsonObject = {"kicad_version": "10.0.5", "sheets": [{"violations": []}]}
         self.assertEqual(check_report(self.report(data), "erc"), 0)
     ####
 
     def test_erc_all_findings_count(self) -> None:
-        data: dict[str, Any] = {"kicad_version": "10.0.5", "sheets": [{"violations": [{"severity": "warning"}, {"excluded": True}]}]}
+        data: JsonObject = {"kicad_version": "10.0.5", "sheets": [{"violations": [{"severity": "warning"}, {"excluded": True}]}]}
         self.assertEqual(check_report(self.report(data), "erc"), 2)
     ####
 
@@ -54,55 +67,55 @@ class ValidationTests(unittest.TestCase):
     ####
 
     def test_drc_clean_requires_parity(self) -> None:
-        data: dict[str, Any] = {"kicad_version": "10.0.5", "violations": [], "unconnected_items": [], "schematic_parity": []}
+        data: JsonObject = {"kicad_version": "10.0.5", "violations": [], "unconnected_items": [], "schematic_parity": []}
         self.assertEqual(check_report(self.report(data), "drc"), 0)
         del data["schematic_parity"]
-        with self.assertRaises(ValueError):
+        with self.assertRaises((TypeError, ValueError)):
             check_report(self.report(data), "drc")
         ####
     ####
 
     def test_drc_counts_every_category(self) -> None:
-        data: dict[str, Any] = {"kicad_version": "10.0.5", "violations": [{}], "unconnected_items": [{}], "schematic_parity": [{}]}
+        data: JsonObject = {"kicad_version": "10.0.5", "violations": [{}], "unconnected_items": [{}], "schematic_parity": [{}]}
         self.assertEqual(check_report(self.report(data), "drc"), 3)
     ####
 
     def test_empty_netlist_cannot_pass(self) -> None:
         path: Path = self.root / "netlist.xml"
         path.write_text("<export><components/><nets/></export>")
-        config: dict[str, Any] = json.loads((ROOT / "pilot.json").read_text())
+        config = read_model(ROOT / "pilot.json", ProjectConfig)
+        self.assertIsInstance(config.validation, PcbValidationContract)
         with self.assertRaises(ValueError):
-            check_netlist(path, config)
+            check_netlist(path, config.validation)
         ####
     ####
 
     def test_fixture_inventory_matches(self) -> None:
-        config: dict[str, Any] = json.loads((ROOT / "pilot.json").read_text())
-        self.assertEqual(set(hashes(ROOT, config["source_roots"])), set(config["required_inputs"]))
+        config = read_model(ROOT / "pilot.json", ProjectConfig)
+        self.assertEqual(set(hashes(ROOT, config.source_roots)), set(config.required_inputs))
     ####
 
     def test_missing_tool_is_failure(self) -> None:
         self.fixture()
-        result: dict[str, Any] = validate(self.root, self.root / "out", "intentionally-absent-kicad")
-        self.assertEqual(result["status"], "FAIL")
-        self.assertIn("missing", result["checks"]["preflight"]["error"])
+        result = validate(self.root, self.root / "out", "intentionally-absent-kicad")
+        self.assertEqual(result.status, "FAIL")
+        self.assertIn("missing", result.checks["preflight"].error or "")
     ####
 
     def test_missing_dependency_is_failure(self) -> None:
         self.fixture()
         (self.root / "boards/controller/Pilot.kicad_sym").unlink()
-        result: dict[str, Any] = validate(self.root, self.root / "out", "intentionally-absent-kicad")
-        self.assertEqual(result["status"], "FAIL")
-        self.assertIn("inventory", result["checks"]["preflight"]["error"])
+        result = validate(self.root, self.root / "out", "intentionally-absent-kicad")
+        self.assertEqual(result.status, "FAIL")
+        self.assertIn("inventory", result.checks["preflight"].error or "")
     ####
 
     def test_unknown_board_is_failure(self) -> None:
         self.fixture()
-        (self.root / "boards/extra").mkdir()
-        (self.root / "boards/extra/extra.kicad_pcb").write_text("unknown")
-        result: dict[str, Any] = validate(self.root, self.root / "out", "intentionally-absent-kicad")
-        self.assertEqual(result["status"], "FAIL")
-        self.assertIn("extra.kicad_pcb", result["checks"]["preflight"]["error"])
+        (self.root / "boards/controller/extra.kicad_pcb").write_text("unknown")
+        result = validate(self.root, self.root / "out", "intentionally-absent-kicad")
+        self.assertEqual(result.status, "FAIL")
+        self.assertIn("extra.kicad_pcb", result.checks["preflight"].error or "")
     ####
 
     def test_no_overwriting_retained_evidence(self) -> None:
@@ -115,18 +128,18 @@ class ValidationTests(unittest.TestCase):
 
     def test_source_hash_detects_mutation(self) -> None:
         self.fixture()
-        before: dict[str, str] = hashes(self.root)
+        before = hashes(self.root)
         (self.root / "boards/controller/controller.kicad_pro").write_text("{}")
         self.assertNotEqual(before, hashes(self.root))
     ####
 
     def test_all_project_check_reports_missing_tool(self) -> None:
         self.fixture()
-        result: dict[str, Any] = check_all(self.root, self.root / "all-out", "intentionally-absent-kicad")
-        self.assertEqual(result["status"], "FAIL")
-        self.assertEqual(result["governance"]["status"], "PASS")
-        self.assertEqual(result["projects"][0]["id"], "controller")
-        self.assertEqual(result["projects"][0]["status"], "FAIL")
+        result = check_all(self.root, self.root / "all-out", "intentionally-absent-kicad")
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.governance.status, "PASS")
+        self.assertEqual(result.projects[0].id, "controller")
+        self.assertEqual(result.projects[0].status, "FAIL")
     ####
 
     def test_declared_shared_library_root_is_hashed(self) -> None:
@@ -135,13 +148,9 @@ class ValidationTests(unittest.TestCase):
         library.mkdir(parents=True)
         source: Path = library / "Example.kicad_sym"
         source.write_text("(kicad_symbol_lib (version 20231120) (generator test))")
-        scoped: dict[str, str] = hashes(self.root, ["boards", "libraries/shared"])
+        scoped = hashes(self.root, ["boards", "libraries/shared"])
         self.assertIn("libraries/shared/Example.kicad_sym", scoped)
         self.assertNotEqual(hashes(self.root), scoped)
     ####
-####
-
-
 if __name__ == "__main__":
     unittest.main()
-####

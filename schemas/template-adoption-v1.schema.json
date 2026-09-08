@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "project_id": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Project Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "needs_adoption",
+      "default": "needs_adoption",
+      "title": "Status",
+      "type": "string"
+    },
+    "template_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Template Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "template_version",
+    "project_id"
+  ],
+  "title": "TemplateAdoptionRecord",
+  "type": "object"
+}

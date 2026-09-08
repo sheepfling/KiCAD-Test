@@ -1,22 +1,152 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "catalogs": {
     "parts": "catalog/parts.json",
     "interfaces": "catalog/interfaces.json",
-    "libraries": "catalog/libraries.json"
+    "libraries": "catalog/libraries.json",
+    "toolchains": "catalog/toolchains.json",
+    "release_policies": "catalog/release-policies.json"
   },
   "projects": [
     {
       "id": "controller",
+      "kind": "pcb",
       "status": "training_fixture",
+      "assurance_profile": "training",
       "config": "pilot.json",
       "project": "boards/controller/controller.kicad_pro",
       "component_identity": {
         "required": false,
         "part_ids": []
       },
+      "tags": [
+        "controller",
+        "legacy",
+        "training"
+      ],
       "interfaces": [],
-      "library_ids": []
+      "library_ids": [],
+      "mechanical_handoff": null
+    },
+    {
+      "id": "arduino-uno-status-led",
+      "kind": "pcb",
+      "status": "training_fixture",
+      "assurance_profile": "training",
+      "config": "configs/arduino-uno-status-led.json",
+      "project": "boards/arduino-uno-status-led/arduino-uno-status-led.kicad_pro",
+      "component_identity": {
+        "required": true,
+        "part_ids": [
+          "training-generic-header-1x02-2.54",
+          "training-generic-led-red-5mm",
+          "training-generic-resistor-1k-th"
+        ]
+      },
+      "tags": [
+        "arduino",
+        "reference",
+        "status-led",
+        "training"
+      ],
+      "interfaces": [
+        "iface-arduino-uno-r3-d13-status-v1"
+      ],
+      "library_ids": [
+        "library-status-led-training"
+      ],
+      "mechanical_handoff": null
+    },
+    {
+      "id": "raspberry-pi-status-led",
+      "kind": "pcb",
+      "status": "training_fixture",
+      "assurance_profile": "training",
+      "config": "configs/raspberry-pi-status-led.json",
+      "project": "boards/raspberry-pi-status-led/raspberry-pi-status-led.kicad_pro",
+      "component_identity": {
+        "required": true,
+        "part_ids": [
+          "training-generic-header-1x02-2.54",
+          "training-generic-led-red-5mm",
+          "training-generic-resistor-1k-th"
+        ]
+      },
+      "tags": [
+        "raspberry-pi",
+        "reference",
+        "status-led",
+        "training"
+      ],
+      "interfaces": [
+        "iface-raspberry-pi-40pin-gpio17-status-v1"
+      ],
+      "library_ids": [
+        "library-status-led-training"
+      ],
+      "mechanical_handoff": null
+    },
+    {
+      "id": "status-indicator-wiring",
+      "kind": "system_wiring",
+      "status": "training_fixture",
+      "assurance_profile": "training",
+      "config": "configs/status-indicator-wiring.json",
+      "project": "systems/status-indicator-wiring/status-indicator-wiring.kicad_pro",
+      "component_identity": {
+        "required": false,
+        "part_ids": []
+      },
+      "tags": [
+        "system",
+        "status-led",
+        "training",
+        "wiring"
+      ],
+      "interfaces": [],
+      "library_ids": [],
+      "mechanical_handoff": null
+    },
+    {
+      "id": "passive-signal-reference",
+      "kind": "schematic",
+      "status": "training_fixture",
+      "assurance_profile": "training",
+      "config": "configs/passive-signal-reference.json",
+      "project": "schematics/passive-signal-reference/passive-signal-reference.kicad_pro",
+      "component_identity": {
+        "required": false,
+        "part_ids": []
+      },
+      "tags": [
+        "reference",
+        "schematic",
+        "training"
+      ],
+      "interfaces": [],
+      "library_ids": [],
+      "mechanical_handoff": null
+    },
+    {
+      "id": "status-indicator-harness-interface",
+      "kind": "harness_interface",
+      "status": "training_fixture",
+      "assurance_profile": "training",
+      "config": "configs/status-indicator-harness-interface.json",
+      "project": "harnesses/status-indicator-harness-interface/status-indicator-harness-interface.kicad_pro",
+      "component_identity": {
+        "required": false,
+        "part_ids": []
+      },
+      "tags": [
+        "harness",
+        "interface",
+        "status-led",
+        "training"
+      ],
+      "interfaces": [],
+      "library_ids": [],
+      "mechanical_handoff": null
     }
   ]
 }

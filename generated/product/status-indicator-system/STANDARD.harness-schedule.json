@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "product": "status-indicator-system",
+  "revision": "A",
+  "variant": "STANDARD",
+  "variant_revision": "A",
+  "build_authorized": false,
+  "rows": [
+    {
+      "harness_id": "H-STATUS",
+      "revision": "A",
+      "instance": "CABLE",
+      "length_mm": 200.0,
+      "conductor_area_mm2": 0.25,
+      "electrical_connection_ids": [
+        "C-RETURN",
+        "C-SIGNAL"
+      ],
+      "endpoint_terminal_ids": [
+        "T-CABLE-1",
+        "T-CABLE-2",
+        "T-UNO-RETURN",
+        "T-UNO-SIGNAL"
+      ],
+      "assurance": "assumed",
+      "evidence": [],
+      "disposition": "NOT FOR MANUFACTURE"
+    }
+  ]
+}

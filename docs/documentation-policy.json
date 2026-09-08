@@ -1,0 +1,12 @@
+{
+  "schema_version": "1",
+  "roots": [
+    "README.md",
+    "generated/README.md",
+    "governance/README.md",
+    "libraries/README.md",
+    "libraries/status-led/README.md",
+    "templates/README.md"
+  ],
+  "exceptions": []
+}

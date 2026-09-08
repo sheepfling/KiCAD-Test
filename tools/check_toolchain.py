@@ -1,0 +1,84 @@
+"""Fail before editing when the locally installed KiCad does not match the approved toolchain."""
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+from .hwrepo.contracts import read_model
+from .hwrepo.models import ToolchainAssessment, ToolchainRecord, ToolchainsCatalog
+
+
+def toolchain(root: Path, identifier: str) -> ToolchainRecord:
+    catalog = read_model(root / "catalog/toolchains.json", ToolchainsCatalog)
+    for record in catalog.toolchains:
+        if record.id == identifier:
+            return record
+    raise ValueError(f"Unknown toolchain {identifier!r}")
+
+
+def assessment(
+    record: ToolchainRecord, observed_version: str | None
+) -> ToolchainAssessment:
+    matches = observed_version == record.kicad_version
+    return ToolchainAssessment(
+        toolchain_id=record.id,
+        expected_version=record.kicad_version,
+        observed_version=observed_version,
+        desktop_editing_allowed=matches,
+        status="PASS" if matches else "FAIL",
+        next_action=(
+            "Use this KiCad build for editing."
+            if matches
+            else "Do not save or convert this project. Use the approved build or open a dedicated migration branch."
+        ),
+    )
+
+
+def cli_executable(cli: str) -> str | None:
+    executable: str | None = shutil.which(cli)
+    if executable is not None:
+        return executable
+    explicit: Path = Path(cli)
+    if explicit.is_file():
+        return str(explicit)
+    if cli != "kicad-cli":
+        return None
+    roots: list[Path] = []
+    for variable in ("LOCALAPPDATA", "ProgramFiles"):
+        value: str | None = os.environ.get(variable)
+        if value:
+            roots.append(Path(value) / "Programs" / "KiCad") if variable == "LOCALAPPDATA" else roots.append(Path(value) / "KiCad")
+    candidates: list[Path] = [
+        candidate for root in roots if root.is_dir()
+        for candidate in root.glob("*/bin/kicad-cli.exe") if candidate.is_file()
+    ]
+    return str(candidates[0]) if len(candidates) == 1 else None
+
+
+def observed_version(cli: str) -> str | None:
+    executable: str | None = cli_executable(cli)
+    if executable is None:
+        return None
+    result: subprocess.CompletedProcess[str] = subprocess.run(
+        [executable, "version"], text=True, capture_output=True, timeout=30, check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--toolchain", default="kicad-10.0.5")
+    parser.add_argument("--cli", default="kicad-cli")
+    args = parser.parse_args()
+    result = assessment(toolchain(args.root.resolve(), args.toolchain), observed_version(args.cli))
+    print(result.model_dump_json(indent=2))
+    return 0 if result.status == "PASS" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

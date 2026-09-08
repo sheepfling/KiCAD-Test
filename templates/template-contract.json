@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "template_version": "0.1.0",
+  "required_paths": [
+    "README.md",
+    "docs/START_HERE.md",
+    "docs/TEMPLATE_ADOPTION.md",
+    "tools/__init__.py",
+    "tools/ci.py",
+    "tools/template.py",
+    "tools/hwrepo/models.py",
+    "templates/template-upgrades.json"
+  ],
+  "adoption_guide": "docs/TEMPLATE_ADOPTION.md",
+  "upgrades_catalog": "templates/template-upgrades.json"
+}

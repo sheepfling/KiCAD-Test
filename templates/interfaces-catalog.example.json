@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "interfaces": [
+    {
+      "id": "REPLACE-WITH-INTERFACE-ID",
+      "revision": "REPLACE-WITH-INTERFACE-REVISION",
+      "pins": [
+        {
+          "number": "REPLACE-WITH-CONTACT-NUMBER",
+          "signal": "REPLACE-WITH-SIGNAL",
+          "direction": "REPLACE-WITH-DIRECTION",
+          "voltage_domain": "REPLACE-WITH-VOLTAGE-OR-DOMAIN",
+          "mating": "REPLACE-WITH-MATING-PART-AND-SOURCE",
+          "orientation": "REPLACE-WITH-CONNECTOR-SIDE-AND-VIEW",
+          "mechanical_clearance": "REPLACE-WITH-CLEARANCE-OR-REFERENCED-DRAWING"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+part_id,revision,quantity,unit,instances,manufacturer,mpn,disposition
+training-generic-cable,A,1,each,CABLE,UNSPECIFIED — training fixture,UNSPECIFIED — do not purchase,NOT FOR MANUFACTURE
+training-generic-header-1x02-2.54,A,2,each,PI.J1;UNO.J1,UNSPECIFIED — training fixture,UNSPECIFIED — do not purchase,NOT FOR MANUFACTURE
+training-generic-led-red-5mm,A,2,each,PI.D1;UNO.D1,UNSPECIFIED — training fixture,UNSPECIFIED — do not purchase,NOT FOR MANUFACTURE
+training-generic-resistor-1k-th,A,2,each,PI.R1;UNO.R1,UNSPECIFIED — training fixture,UNSPECIFIED — do not purchase,NOT FOR MANUFACTURE

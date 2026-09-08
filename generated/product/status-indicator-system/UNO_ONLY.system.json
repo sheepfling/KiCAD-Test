@@ -1,0 +1,76 @@
+{
+  "schema_version": "1",
+  "product": "status-indicator-system",
+  "revision": "A",
+  "variant": "UNO_ONLY",
+  "variant_revision": "A",
+  "build_authorized": false,
+  "connections": [
+    {
+      "id": "C-MOUNT",
+      "kind": "mechanical",
+      "from": {
+        "id": "T-BOARD-MOUNT",
+        "instance": "UNO",
+        "pin": "MOUNT",
+        "kind": "mechanical",
+        "exclusive": false
+      },
+      "to": {
+        "id": "T-ENC-MOUNT",
+        "instance": "ENC",
+        "pin": "MOUNT",
+        "kind": "mechanical",
+        "exclusive": false
+      },
+      "assurance": "unknown",
+      "evidence": []
+    },
+    {
+      "id": "C-RETURN",
+      "kind": "electrical",
+      "from": {
+        "id": "T-UNO-RETURN",
+        "instance": "UNO.J1",
+        "pin": "2",
+        "kind": "electrical",
+        "exclusive": true,
+        "interface_id": "iface-arduino-uno-r3-d13-status-v1",
+        "interface_pin": "GND"
+      },
+      "to": {
+        "id": "T-CABLE-2",
+        "instance": "CABLE",
+        "pin": "2",
+        "kind": "electrical",
+        "exclusive": true
+      },
+      "harness": "H-STATUS",
+      "assurance": "unknown",
+      "evidence": []
+    },
+    {
+      "id": "C-SIGNAL",
+      "kind": "electrical",
+      "from": {
+        "id": "T-UNO-SIGNAL",
+        "instance": "UNO.J1",
+        "pin": "1",
+        "kind": "electrical",
+        "exclusive": true,
+        "interface_id": "iface-arduino-uno-r3-d13-status-v1",
+        "interface_pin": "D13"
+      },
+      "to": {
+        "id": "T-CABLE-1",
+        "instance": "CABLE",
+        "pin": "1",
+        "kind": "electrical",
+        "exclusive": true
+      },
+      "harness": "H-STATUS",
+      "assurance": "unknown",
+      "evidence": []
+    }
+  ]
+}

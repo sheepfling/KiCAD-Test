@@ -1,0 +1,24 @@
+{
+  "id": "REPLACE-WITH-PROJECT-ID",
+  "kind": "pcb",
+  "status": "engineering",
+  "assurance_profile": "production",
+  "config": "configs/REPLACE-WITH-PROJECT-ID.json",
+  "project": "boards/REPLACE-WITH-PROJECT-ID/REPLACE-WITH-PROJECT-ID.kicad_pro",
+  "component_identity": {
+    "required": true,
+    "part_ids": [
+      "REPLACE-WITH-APPROVED-PART-ID"
+    ]
+  },
+  "tags": [
+    "REPLACE-WITH-LIFECYCLE-TAG",
+    "REPLACE-WITH-PRODUCT-OR-VERSION-TAG"
+  ],
+  "interfaces": [],
+  "library_ids": [
+    "REPLACE-WITH-APPROVED-LIBRARY-ID"
+  ],
+  "mechanical_handoff": "docs/mechanical/REPLACE-WITH-PROJECT-ID.md",
+  "governance_record": "governance/REPLACE-WITH-PROJECT-ID.json"
+}

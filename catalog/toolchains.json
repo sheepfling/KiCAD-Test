@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "toolchains": [
+    {
+      "id": "kicad-10.0.5",
+      "kicad_version": "10.0.5",
+      "image": "ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c",
+      "desktop_edit_policy": "approved_for_editing",
+      "installer_source": "Record the approved installer URL and checksum in the adoption record.",
+      "migration_policy": "A different KiCad version is read-only until a dedicated migration branch passes CI and review."
+    }
+  ]
+}

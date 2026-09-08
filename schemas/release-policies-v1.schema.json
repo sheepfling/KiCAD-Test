@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "Assurance": {
+      "enum": [
+        "unknown",
+        "assumed",
+        "inferred",
+        "observed",
+        "manufacturer_documented",
+        "verified",
+        "not_applicable"
+      ],
+      "title": "Assurance",
+      "type": "string"
+    },
+    "ReleaseAssurancePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "minimum_assurance": {
+          "$ref": "#/$defs/Assurance"
+        },
+        "release_class": {
+          "$ref": "#/$defs/ReleaseClass"
+        }
+      },
+      "required": [
+        "release_class",
+        "minimum_assurance"
+      ],
+      "title": "ReleaseAssurancePolicy",
+      "type": "object"
+    },
+    "ReleaseClass": {
+      "enum": [
+        "engineering_review",
+        "prototype",
+        "pilot",
+        "production"
+      ],
+      "title": "ReleaseClass",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "policies": {
+      "items": {
+        "$ref": "#/$defs/ReleaseAssurancePolicy"
+      },
+      "title": "Policies",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policies"
+  ],
+  "title": "ReleasePoliciesCatalog",
+  "type": "object"
+}

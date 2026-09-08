@@ -1,0 +1,155 @@
+{
+  "$defs": {
+    "Assurance": {
+      "enum": [
+        "unknown",
+        "assumed",
+        "inferred",
+        "observed",
+        "manufacturer_documented",
+        "verified",
+        "not_applicable"
+      ],
+      "title": "Assurance",
+      "type": "string"
+    },
+    "HarnessScheduleRow": {
+      "additionalProperties": false,
+      "description": "One non-procurement harness schedule row for a selected product variant.",
+      "properties": {
+        "assurance": {
+          "$ref": "#/$defs/Assurance"
+        },
+        "conductor_area_mm2": {
+          "exclusiveMinimum": 0,
+          "title": "Conductor Area Mm2",
+          "type": "number"
+        },
+        "disposition": {
+          "const": "NOT FOR MANUFACTURE",
+          "title": "Disposition",
+          "type": "string"
+        },
+        "electrical_connection_ids": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+            "type": "string"
+          },
+          "title": "Electrical Connection Ids",
+          "type": "array"
+        },
+        "endpoint_terminal_ids": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+            "type": "string"
+          },
+          "title": "Endpoint Terminal Ids",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "harness_id": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "title": "Harness Id",
+          "type": "string"
+        },
+        "instance": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*$",
+          "title": "Instance",
+          "type": "string"
+        },
+        "length_mm": {
+          "exclusiveMinimum": 0,
+          "title": "Length Mm",
+          "type": "number"
+        },
+        "revision": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "title": "Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "harness_id",
+        "revision",
+        "instance",
+        "length_mm",
+        "conductor_area_mm2",
+        "electrical_connection_ids",
+        "endpoint_terminal_ids",
+        "assurance",
+        "evidence",
+        "disposition"
+      ],
+      "title": "HarnessScheduleRow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "build_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Build Authorized",
+      "type": "boolean"
+    },
+    "product": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Product",
+      "type": "string"
+    },
+    "revision": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Revision",
+      "type": "string"
+    },
+    "rows": {
+      "items": {
+        "$ref": "#/$defs/HarnessScheduleRow"
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "variant": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Variant",
+      "type": "string"
+    },
+    "variant_revision": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Variant Revision",
+      "type": "string"
+    }
+  },
+  "required": [
+    "product",
+    "revision",
+    "variant",
+    "variant_revision",
+    "rows"
+  ],
+  "title": "HarnessSchedule",
+  "type": "object"
+}

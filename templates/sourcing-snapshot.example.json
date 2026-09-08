@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "snapshot_id": "REPLACE-WITH-SNAPSHOT-ID",
+  "source_commit": "0000000000000000000000000000000000000000",
+  "observed_at": "2026-01-01T00:00:00Z",
+  "offers": [
+    {
+      "id": "REPLACE-WITH-OFFER-ID",
+      "part_id": "REPLACE-WITH-APPROVED-PART-ID",
+      "supplier": "REPLACE WITH SUPPLIER",
+      "supplier_sku": "REPLACE WITH SUPPLIER SKU",
+      "source_url": "https://example.invalid/offer",
+      "region": "REPLACE WITH REGION",
+      "currency": "USD",
+      "quantity_break": 1,
+      "unit_price_minor": 0,
+      "availability": "REPLACE WITH OBSERVED AVAILABILITY",
+      "lead_time_days": null
+    }
+  ]
+}

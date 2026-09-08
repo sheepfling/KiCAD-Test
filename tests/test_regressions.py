@@ -3,16 +3,32 @@ from __future__ import annotations
 
 import json
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
+from typing import TypedDict
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from validate import check_report, hashes, svg_files
+from tools.hwrepo.contracts import read_model
+from tools.hwrepo.models import ProjectConfig
+from tools.validate import check_report, hashes, svg_files
 
 ROOT: Path = Path(__file__).resolve().parents[1]
+
+
+class IgnoredCheck(TypedDict):
+    key: str
+
+
+class ErcSheet(TypedDict):
+    violations: list[dict[str, str | bool]]
+
+
+class ErcReport(TypedDict):
+    schema: str
+    kicad_version: str
+    included_severities: list[str]
+    ignored_checks: list[IgnoredCheck]
+    sheets: list[ErcSheet]
 
 
 class RegressionTests(unittest.TestCase):
@@ -20,28 +36,32 @@ class RegressionTests(unittest.TestCase):
         self.temp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root: Path = Path(self.temp.name)
-        self.config: dict[str, Any] = json.loads((ROOT / "pilot.json").read_text())
+        self.config = read_model(ROOT / "pilot.json", ProjectConfig)
     ####
 
-    def erc_report(self) -> dict[str, Any]:
+    def erc_report(self) -> ErcReport:
         return {
-            "$schema": "https://schemas.kicad.org/erc.v1.json",
+            "schema": "https://schemas.kicad.org/erc.v1.json",
             "kicad_version": "10.0.5",
             "included_severities": ["error", "warning", "exclusion"],
-            "ignored_checks": [{"key": key} for key in self.config["expected_ignored_checks"]["erc"]],
+            "ignored_checks": [
+                {"key": key}
+                for key in self.config.validation.expected_ignored_checks.erc
+            ],
             "sheets": [{"violations": []}],
         }
     ####
 
-    def check(self, data: dict[str, Any]) -> int:
+    def check(self, data: ErcReport) -> int:
         path: Path = self.root / "report.json"
-        path.write_text(json.dumps(data))
+        payload = {"$schema": data["schema"], **{key: value for key, value in data.items() if key != "schema"}}
+        path.write_text(json.dumps(payload))
         return check_report(path, "erc", self.config)
     ####
 
     def test_known_local_state_does_not_change_source_identity(self) -> None:
         shutil.copytree(ROOT / "boards", self.root / "boards")
-        before: dict[str, str] = hashes(self.root)
+        before = hashes(self.root)
         (self.root / "boards/controller/controller.kicad_prl").write_text("local preferences")
         (self.root / "boards/controller/fp-info-cache").write_text("local cache")
         self.assertEqual(before, hashes(self.root))
@@ -49,7 +69,7 @@ class RegressionTests(unittest.TestCase):
 
     def test_other_new_source_still_changes_inventory(self) -> None:
         shutil.copytree(ROOT / "boards", self.root / "boards")
-        before: dict[str, str] = hashes(self.root)
+        before = hashes(self.root)
         (self.root / "boards/controller/new.kicad_sch").write_text("unregistered")
         self.assertNotEqual(before, hashes(self.root))
     ####
@@ -79,7 +99,7 @@ class RegressionTests(unittest.TestCase):
     ####
 
     def test_new_disabled_check_rejected(self) -> None:
-        data: dict[str, Any] = self.erc_report()
+        data = self.erc_report()
         data["ignored_checks"].append({"key": "pin_not_connected"})
         with self.assertRaisesRegex(ValueError, "Disabled-check"):
             self.check(data)
@@ -87,15 +107,15 @@ class RegressionTests(unittest.TestCase):
     ####
 
     def test_missing_ignored_inventory_rejected(self) -> None:
-        data: dict[str, Any] = self.erc_report()
+        data = self.erc_report()
         del data["ignored_checks"]
-        with self.assertRaisesRegex(ValueError, "ignored-check"):
+        with self.assertRaisesRegex(TypeError, "ignored-check"):
             self.check(data)
         ####
     ####
 
     def test_suppressed_warning_output_rejected(self) -> None:
-        data: dict[str, Any] = self.erc_report()
+        data = self.erc_report()
         data["included_severities"] = ["error"]
         with self.assertRaisesRegex(ValueError, "warnings"):
             self.check(data)
@@ -103,15 +123,9 @@ class RegressionTests(unittest.TestCase):
     ####
 
     def test_stale_report_version_rejected(self) -> None:
-        data: dict[str, Any] = self.erc_report()
+        data = self.erc_report()
         data["kicad_version"] = "9.0.0"
         with self.assertRaisesRegex(ValueError, "identity"):
             self.check(data)
-        ####
-    ####
-####
-
-
 if __name__ == "__main__":
     unittest.main()
-####

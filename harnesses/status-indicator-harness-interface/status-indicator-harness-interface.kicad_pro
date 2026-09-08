@@ -1,0 +1,12 @@
+{
+  "meta": {
+    "filename": "status-indicator-harness-interface.kicad_pro",
+    "version": 1
+  },
+  "erc": {
+    "erc_exclusions": [],
+    "meta": {
+      "version": 0
+    }
+  }
+}

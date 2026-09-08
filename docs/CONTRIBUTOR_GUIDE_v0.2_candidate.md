@@ -1,4 +1,4 @@
-# KiCad + Git employee guide v0.2 candidate
+# KiCad + Git contributor guide v0.2 candidate
 
 **Unapproved public-pilot adaptation. NOT FOR MANUFACTURE.**
 
@@ -6,13 +6,13 @@ Preserves the handoff's assignment → current main → work branch → KiCad ed
 
 ## 01 / Get set up once
 
-Install Git, Python 3.12+ and KiCad 10.0.5. Clone the repository, keeping the complete project and its adjacent libraries together. During initial review the project is on `pilot/kicad-workflow-v0-3`, not on `main`; that changes only after a human reviews and merges the setup PR.
+Install Git, Python 3.12+ and the repository's approved KiCad build. Clone your repository, keeping the complete project and its adjacent libraries together. Replace `REPOSITORY_URL` and `REVIEW_BRANCH` below with the repository and branch assigned for the rehearsal. Confirm the default branch and the example's availability with the maintainer.
 
 ```sh
-git clone https://github.com/sheepfling/KiCAD-Test.git
-cd KiCAD-Test
+git clone "REPOSITORY_URL" kicad-project
+cd kicad-project
 git fetch origin
-git switch --track origin/pilot/kicad-workflow-v0-3
+git switch --track "origin/REVIEW_BRANCH"
 ```
 
 Open `boards/controller/controller.kicad_pro`. Do not change an unrecognized library path or discard a load warning to continue. This is a public training fixture only.
@@ -38,7 +38,7 @@ Start with a non-electrical drawing-text change. Keep the whole schematic/PCB/li
 Save and close KiCad before running the reproducible checker from the repository root:
 
 ```sh
-python tools/validate.py --output build/review-001
+python -m tools.validate --output build/review-001
 ```
 
 Choose a new evidence directory each time. A missing tool, unexpected version, new board scope, dependency problem or electrical/parity finding is a failure, not permission to skip the check. The independent netlist contract deliberately detects fixture connectivity/value changes; changing that contract is itself reviewable engineering work.
@@ -59,7 +59,7 @@ Open a PR to `main`, state the board assignment, and explain the change. Inspect
 
 ## 05 / Review, merge and hand off
 
-A different qualified person reviews the drawings, report findings, source/settings changes and exact candidate. The integrator merges only after the configured acceptance requirements are met. This pilot has not proved independent review, protected-main enforcement or employee-specific permissions.
+A different qualified person reviews the drawings, report findings, source/settings changes and exact candidate. The integrator merges only after the configured acceptance requirements are met. This pilot has not proved independent review, protected-main enforcement or contributor-specific permissions.
 
 After an accepted merge, close KiCad, preserve unfinished work, switch to `main`, and pull with `--ff-only`. Reopen the project and hand back the assignment. Disposition old PRs explicitly before assigning the same board to someone else.
 
@@ -69,4 +69,4 @@ For a wrong branch, conflict, unexpected version, missing dependency or unexplai
 
 ## 07 / Release and practice
 
-No file in this pilot authorizes ordering or operating hardware. CI artifacts are temporary review evidence, not immutable approved releases. Complete the observed desktop rehearsal, ordinary-writer permission tests, independent review and private-organization policy pilot before labeling this guide approved.
+No file in this pilot authorizes ordering or operating hardware. CI artifacts are temporary review evidence, not immutable approved releases. Complete the desktop rehearsal, contributor permission tests, independent review and your repository's policy rehearsal before labeling this guide approved.

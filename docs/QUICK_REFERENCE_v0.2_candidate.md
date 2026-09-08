@@ -12,4 +12,4 @@ Inspect the Actions review artifact and checked commit. A green run is not indep
 
 On conflict, missing libraries, new tool versions or unexpected changes: stop, preserve work and ask the maintainer with branch, SHA, status and error. Never guess ours/theirs.
 
-Checks: `python tools/validate.py --output build/review-001` (new output name each time). Toolchain: KiCad 10.0.5; Python 3.12+. Libraries travel with the project.
+Checks: `python -m tools.validate --output build/review-001` (new output name each time). Toolchain: KiCad 10.0.5; Python 3.12+. Libraries travel with the project.

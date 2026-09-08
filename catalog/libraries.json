@@ -1,4 +1,16 @@
 {
   "schema_version": "0.1",
-  "libraries": []
+  "libraries": [
+    {
+      "id": "library-status-led-training",
+      "version": "0.1.0",
+      "path": "libraries/status-led",
+      "owner": "Template maintainers",
+      "status": "training_only",
+      "provenance_path": "libraries/status-led/PROVENANCE.md",
+      "provenance_sha256": "2db6c663237b11a302676841baf83f130333d5cf4a77ad48e841a9a27d2e2076",
+      "licensing_path": "libraries/status-led/LICENSE.md",
+      "licensing_sha256": "41be4f3685e9dc22d2ce03a2cc952b1debaec42784270323b8d5cd85866a19c8"
+    }
+  ]
 }

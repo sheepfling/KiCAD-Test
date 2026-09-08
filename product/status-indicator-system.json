@@ -1,0 +1,257 @@
+{
+  "schema_version": "1",
+  "id": "status-indicator-system",
+  "revision": "A",
+  "maturity": "training",
+  "root_assembly": "training-status-system",
+  "assemblies": [
+    {
+      "id": "training-status-system",
+      "revision": "A",
+      "kind": "phantom",
+      "members": [
+        {
+          "ref": "UNO",
+          "item": "training-uno-indicator",
+          "quantity": 1
+        },
+        {
+          "ref": "PI",
+          "item": "training-pi-indicator",
+          "quantity": 1
+        },
+        {
+          "ref": "CABLE",
+          "item": "training-cable-assembly",
+          "quantity": 1
+        },
+        {
+          "ref": "ENC",
+          "item": "training-generic-enclosure",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "training-uno-indicator",
+      "revision": "A",
+      "kind": "built",
+      "project_id": "arduino-uno-status-led",
+      "members": [
+        {
+          "ref": "J1",
+          "item": "training-generic-header-1x02-2.54",
+          "quantity": 1
+        },
+        {
+          "ref": "D1",
+          "item": "training-generic-led-red-5mm",
+          "quantity": 1
+        },
+        {
+          "ref": "R1",
+          "item": "training-generic-resistor-1k-th",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "training-pi-indicator",
+      "revision": "A",
+      "kind": "built",
+      "project_id": "raspberry-pi-status-led",
+      "members": [
+        {
+          "ref": "J1",
+          "item": "training-generic-header-1x02-2.54",
+          "quantity": 1
+        },
+        {
+          "ref": "D1",
+          "item": "training-generic-led-red-5mm",
+          "quantity": 1
+        },
+        {
+          "ref": "R1",
+          "item": "training-generic-resistor-1k-th",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "training-cable-assembly",
+      "revision": "A",
+      "kind": "purchased",
+      "purchase_part": "training-generic-cable",
+      "members": []
+    }
+  ],
+  "terminals": [
+    {
+      "id": "T-UNO-SIGNAL",
+      "instance": "UNO.J1",
+      "pin": "1",
+      "kind": "electrical",
+      "exclusive": true,
+      "interface_id": "iface-arduino-uno-r3-d13-status-v1",
+      "interface_pin": "D13"
+    },
+    {
+      "id": "T-UNO-RETURN",
+      "instance": "UNO.J1",
+      "pin": "2",
+      "kind": "electrical",
+      "exclusive": true,
+      "interface_id": "iface-arduino-uno-r3-d13-status-v1",
+      "interface_pin": "GND"
+    },
+    {
+      "id": "T-PI-SIGNAL",
+      "instance": "PI.J1",
+      "pin": "1",
+      "kind": "electrical",
+      "exclusive": true,
+      "interface_id": "iface-raspberry-pi-40pin-gpio17-status-v1",
+      "interface_pin": "physical 11 / BCM GPIO17"
+    },
+    {
+      "id": "T-CABLE-1",
+      "instance": "CABLE",
+      "pin": "1",
+      "kind": "electrical",
+      "exclusive": true
+    },
+    {
+      "id": "T-CABLE-2",
+      "instance": "CABLE",
+      "pin": "2",
+      "kind": "electrical",
+      "exclusive": true
+    },
+    {
+      "id": "T-ENC-MOUNT",
+      "instance": "ENC",
+      "pin": "MOUNT",
+      "kind": "mechanical",
+      "exclusive": false
+    },
+    {
+      "id": "T-BOARD-MOUNT",
+      "instance": "UNO",
+      "pin": "MOUNT",
+      "kind": "mechanical",
+      "exclusive": false
+    }
+  ],
+  "variants": [
+    {
+      "id": "STANDARD",
+      "revision": "A",
+      "exclude": []
+    },
+    {
+      "id": "UNO_ONLY",
+      "revision": "A",
+      "exclude": [
+        "PI"
+      ]
+    },
+    {
+      "id": "OPEN_FRAME",
+      "revision": "A",
+      "exclude": [
+        "ENC"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "C-SIGNAL",
+      "kind": "electrical",
+      "from": "T-UNO-SIGNAL",
+      "to": "T-CABLE-1",
+      "variants": [
+        "STANDARD",
+        "UNO_ONLY",
+        "OPEN_FRAME"
+      ],
+      "assurance": "unknown",
+      "evidence": [],
+      "harness": "H-STATUS"
+    },
+    {
+      "id": "C-RETURN",
+      "kind": "electrical",
+      "from": "T-UNO-RETURN",
+      "to": "T-CABLE-2",
+      "variants": [
+        "STANDARD",
+        "UNO_ONLY",
+        "OPEN_FRAME"
+      ],
+      "assurance": "unknown",
+      "evidence": [],
+      "harness": "H-STATUS"
+    },
+    {
+      "id": "C-STATUS-ROLE",
+      "kind": "functional",
+      "from": "T-UNO-SIGNAL",
+      "to": "T-PI-SIGNAL",
+      "variants": [
+        "STANDARD",
+        "OPEN_FRAME"
+      ],
+      "assurance": "assumed",
+      "evidence": []
+    },
+    {
+      "id": "C-MOUNT",
+      "kind": "mechanical",
+      "from": "T-BOARD-MOUNT",
+      "to": "T-ENC-MOUNT",
+      "variants": [
+        "STANDARD",
+        "UNO_ONLY"
+      ],
+      "assurance": "unknown",
+      "evidence": []
+    }
+  ],
+  "harnesses": [
+    {
+      "id": "H-STATUS",
+      "revision": "A",
+      "instance": "CABLE",
+      "length_mm": 200,
+      "conductor_area_mm2": 0.25,
+      "assurance": "assumed",
+      "evidence": []
+    }
+  ],
+  "mechanical": [
+    {
+      "id": "M-ENVELOPE",
+      "instances": [
+        "UNO",
+        "PI",
+        "ENC"
+      ],
+      "units": "mm",
+      "datum": "Synthetic review datum only; no approved physical origin",
+      "drawing": "docs/examples/status-system-mechanical.md",
+      "assurance": "unknown",
+      "evidence": [],
+      "open_items": [
+        "No validated mounting holes, stackup, envelope, mating connector or tolerance stack.",
+        "Mechanical collision, thermal and service-clearance review has not been performed."
+      ]
+    }
+  ],
+  "evidence": [],
+  "blocking_issues": [
+    "Synthetic metadata only: no component procurement or fabrication authorization.",
+    "Cable cavities, gauge and length are fictional; obtain approved pinout and construction evidence.",
+    "Functional status-role relation is NOT a wire between host GPIOs."
+  ]
+}

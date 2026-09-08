@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "SupplierOffer": {
+      "additionalProperties": false,
+      "properties": {
+        "availability": {
+          "minLength": 1,
+          "title": "Availability",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "lead_time_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lead Time Days"
+        },
+        "part_id": {
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+          "title": "Part Id",
+          "type": "string"
+        },
+        "quantity_break": {
+          "exclusiveMinimum": 0,
+          "title": "Quantity Break",
+          "type": "integer"
+        },
+        "region": {
+          "minLength": 1,
+          "title": "Region",
+          "type": "string"
+        },
+        "source_url": {
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "supplier": {
+          "minLength": 1,
+          "title": "Supplier",
+          "type": "string"
+        },
+        "supplier_sku": {
+          "minLength": 1,
+          "title": "Supplier Sku",
+          "type": "string"
+        },
+        "unit_price_minor": {
+          "minimum": 0,
+          "title": "Unit Price Minor",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "part_id",
+        "supplier",
+        "supplier_sku",
+        "source_url",
+        "region",
+        "currency",
+        "quantity_break",
+        "unit_price_minor",
+        "availability"
+      ],
+      "title": "SupplierOffer",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "offers": {
+      "items": {
+        "$ref": "#/$defs/SupplierOffer"
+      },
+      "title": "Offers",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "source_commit": {
+      "pattern": "^[a-f0-9]{40}$",
+      "title": "Source Commit",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "source_commit",
+    "observed_at",
+    "offers"
+  ],
+  "title": "SourcingSnapshot",
+  "type": "object"
+}

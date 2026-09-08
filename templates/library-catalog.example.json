@@ -7,7 +7,10 @@
       "path": "libraries/example-library",
       "owner": "REPLACE WITH OWNER",
       "status": "example_only",
-      "provenance": "REPLACE WITH DATASHEET, SOURCE, AND LICENSE RECORD"
+      "provenance_path": "libraries/example-library/PROVENANCE.md",
+      "provenance_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "licensing_path": "libraries/example-library/LICENSE.md",
+      "licensing_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ]
 }

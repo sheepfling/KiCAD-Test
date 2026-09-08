@@ -2,45 +2,59 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
-from typing import Any
 
-from lint_registry import lint
+from .hwrepo.contracts import read_model, repo_path
+from .hwrepo.models import CiMatrix, MatrixEntry, ProjectConfig, ProjectRegistry
+from .lint_registry import lint
 
 
-def build_matrix(root: Path) -> dict[str, list[dict[str, str]]]:
+def build_matrix(root: Path, selected: tuple[str, ...] | None = None) -> CiMatrix:
     root = root.resolve()
-    governance: dict[str, Any] = lint(root)
-    if governance["status"] != "PASS":
-        raise ValueError(f"Refusing CI matrix for invalid registry: {governance['issues']}")
-    registry: Any = json.loads((root / "catalog/projects.json").read_text(encoding="utf-8"))
-    projects: Any = registry.get("projects") if isinstance(registry, dict) else None
-    if not isinstance(projects, list):
-        raise ValueError("Project registry has no projects list")
-    include: list[dict[str, str]] = []
-    for project in projects:
-        if not isinstance(project, dict):
-            raise ValueError("Project registry contains an invalid entry")
-        identifier: Any = project.get("id")
-        config_name: Any = project.get("config")
-        if not isinstance(identifier, str) or not isinstance(config_name, str):
-            raise ValueError("Project registry needs id and config strings")
-        config: Any = json.loads((root / config_name).read_text(encoding="utf-8"))
-        if not isinstance(config, dict) or not isinstance(config.get("image"), str) or not isinstance(config.get("kicad_version"), str):
-            raise ValueError(f"Project {identifier} has no valid KiCad image/version")
-        include.append({"project": identifier, "image": config["image"], "kicad_version": config["kicad_version"]})
+    governance = lint(root, None if selected is None else list(selected))
+    if governance.status != "PASS":
+        raise ValueError(
+            f"Refusing CI matrix for invalid registry: {governance.issues}"
+        )
+    registry = read_model(root / "catalog/projects.json", ProjectRegistry)
+    include: list[MatrixEntry] = []
+    selected_ids = None if selected is None else frozenset(selected)
+    for project in registry.projects:
+        if selected_ids is not None and project.id not in selected_ids:
+            continue
+        config = read_model(repo_path(root, project.config), ProjectConfig)
+        include.append(
+            MatrixEntry(
+                project=project.id,
+                image=config.image,
+                kicad_version=config.kicad_version,
+            )
+        )
     if not include:
         raise ValueError("Project registry contains no CI projects")
-    return {"include": include}
+    return CiMatrix(include=tuple(include))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--project", action="append", dest="projects")
+    parser.add_argument("--tag", action="append", dest="tags")
+    parser.add_argument("--exclude-tag", action="append", dest="excluded_tags")
     args = parser.parse_args()
-    print(json.dumps(build_matrix(args.root), separators=(",", ":")))
+    from .hwrepo.selection import ProjectSelector, resolve_project_ids
+
+    selector = ProjectSelector(
+        project_ids=tuple(args.projects or ()),
+        tags=tuple(args.tags or ()),
+        excluded_tags=tuple(args.excluded_tags or ()),
+    )
+    try:
+        selected = resolve_project_ids(args.root, selector) if selector.active else None
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc))
+    print(build_matrix(args.root, selected).model_dump_json())
     return 0
 
 

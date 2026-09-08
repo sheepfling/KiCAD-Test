@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.4",
+  "kind": "pcb",
+  "assurance_profile": "production",
+  "not_for_manufacture": false,
+  "project_id": "REPLACE-WITH-PROJECT-ID",
+  "toolchain_id": "kicad-10.0.5",
+  "kicad_version": "10.0.5",
+  "image": "ghcr.io/kicad/kicad:10.0.5@sha256:fdcfa0e8d41f640d16edfb28e027fe8862ab31af9e45dcacbc662cec5c916e4c",
+  "project": "boards/REPLACE-WITH-PROJECT-ID/REPLACE-WITH-PROJECT-ID.kicad_pro",
+  "source_roots": [
+    "boards/REPLACE-WITH-PROJECT-ID",
+    "libraries/REPLACE-WITH-APPROVED-LIBRARY"
+  ],
+  "required_inputs": [
+    "Populate from the declared source roots before adding the project to the registry."
+  ],
+  "validation": {
+    "kind": "pcb",
+    "components": {},
+    "nets": {},
+    "expected_ignored_checks": {
+      "erc": [],
+      "drc": []
+    }
+  }
+}

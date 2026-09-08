@@ -19,23 +19,34 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: '3.12'
+      - name: Install the typed policy dependency
+        run: python -m pip install --disable-pip-version-check pydantic==2.13.4
       - id: matrix
         name: Resolve project-specific KiCad images
-        run: echo "matrix=$(python3 tools/ci_matrix.py)" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(python3 -m tools.ci --matrix)" >> "$GITHUB_OUTPUT"
   python-tests:
-    name: Checker unit tests
-    runs-on: ubuntu-24.04
+    name: Portable policy (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-14]
+        python: ['3.12']
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Lint declared projects, parts, interfaces, and libraries
-        run: |
-          mkdir -p build
-          python3 tools/lint_registry.py --all --output build/governance-lint.json
-      - name: Run checker unit tests
-        run: python3 -m unittest discover -s tests -v
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned Python quality tools
+        run: python -m pip install --disable-pip-version-check pydantic==2.13.4 ruff==0.16.1 pyright==1.1.411
+      - name: Run the portable policy pipeline
+        run: python -B -m tools.ci
   kicad:
     name: KiCad ${{ matrix.project }} (${{ matrix.kicad_version }})
     needs: [project-matrix, python-tests]
@@ -66,19 +77,19 @@ jobs:
       - name: Check declared KiCad project
         id: baseline
         run: |
-          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python3 \
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint sh \
             -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
             -e CHECKED_SHA -e PR_HEAD_SHA \
             -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
-            tools/check_all.py --project "$PROJECT_ID" --output build/review
+            -ec 'python3 -m pip install --disable-pip-version-check pydantic==2.13.4; python3 -m tools.ci --kicad --project "$PROJECT_ID" --output build/review'
       - name: Verify deliberate defects cannot pass
         if: matrix.project == 'controller' && steps.baseline.outcome == 'success'
         run: |
-          docker run --rm --user "$(id -u):$(id -g)" --entrypoint python3 \
+          docker run --rm --user "$(id -u):$(id -g)" --entrypoint sh \
             -e HOME=/tmp/kicad-pilot -e PYTHONDONTWRITEBYTECODE=1 \
             -e CHECKED_SHA -e PR_HEAD_SHA \
             -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
-            tools/fault_probe.py --output build/fault-probes
+            -ec 'python3 -m pip install --disable-pip-version-check pydantic==2.13.4; python3 -m tools.ci --fault-probes --output build/fault-probes'
       - name: Confirm tracked source remains unchanged
         if: always()
         run: |

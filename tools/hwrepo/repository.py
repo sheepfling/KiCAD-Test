@@ -1,0 +1,251 @@
+"""Portable CAD dependencies, project discovery, and tracked-state hygiene."""
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+from pathlib import Path, PurePosixPath, PureWindowsPath
+
+from .contracts import read_model, repo_path
+from .models import ProjectConfig, ProjectKind, ProjectRegistry, RepositoryPolicyReport
+
+LOCAL_STATE_NAMES = frozenset(
+    {
+        ".directory",
+        ".ds_store",
+        ".lsoverride",
+        "desktop.ini",
+        "ehthumbs.db",
+        "fp-info-cache",
+        "thumbs.db",
+    }
+)
+LOCAL_STATE_DIRECTORIES = frozenset(
+    {
+        ".appledouble",
+        ".evidence",
+        ".fseventsd",
+        ".history",
+        ".idea",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".spotlight-v100",
+        ".trashes",
+        ".vscode",
+        ".vs",
+        "$recycle.bin",
+        "__macosx",
+        "__pycache__",
+        "build",
+        "lost+found",
+    }
+)
+LOCAL_STATE_SUFFIXES = frozenset(
+    {
+        ".bak",
+        ".kicad_prl",
+        ".lck",
+        ".log",
+        ".old",
+        ".orig",
+        ".pid",
+        ".pyc",
+        ".rej",
+        ".swo",
+        ".swp",
+        ".temp",
+        ".tmp",
+    }
+)
+UNMANAGED_ARTIFACT_SUFFIXES = frozenset(
+    {
+        ".7z",
+        ".aac",
+        ".aif",
+        ".aiff",
+        ".apk",
+        ".app",
+        ".appx",
+        ".avi",
+        ".avif",
+        ".bmp",
+        ".bz2",
+        ".doc",
+        ".docm",
+        ".docx",
+        ".dot",
+        ".dotm",
+        ".dotx",
+        ".dmg",
+        ".deb",
+        ".eml",
+        ".exe",
+        ".flac",
+        ".gif",
+        ".gz",
+        ".heic",
+        ".ico",
+        ".iso",
+        ".jpeg",
+        ".jpg",
+        ".key",
+        ".m4a",
+        ".m4v",
+        ".mkv",
+        ".mov",
+        ".mp3",
+        ".mp4",
+        ".mpeg",
+        ".mpg",
+        ".msg",
+        ".msi",
+        ".msix",
+        ".numbers",
+        ".odg",
+        ".odp",
+        ".ods",
+        ".odt",
+        ".ogg",
+        ".ogv",
+        ".one",
+        ".opus",
+        ".pages",
+        ".pkg",
+        ".pot",
+        ".potm",
+        ".potx",
+        ".png",
+        ".pps",
+        ".ppsm",
+        ".ppsx",
+        ".ppt",
+        ".pptm",
+        ".pptx",
+        ".psd",
+        ".rar",
+        ".rpm",
+        ".svg",
+        ".tar",
+        ".tgz",
+        ".tif",
+        ".tiff",
+        ".wav",
+        ".webm",
+        ".webp",
+        ".wmv",
+        ".xls",
+        ".xlsm",
+        ".xlsx",
+        ".xlt",
+        ".xltm",
+        ".xltx",
+        ".xz",
+        ".zip",
+        ".zst",
+    }
+)
+
+
+def ephemeral(name: str) -> bool:
+    path = PurePosixPath(name)
+    return (
+        path.suffix.casefold() in LOCAL_STATE_SUFFIXES
+        or path.name.casefold() in LOCAL_STATE_NAMES
+        or path.name.startswith(("._", ".nfs", "_autosave-", "~"))
+        or path.name.endswith("-bak")
+        or any(
+            part.casefold() in LOCAL_STATE_DIRECTORIES
+            or part.casefold().endswith("-backups")
+            or part.casefold().startswith(".trash-")
+            for part in path.parts
+        )
+    )
+
+
+def unmanaged_artifact(name: str) -> bool:
+    """Return whether a force-added Office, archive, installer or media file is forbidden."""
+    path = PurePosixPath(name)
+    return path.suffix.casefold() in UNMANAGED_ARTIFACT_SUFFIXES
+
+
+def cad_dependencies(root: Path, file: Path, project_dir: Path, major: str) -> list[str]:
+    issues: list[str] = []
+    text = file.read_text(encoding="utf-8")
+    for match in re.finditer(r'\((?:uri|model)\s+"([^"\n]*)"', text):
+        value = match.group(1)
+        label = file.relative_to(root).as_posix()
+        if "\\" in value or PureWindowsPath(value).drive or value.startswith("/"):
+            issues.append(f"CAD_PATH: {label}: machine-local dependency {value!r}")
+            continue
+        allowed = {f"KICAD{major}_SYMBOL_DIR", f"KICAD{major}_FOOTPRINT_DIR", f"KICAD{major}_3DMODEL_DIR"}
+        variables = re.findall(r'\$\{([^}]+)\}', value)
+        if variables and variables[0] in allowed and len(variables) == 1:
+            if not value.startswith("${" + variables[0] + "}/") or ".." in value.split("/"):
+                issues.append(f"CAD_PATH: {label}: invalid versioned KiCad library path")
+            continue  # Bundled library dependency resolved by the pinned KiCad lane.
+        if any(variable != "KIPRJMOD" for variable in variables) or "$" in value.replace("${KIPRJMOD}", ""):
+            issues.append(f"CAD_PATH: {label}: undocumented path variable {value!r}")
+            continue
+        target = Path(value.replace("${KIPRJMOD}", project_dir.as_posix()))
+        if not target.is_absolute():
+            target = project_dir / target
+        try:
+            # Collapse relative .. only after anchoring at the project directory.
+            normalized = Path(os.path.abspath(target))
+            relative = normalized.relative_to(root).as_posix()
+            if not repo_path(root, relative).exists():
+                raise ValueError("missing dependency")
+        except ValueError as exc:
+            issues.append(f"CAD_PATH: {label}: {value!r}: {exc}")
+    return issues
+
+
+def check_repository(
+    root: Path, selected_project_ids: tuple[str, ...] | None = None
+) -> RepositoryPolicyReport:
+    """Check shared hygiene plus CAD dependencies for all or selected projects."""
+    root = root.resolve()
+    selected = None if selected_project_ids is None else frozenset(selected_project_ids)
+    issues: list[str] = []
+    try:
+        registry = read_model(root / "catalog/projects.json", ProjectRegistry)
+        inventories: set[str] = set()
+        for project in registry.projects:
+            if selected is not None and project.id not in selected:
+                continue
+            config = read_model(repo_path(root, project.config), ProjectConfig)
+            directory = repo_path(root, project.project).parent
+            inventories.update(config.required_inputs)
+            for name in config.required_inputs:
+                path = repo_path(root, name)
+                if path.suffix in {".kicad_pcb", ".kicad_mod"} or path.name in {"sym-lib-table", "fp-lib-table"}:
+                    issues.extend(
+                        cad_dependencies(
+                            root,
+                            path,
+                            directory,
+                            config.kicad_version.split(".")[0],
+                        )
+                    )
+        if selected is None:
+            found = {
+                path.relative_to(root).as_posix()
+                for kind in ProjectKind
+                for path in (root / kind.design_root).rglob("*")
+                if (root / kind.design_root).is_dir()
+                and path.suffix in {".kicad_pro", ".kicad_sch", ".kicad_pcb"}
+                and not ephemeral(path.relative_to(root).as_posix())
+            }
+            issues.extend(f"UNREGISTERED_DESIGN: {name}" for name in sorted(found - inventories))
+        result = subprocess.run(["git", "-c", f"safe.directory={root.as_posix()}", "-C", str(root), "ls-files", "-z"], capture_output=True, text=True, check=True)
+        for name in result.stdout.split("\0"):
+            if name and ephemeral(name):
+                issues.append(f"TRACKED_LOCAL_STATE: {name}")
+            elif name and unmanaged_artifact(name):
+                issues.append(f"TRACKED_UNMANAGED_ARTIFACT: {name}")
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+        issues.append(f"REPOSITORY_LOAD: {exc}")
+    return RepositoryPolicyReport(
+        status="FAIL" if issues else "PASS",
+        issues=tuple(sorted(set(issues))),
+    )

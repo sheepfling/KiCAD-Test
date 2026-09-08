@@ -1,0 +1,49 @@
+{
+  "schema_version": "1",
+  "release_id": "REPLACE-WITH-RELEASE-ID",
+  "release_class": "engineering_review",
+  "status": "candidate",
+  "source_commit": "0000000000000000000000000000000000000000",
+  "source_tag": null,
+  "toolchain_id": "REPLACE-WITH-TOOLCHAIN-ID",
+  "variants": [
+    {
+      "product": "REPLACE-WITH-PRODUCT-ID",
+      "product_revision": "REPLACE-WITH-PRODUCT-REVISION",
+      "variant": "REPLACE-WITH-VARIANT-ID",
+      "variant_revision": "REPLACE-WITH-VARIANT-REVISION"
+    }
+  ],
+  "libraries": [
+    {
+      "id": "REPLACE-WITH-LIBRARY-ID",
+      "version": "REPLACE-WITH-LIBRARY-VERSION",
+      "provenance_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "licensing_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "interfaces": [
+    {
+      "id": "REPLACE-WITH-INTERFACE-ID",
+      "revision": "REPLACE-WITH-INTERFACE-REVISION"
+    }
+  ],
+  "checks": {
+    "repository": "PASS",
+    "product_model": "PASS",
+    "generation_drift": "PASS",
+    "harness": "PASS",
+    "kicad": "PASS"
+  },
+  "artifacts": [
+    {
+      "id": "REPLACE-WITH-ARTIFACT-ID",
+      "kind": "review_record",
+      "path": "REPLACE-WITH-RETAINED-ARTIFACT",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "intended_use": "REPLACE-WITH-INTENDED-USE"
+    }
+  ],
+  "deviations": [],
+  "approval": null
+}
