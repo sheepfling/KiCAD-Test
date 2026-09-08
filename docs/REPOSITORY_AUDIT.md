@@ -34,9 +34,10 @@ history were changed by this audit.
 
 ## Decisions that belong to the adopting team
 
-The repository has no repository-wide license declaration. Its owner must choose
-terms for distributing the template; the reference library's license covers only
-that library. This audit does not invent licensing terms.
+The template had no repository-wide license declaration at the time of this audit.
+The original scaffold is now published under 0BSD. Adopting teams choose terms for
+their own work; [licensing and adoption](LICENSING.md) explains how bootstrap keeps
+the upstream root notice and history out of the company's first commit.
 
 Set real CODEOWNERS, hosted branch rules, identities, toolchain installation records,
 release authority and evidence retention before production adoption. The included
