@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kicad-team-template-policy"
-version = "0.3.0"
+version = "1.0.0"
 description = "Typed policy and deterministic review tooling for the generic KiCad team template"
 requires-python = ">=3.10"
 dependencies = [

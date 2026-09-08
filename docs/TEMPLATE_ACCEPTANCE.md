@@ -94,6 +94,10 @@ The defect is confined to the probe branch and must never be merged.
 
 ## Remaining baseline acceptance
 
+The [1.0.0 baseline review](BASELINE_REVIEW.md) maps the requested workflow to its
+implementation and evidence. The [changelog](../CHANGELOG.md) records the prepared
+version and migration impact; publication still requires the final review and tag.
+
 The public repository's `main` branch reports no protection. Production enforcement must still
 be configured and verified with repository-administration access; the connected
 GitHub integration returns HTTP 403 for that administration endpoint.

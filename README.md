@@ -24,7 +24,8 @@ for branches, review and handoff. The [worked examples](examples/README.md) use 
 same layout and provide regression fixtures for the shared tools.
 See also the [quick reference](docs/QUICK_REFERENCE.md),
 [mechanical handoff](docs/MECHANICAL_HANDOFF.md), [metrics](docs/METRICS.md)
-and [Markdown policy](docs/MARKDOWN_POLICY.md).
+and [Markdown policy](docs/MARKDOWN_POLICY.md). The [scaffold changelog](CHANGELOG.md)
+records workflow versions; these are separate from each board's revision.
 
 The original scaffold uses 0BSD; adopters choose their own project terms. For a
 private company repository, use [bootstrap](docs/TEMPLATE_ADOPTION.md#bootstrap)

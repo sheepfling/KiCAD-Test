@@ -99,8 +99,11 @@ updated upgrade catalog while retaining their old contract version to inspect th
 
 The 0.3.0-to-1.0.0 plan adds fresh-fork initialization, configurable team policy,
 per-reference component identities, root-license cleanup and the evidence-backed release/restore path.
-Use `upgrade-plan --target-version 1.0.0` with the updated catalog. Existing adopters
-keep their live project and catalog records; initialization is for fresh forks.
+The current contract records 1.0.0. A new 1.0.0 copy needs no migration; an existing
+adopter keeps its earlier version in `template-adoption.json` and uses
+`upgrade-plan --target-version 1.0.0` with the updated tools and catalog. The planner
+then returns the intervening steps. Existing adopters keep their live project and
+catalog records; initialization is for fresh forks.
 
 Review each board's identity expectations and export settings, then regenerate
 release evidence from a clean source commit. Retain historical approved packages as

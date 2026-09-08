@@ -2,8 +2,8 @@
 
 This matrix turns the generic planning packet v0.1 into repository evidence. It
 does not relabel a green local suite as hosted permission, human-review, physical-fit
-or manufacturing proof. The packet archive remains external reference material; its
-recorded SHA-256 is in [template acceptance](TEMPLATE_ACCEPTANCE.md).
+or manufacturing proof. The packet archive remains external reference material;
+[template acceptance](TEMPLATE_ACCEPTANCE.md) records executable workflow evidence.
 
 ## Status vocabulary
 

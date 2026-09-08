@@ -1,8 +1,9 @@
 {
   "schema_version": "1",
-  "template_version": "0.3.0",
+  "template_version": "1.0.0",
   "required_paths": [
     "README.md",
+    "CHANGELOG.md",
     "docs/START_HERE.md",
     "docs/TEMPLATE_ADOPTION.md",
     "tools/__init__.py",
