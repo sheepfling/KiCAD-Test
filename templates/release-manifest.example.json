@@ -6,14 +6,7 @@
   "source_commit": "0000000000000000000000000000000000000000",
   "source_tag": null,
   "toolchain_id": "REPLACE-WITH-TOOLCHAIN-ID",
-  "variants": [
-    {
-      "product": "REPLACE-WITH-PRODUCT-ID",
-      "product_revision": "REPLACE-WITH-PRODUCT-REVISION",
-      "variant": "REPLACE-WITH-VARIANT-ID",
-      "variant_revision": "REPLACE-WITH-VARIANT-REVISION"
-    }
-  ],
+  "variants": [],
   "libraries": [
     {
       "id": "REPLACE-WITH-LIBRARY-ID",
@@ -28,13 +21,6 @@
       "revision": "REPLACE-WITH-INTERFACE-REVISION"
     }
   ],
-  "checks": {
-    "repository": "PASS",
-    "product_model": "PASS",
-    "generation_drift": "PASS",
-    "harness": "PASS",
-    "kicad": "PASS"
-  },
   "artifacts": [
     {
       "id": "REPLACE-WITH-ARTIFACT-ID",
@@ -45,5 +31,21 @@
     }
   ],
   "deviations": [],
-  "approval": null
+  "approval": null,
+  "projects": [
+    "REPLACE-WITH-PROJECT-ID"
+  ],
+  "evidence": {
+    "portable": {
+      "path": "build/REPLACE-WITH-PORTABLE-REPORT.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "native": {
+      "REPLACE-WITH-PROJECT-ID": {
+        "path": "build/REPLACE-WITH-NATIVE-REPORT/summary.json",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "exports": {}
+  }
 }

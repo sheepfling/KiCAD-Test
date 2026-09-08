@@ -7,7 +7,7 @@ from pathlib import Path
 
 from ..lint_registry import lint
 from .documentation import check as documentation_check
-from .generation import drift
+from .generation import check_generation
 from .models import (
     CheckMetric,
     DeviationMetrics,
@@ -45,7 +45,7 @@ def collect(
     documentation = documentation_check(root)
     product = product_check(root)
     try:
-        generation_findings = drift(root)
+        generation_findings = check_generation(root)
     except (OSError, ValueError) as exc:
         generation_findings = (str(exc),)
     checks = (

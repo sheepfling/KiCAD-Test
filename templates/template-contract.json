@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "template_version": "0.1.0",
+  "template_version": "0.3.0",
   "required_paths": [
     "README.md",
     "docs/START_HERE.md",
@@ -9,7 +9,27 @@
     "tools/ci.py",
     "tools/template.py",
     "tools/hwrepo/models.py",
-    "templates/template-upgrades.json"
+    "templates/template-upgrades.json",
+    "pyproject.toml",
+    ".gitignore",
+    ".github/workflows/kicad-template.yml",
+    "tests/support.py",
+    "examples/catalog/projects.json",
+    "docs/REPOSITORY_STRUCTURE.md",
+    "tools/hwrepo/discovery.py",
+    "tools/hwrepo/project_tests.py",
+    "tools/hwrepo/scaffold.py",
+    "templates/pcb-project-config.example.json",
+    "tools/hwrepo/importing.py",
+    "tools/native_deps.py",
+    "docs/IMPORT_WORKFLOW.md",
+    "catalog/team-policy.json",
+    "tools/hwrepo/initialization.py",
+    "tools/hwrepo/evidence.py",
+    "tools/hwrepo/releasing.py",
+    "tools/hwrepo/packaging.py",
+    "tools/hwrepo/exports.py",
+    "tests/test_release_evidence.py"
   ],
   "adoption_guide": "docs/TEMPLATE_ADOPTION.md",
   "upgrades_catalog": "templates/template-upgrades.json"

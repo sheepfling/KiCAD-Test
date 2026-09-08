@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.1",
+  "parts": [
+    {
+      "id": "training-generic-header-1x02-2.54",
+      "revision": "A",
+      "description": "Generic two-position 2.54 mm through-hole header placeholder.",
+      "part_class": "synthetic_training_connector",
+      "unit": "each",
+      "manufacturer": "UNSPECIFIED — training fixture",
+      "mpn": "UNSPECIFIED — do not purchase",
+      "datasheet_url": "https://www.kicad.org/",
+      "lifecycle": "training_only",
+      "status": "not_for_manufacture",
+      "approved_alternates": []
+    },
+    {
+      "id": "training-generic-led-red-5mm",
+      "revision": "A",
+      "description": "Generic red 5 mm LED placeholder.",
+      "part_class": "synthetic_training_led",
+      "unit": "each",
+      "manufacturer": "UNSPECIFIED — training fixture",
+      "mpn": "UNSPECIFIED — do not purchase",
+      "datasheet_url": "https://www.kicad.org/",
+      "lifecycle": "training_only",
+      "status": "not_for_manufacture",
+      "approved_alternates": []
+    },
+    {
+      "id": "training-generic-resistor-1k-th",
+      "revision": "A",
+      "description": "Generic 1 kilohm axial through-hole resistor placeholder.",
+      "part_class": "synthetic_training_resistor",
+      "unit": "each",
+      "manufacturer": "UNSPECIFIED — training fixture",
+      "mpn": "UNSPECIFIED — do not purchase",
+      "datasheet_url": "https://www.kicad.org/",
+      "lifecycle": "training_only",
+      "status": "not_for_manufacture",
+      "approved_alternates": []
+    },
+    {
+      "id": "training-generic-cable",
+      "revision": "A",
+      "description": "Synthetic two-conductor cable assembly placeholder.",
+      "part_class": "synthetic_training_cable",
+      "unit": "each",
+      "manufacturer": "UNSPECIFIED — training fixture",
+      "mpn": "UNSPECIFIED — do not purchase",
+      "datasheet_url": "https://example.invalid/not-a-datasheet",
+      "lifecycle": "training_only",
+      "status": "not_for_manufacture",
+      "approved_alternates": []
+    },
+    {
+      "id": "training-generic-enclosure",
+      "revision": "A",
+      "description": "Synthetic enclosure placeholder.",
+      "part_class": "synthetic_training_enclosure",
+      "unit": "each",
+      "manufacturer": "UNSPECIFIED — training fixture",
+      "mpn": "UNSPECIFIED — do not purchase",
+      "datasheet_url": "https://example.invalid/not-a-datasheet",
+      "lifecycle": "training_only",
+      "status": "not_for_manufacture",
+      "approved_alternates": []
+    }
+  ]
+}

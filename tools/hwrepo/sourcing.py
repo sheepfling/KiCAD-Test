@@ -4,10 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from .contracts import read_model, repo_path
+from .discovery import load_registry
 from .models import (
     PartsCatalog,
     PolicyIssue,
-    ProjectRegistry,
     SourcingSnapshot,
     SourcingSnapshotReport,
 )
@@ -23,7 +23,7 @@ def check(root: Path, snapshot: SourcingSnapshot) -> SourcingSnapshotReport:
     resolved_root = root.resolve()
     issues: list[PolicyIssue] = []
     try:
-        registry = read_model(repo_path(resolved_root, "catalog/projects.json"), ProjectRegistry)
+        registry = load_registry(resolved_root)
         parts = {
             part.id
             for part in read_model(

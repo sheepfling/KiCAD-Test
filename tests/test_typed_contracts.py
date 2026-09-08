@@ -9,7 +9,9 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from tests.support import reference_root
 from tools.hwrepo.contracts import read_model
+from tools.hwrepo.discovery import load_registry
 from tools.hwrepo.generation import (
     bom_rows,
     csv_bytes,
@@ -21,16 +23,21 @@ from tools.hwrepo.generation import (
 )
 from tools.hwrepo.models import (
     Assembly,
+    GovernanceRecord,
     LibrariesCatalog,
     ProductRecord,
-    ProjectRegistry,
 )
 from tools.hwrepo.product import check, load_repository, validate_product
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = reference_root()
 
 
 class TypedContractsTests(unittest.TestCase):
+    def test_copyable_governance_template_matches_the_actual_schema(self) -> None:
+        record = read_model(ROOT / "templates/github-governance.example.json", GovernanceRecord)
+        self.assertEqual(record.required_status_checks, ("Template acceptance",))
+        self.assertIsInstance(record.branch_protection_evidence, tuple)
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.repository = load_repository(ROOT)
@@ -162,9 +169,9 @@ class TypedContractsTests(unittest.TestCase):
         root = self.stage()
         generate(root)
         self.assertEqual(drift(root), ())
-        target = root / "generated/product/status-indicator-system/STANDARD.bom.csv"
+        target = root / "examples/products/status-indicator-system/build/STANDARD.bom.csv"
         target.write_text("stale", encoding="utf-8")
-        self.assertIn("GENERATION_DRIFT: generated/product/status-indicator-system/STANDARD.bom.csv", drift(root))
+        self.assertIn("GENERATION_DRIFT: examples/products/status-indicator-system/build/STANDARD.bom.csv", drift(root))
 
     def test_library_sbom_is_deterministic_and_retains_evidence_hashes(self) -> None:
         sbom = library_sbom(ROOT)
@@ -177,8 +184,8 @@ class TypedContractsTests(unittest.TestCase):
         )
 
     def test_registry_is_deserialized_as_a_closed_model(self) -> None:
-        registry = read_model(ROOT / "catalog/projects.json", ProjectRegistry)
-        self.assertEqual(registry.projects[0].id, "controller")
+        registry = load_registry(ROOT)
+        self.assertIn("controller", {project.id for project in registry.projects})
         self.assertEqual(registry.catalogs.parts, "catalog/parts.json")
 
 

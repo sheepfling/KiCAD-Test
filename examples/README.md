@@ -1,36 +1,22 @@
-# Reference examples
+# Reference project islands
 
-**Discardable reference material:** this entire directory may be removed or
-replaced after the workflow has been understood. It is not active product source.
+These are maintained training and regression inputs, separate from adopted work.
+Their folder structure is the pattern to repeat under `projects/<id>/`.
 
-This directory is the worked example system that ships with the template. It is
-here to make the process concrete: every example is registered, typed, checked,
-and connected to the same product and library records used by the tests.
+| Project | Demonstration |
+| --- | --- |
+| [Controller](projects/controller/README.md) | Minimal PCB fixture and native negative probes |
+| [Arduino status LED](projects/arduino-uno-status-led/README.md) | PCB, host interface, shared library and local firmware |
+| [Raspberry Pi status LED](projects/raspberry-pi-status-led/README.md) | PCB plus automatically executed board-local firmware test |
+| [Passive signal reference](projects/passive-signal-reference/README.md) | Schematic-only project |
+| [System wiring](projects/status-indicator-wiring/README.md) | Whole-product relationship view |
+| [Harness interface](projects/status-indicator-harness-interface/README.md) | Conductor and endpoint coverage |
 
-The reusable process does not live here. Use `docs/` for guidance, `templates/`
-for starting records, `tools/` for checks, and `tests/` for executable examples
-of the policy. During adoption, review these examples, replace or remove the
-ones that do not fit, and create real deliverables under `projects/<domain>/`.
+The [reference product](products/status-indicator-system/README.md) joins several
+projects without taking ownership of their source. The [shared training library](libraries/status-led/README.md)
+is a declared dependency. `examples/catalog/` contains isolated regression catalog
+inputs; the live discovery settings and product index remain in root `catalog/`.
 
-## Example project map
-
-| Domain | Reference project | What it demonstrates |
-| --- | --- | --- |
-| PCB | `examples/projects/pcb/arduino-uno-status-led/` | Schematic, board layout, local project tables, shared library use, and BOM identity |
-| PCB | `examples/projects/pcb/raspberry-pi-status-led/` | A second host interface using the same reusable library pattern |
-| PCB | `examples/projects/pcb/controller/` | The smallest native KiCad checker fixture |
-| Schematic | `examples/projects/schematic/passive-signal-reference/` | Schematic-only deliverable without a PCB claim |
-| System wiring | `examples/projects/system-wiring/status-indicator-wiring/` | Product-level blockout and typed relationship traceability |
-| Harness interface | `examples/projects/harness-interface/status-indicator-harness-interface/` | Conductor, endpoint, and harness-interface coverage |
-
-Supporting example records live beside this map:
-
-- `examples/configs/` contains the per-project typed check contracts.
-- `examples/products/` contains the cross-project product record used by the system and harness views.
-- `examples/libraries/` contains the small shared training library.
-- `examples/firmware/` contains the companion Arduino and Raspberry Pi examples.
-
-These are reference inputs, not a product specification. Their organization,
-traceability, and checks are authoritative examples of the workflow; their
-component choices and electrical/mechanical claims are not requirements for an
-adopted project.
+Keep these fixtures for shared-tool tests. Disable `examples/projects` in the live
+`project_roots` and remove reference product-index entries when they should no longer
+create live/native checks. Do not turn a fixture into production source by renaming it.

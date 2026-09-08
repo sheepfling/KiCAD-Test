@@ -1,0 +1,52 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "pcb",
+    "components": {
+      "D1": {
+        "value": "STATUS_LED_RED",
+        "footprint": "StatusLedTraining:LED_5mm",
+        "part_id": "training-generic-led-red-5mm"
+      },
+      "J1": {
+        "value": "HOST_HEADER_1x02",
+        "footprint": "StatusLedTraining:Header_1x02",
+        "part_id": "training-generic-header-1x02-2.54"
+      },
+      "R1": {
+        "value": "1k",
+        "footprint": "StatusLedTraining:R_Axial_10mm",
+        "part_id": "training-generic-resistor-1k-th"
+      }
+    },
+    "nets": {
+      "GND": [
+        "D1.2",
+        "J1.2"
+      ],
+      "GPIO17_STATUS": [
+        "J1.1",
+        "R1.1"
+      ],
+      "LED_ANODE": [
+        "D1.1",
+        "R1.2"
+      ]
+    },
+    "expected_ignored_checks": {
+      "erc": [
+        "single_global_label",
+        "four_way_junction",
+        "simulation_model_issue",
+        "footprint_filter"
+      ],
+      "drc": [
+        "missing_courtyard",
+        "track_not_centered_on_via",
+        "tuning_profile_track_geometries",
+        "footprint_filters_mismatch",
+        "footprint_type_mismatch"
+      ]
+    }
+  }
+}

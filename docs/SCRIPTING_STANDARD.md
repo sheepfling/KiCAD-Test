@@ -40,12 +40,11 @@ use a typed Python name plus an explicit serialization alias.
 6. Treat KiCad report/XML formats as third-party adapter formats. Convert the
    minimal fields used by policy into typed adapter records before applying rules.
 
-Published schema policy: commit JSON Schema artifacts only for durable input,
-configuration, or release contracts that non-Python consumers may validate.
-Internal reports and generated review projections remain Pydantic models and
-generated JSON/CSV outputs; they do not receive a second committed schema file.
-Run `python -B -m tools.hardware generate` to refresh the published schemas and
-generated views. CI compares those artifacts with the models and fails on drift.
+Published schema policy: export JSON Schema only for durable input, configuration,
+or release contracts that non-Python consumers may validate. Models are the tracked
+authority. Schemas and generated JSON/CSV review projections are ignored outputs.
+Run `python -B -m tools.hardware generate` for local exports; CI regenerates in a
+temporary directory and tests deterministic output without requiring committed copies.
 
 ## Script layout
 

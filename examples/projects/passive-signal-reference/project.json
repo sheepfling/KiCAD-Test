@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "id": "passive-signal-reference",
+  "kind": "schematic",
+  "status": "training_fixture",
+  "assurance_profile": "training",
+  "toolchain_id": "kicad-10.0.5",
+  "project": "kicad/passive-signal-reference.kicad_pro",
+  "source_roots": [
+    "kicad"
+  ],
+  "required_inputs": [
+    "kicad/passive-signal-reference.kicad_pro",
+    "kicad/passive-signal-reference.kicad_sch"
+  ],
+  "checks": "tests/contract.json",
+  "shared_source_roots": [],
+  "shared_inputs": [],
+  "component_identity": {
+    "required": false,
+    "part_ids": []
+  },
+  "tags": [
+    "reference",
+    "schematic",
+    "training"
+  ],
+  "interfaces": [],
+  "library_ids": []
+}

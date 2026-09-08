@@ -5,6 +5,7 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from collections.abc import Mapping
@@ -13,10 +14,12 @@ from typing import cast
 
 from .hwrepo.contracts import write_model
 from .hwrepo.models import FaultProbeCase, FaultProbeReport
+from .hwrepo.repository import ephemeral
 from .validate import validate
 
 
 def probe(root: Path, output: Path) -> FaultProbeReport:
+    root = root.resolve()
     output.mkdir(parents=True, exist_ok=False)
     rows: list[FaultProbeCase] = []
     for name in ("malformed_pcb", "missing_library", "erc_open_pin", "drc_unrouted", "parity_value", "missing_tool", "unknown_board"):
@@ -24,17 +27,24 @@ def probe(root: Path, output: Path) -> FaultProbeReport:
             copy: Path = Path(temp)
             # Copy policy/catalog dependencies too, otherwise a missing preflight
             # dependency masks the intended ERC/DRC defect.
-            shutil.copytree(root, copy, dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"))
-            board: Path = copy / "examples/projects/pcb/controller/controller.kicad_pcb"
-            sch: Path = copy / "examples/projects/pcb/controller/controller.kicad_sch"
+            def ignored(directory: str, names: list[str]) -> set[str]:
+                return {item for item in names if item == ".git" or ephemeral(item)
+                        or (Path(directory) == root and item in {"projects", "products", "libraries", "generated", "schemas"})}
+
+            shutil.copytree(root, copy, dirs_exist_ok=True, ignore=ignored)
+            # Deliberate defects belong to the reference fixture, independently
+            # of an adopter's active projects, libraries and product catalogs.
+            shutil.copytree(root / "examples/catalog", copy / "catalog", dirs_exist_ok=True)
+            subprocess.run(("git", "init", "-q", str(copy)), check=True, capture_output=True)
+            board: Path = copy / "examples/projects/controller/kicad/controller.kicad_pcb"
+            sch: Path = copy / "examples/projects/controller/kicad/controller.kicad_sch"
             cli: str = "kicad-cli"
             expected: str = "preflight"
             if name == "malformed_pcb":
                 board.write_text("This is not a KiCad PCB.\n")
                 expected = "drc"
             elif name == "missing_library":
-                (copy / "examples/projects/pcb/controller/Pilot.kicad_sym").unlink()
+                (copy / "examples/projects/controller/kicad/Pilot.kicad_sym").unlink()
             elif name == "erc_open_pin":
                 text: str = sch.read_text()
                 if "(xy 76.2 71.12)" not in text:
@@ -56,9 +66,9 @@ def probe(root: Path, output: Path) -> FaultProbeReport:
             elif name == "missing_tool":
                 cli = "intentionally-missing-kicad-executable"
             else:
-                (copy / "examples/projects/pcb/unregistered").mkdir()
-                (copy / "examples/projects/pcb/unregistered/ghost.kicad_pro").write_text("{}\n")
-                (copy / "examples/projects/pcb/unregistered/ghost.kicad_pcb").write_text("undeclared board\n")
+                (copy / "examples/projects/unregistered").mkdir()
+                (copy / "examples/projects/unregistered/ghost.kicad_pro").write_text("{}\n")
+                (copy / "examples/projects/unregistered/ghost.kicad_pcb").write_text("undeclared board\n")
             report = validate(copy, output / name, cli)
             observed = report.checks.get(expected)
             passed = report.status == "FAIL" and observed is not None and observed.status == "FAIL"

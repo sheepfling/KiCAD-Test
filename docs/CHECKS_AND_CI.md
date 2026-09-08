@@ -1,110 +1,97 @@
 # Checks and CI
 
-The template has complementary policy and native-tool checks. None replaces engineering review.
+The same shared runner checks project islands locally and in hosted CI.
 
-| Gate | Scope | Purpose |
-| --- | --- | --- |
-| Python quality | Policy/generation/validation implementation and tests | Ruff checks import/style hygiene; strict Pyright verifies typed implementation contracts; unit tests exercise public script functions and architecture rules. |
-| Markdown documentation policy | Repository Markdown sources | Checks layout, local links/fragments, exact path case, repository containment and reachability from declared documentation roots. |
-| Full portable gate | Entire repository | Runs shared product/evidence/variant policy, path/discovery hygiene, generated-view drift, Ruff, Pyright and all unit tests through `python -m tools.ci`. |
-| Fast local project gate | Selected project plus dependent products | Validates the selected project's registry/configuration/CAD dependencies, product records that explicitly declare that project, and only those product projections. It does not run repository-wide Python quality checks or unrelated historical projects. |
-| Static governance lint | One declared project or all projects | Checks project registration, source inventory, controlled part/interface/library references, and safe repository-relative paths. |
-| KiCad validation | One declared project or all projects | Runs the pinned KiCad CLI and a kind-specific gate: PCB gets ERC, DRC/parity, netlist identity and both SVGs; schematic-only gets ERC and schematic SVG; system wiring gets whole-product relation coverage; harness interface gets exact harness/conductor/endpoint coverage. Every kind gets source-unchanged protection. |
-| Desktop toolchain check | Before opening for editing | Refuses editing when the local KiCad version differs from the catalogued approved build. |
+| Check scope | What runs |
+| --- | --- |
+| `python -B -m tools.ci` | Live discovery/registry, dependency/source hygiene, product policy, fresh generation, Markdown, Ruff, strict tool types, shared unit tests and every project/product Python suite |
+| `python -B -m tools.ci --project <id>` | Selected project inputs, shared dependency policy, products declaring that project, fresh applicable views and its project/dependent-product Python suites |
+| `python -B -m tools.ci --matrix` | One native lane per discovered manifest, using its catalogued toolchain |
+| `python -B -m tools.ci --kicad --project <id> --output <new-path>` | Native checks for the selected board, after registry, dependency/source hygiene and product preflight |
 
-## Commands
+Portable checks do not execute KiCad. A focused check does not replace the full gate
+before review. Native checks do not replace Python suites or physical engineering tests.
+
+## Daily commands
 
 ```sh
-# Fast static checks
-python -B -m tools.ci
-
-# Fast local board check: use during board development
-python -B -m tools.ci --project arduino-uno-status-led
-
-# Tag selectors: repeated --tag values are an OR match; exclusions apply afterward
+python -B -m tools.ci --project raspberry-pi-status-led
 python -B -m tools.ci --tag status-led
 python -B -m tools.ci --exclude-tag legacy
-# Example after a team assigns this baseline tag to a project
-python -B -m tools.ci --tag abc-v1.0.1 --exclude-tag legacy
-
-# CI-driver modes
+python -B -m tools.ci
 python -B -m tools.ci --matrix
-python -B -m tools.ci --kicad --project controller --output build/controller-review-001
-python -B -m tools.ci --kicad --tag reference --output build/reference-review-001
-python -B -m tools.ci --fault-probes --output build/fault-probes-001
-python -B -m tools.ci --release --manifest release/<release-id>.json
+python -B -m tools.ci --kicad --project controller --output examples/projects/controller/build/review-001
+python -B -m tools.hardware generate
 python -B -m tools.template preflight
-python -B -m tools.template upgrade-plan --target-version <template-version>
-python -B -m tools.ci --metrics --manifest release/<release-id>.json
-
-# Focused checks when diagnosing a specific failure
 python -B -m tools.docs_policy
-python -m tools.check_toolchain --toolchain kicad-10.0.5
-# The same workflow supports the catalogued 10.0.0 baseline.
-python -m tools.check_toolchain --toolchain kicad-10.0.0
-python -m tools.lint_registry --project controller
-python -m tools.lint_registry --project arduino-uno-status-led
-python -m tools.lint_registry --tag status-led
-python -m tools.lint_registry --all
-
-# One project with its declared configuration
-python -m tools.validate --config examples/configs/controller.json --output build/controller-review-001
-python -m tools.validate --config examples/configs/arduino-uno-status-led.json --output build/arduino-review-001
-
-# Every project declared in catalog/projects.json
-python -m tools.check_all --all --output build/all-review-001
-python -m tools.check_all --exclude-tag legacy --output build/current-review-001
 ```
 
-Every output directory is write-once. Choose a new name for every run. Close KiCad before running a check; a lock file or unexpected source rewrite is a stop condition.
+Repeated IDs/tags are OR selections; exclusions apply afterward. A selection matching
+no projects fails. No selection means the full set. Custom project/product tests run
+in separate Python processes; add `test_*.py` files without editing the workflow.
+See [test extension](../tests/README.md).
 
-## Adding a project
+Native output directories and review snapshots are write-once. Use a fresh path each
+attempt and close KiCad first. PCB projects receive ERC, DRC/parity, netlist identity
+and schematic/PCB SVG checks. Schematic projects receive ERC and schematic SVG;
+wiring and harness views also receive their typed relationship coverage checks.
+All native kinds protect declared source hashes.
 
-1. Select `pcb`, `schematic`, `system_wiring`, or `harness_interface`; create the project under `projects/pcb/`, `projects/schematic/`, `projects/system-wiring/`, or `projects/harness-interface/` respectively. See [project kinds](PROJECT_KINDS.md).
-2. Choose `training` or `production` before creating its configuration. A production project starts from `templates/production-project-config.example.json` and must keep ERC/DRC ignored-check lists empty.
-3. Give it a project-specific JSON configuration with exact KiCad version, toolchain ID, kind, project path, source roots, required inputs, and the matching typed validation contract. System wiring names whole-product relation/terminal/harness/mechanical coverage; harness interface names its exact electrical conductor/terminal/harness coverage.
-4. Add it to `catalog/projects.json` with its assurance profile, status, configuration path, identity requirement, tags, interfaces, approved libraries, and—when production—mechanical and governance records.
-5. Run `python -m tools.lint_registry --project <project-id>` before enabling full KiCad checks.
-6. CI automatically adds one matrix lane per registered project using the project's digest-pinned KiCad image. Review the generated lane before adding a new image/version.
+## Adding and sharing projects
 
-## CI behavior
+Create `projects/<id>/project.json` and its local source/contract files, or use
+`tools.template new-project` or the [import command](IMPORT_WORKFLOW.md). Do not edit a list of CI lanes. `catalog/projects.json`
+selects discovery roots and shared catalogs; each manifest owns its metadata.
+Unregistered native files, duplicate IDs and misplaced project folders fail.
 
-CI first resolves a project-specific KiCad matrix, then runs Ruff, strict Pyright and
-the all-project static/unit/documentation suite on Windows, macOS and Linux. It then runs
-`python -m tools.ci --kicad --project <id>` in each project's digest-pinned container. This means
-a new board, shared library, interface, or catalog entry cannot quietly bypass
-repository-wide governance or run under a different KiCad build. The existing fault
-probes remain specific to the synthetic controller fixture.
-## Portable product and collaboration checks
+Each shared-library consumer declares the exact shared files it needs. The full gate
+checks all consumers after a library change. Hosted native jobs likewise cover every
+discovered project; changed-file optimization is not implemented.
 
-Use `python -B -m tools.ci` for the full local/CI static gate; it runs Markdown
-documentation policy, Ruff, strict Pyright and all behavior tests in addition to
-repository-wide policy checks. Use `python -B -m tools.ci --project <id>` for a
-fast local board gate: it checks the selected board and products that explicitly
-depend on it, without running unrelated projects or the whole Python quality suite.
-Add `--kicad --project <id> --output build/review-001` to execute pinned native
-checks for that board too.
-The configured hosted Python matrix covers Windows, Linux and macOS; a local
-Windows pass is not evidence that those hosted jobs have executed.
+## Hosted execution
 
-See [product workflow](PRODUCT_WORKFLOW.md) for assemblies, variants, evidence,
-mechanical/harness records and generated BOMs, and [acceptance coverage](TEMPLATE_ACCEPTANCE.md)
-for explicit limits. See [Markdown documentation policy](MARKDOWN_POLICY.md) for
-the source scope, local-link rules and exception record. See [repository hygiene](REPOSITORY_HYGIENE.md)
-for the two-layer ignored-file policy. The direct `validate.py` entry point now runs repository
-governance/product preflight and verifies mapped KiCad `PART_ID` fields.
+Actions installs dependencies from `pyproject.toml`, runs the portable gate on
+Windows/macOS/Linux, and runs native validation in each project's digest-pinned KiCad
+image. The controller's native fault probes run only for its known reference path.
+Runtime and development-tool dependency versions, including their current Python
+transitive dependencies, are pinned together in `pyproject.toml`. Update them as a
+reviewed change and rerun the portable/native acceptance lanes.
+The final acceptance check requires the matrix, portable jobs, native jobs and a
+standalone release/restore rehearsal to pass. The rehearsal commits a disposable
+reference checkout, exports using pinned KiCad, prepares an engineering-review
+manifest, packages it and verifies an actual restore. It does not approve hardware.
 
-## Project metadata selectors
+An initialized fork with no projects emits an empty matrix. Only that explicit
+condition allows native/release jobs to be skipped; the final check still requires
+portable policy success and states that no hardware was validated. Unknown project
+selectors and broken discovery still fail.
 
-`catalog/projects.json` owns each project's `tags`. Tags are exact, portable
-identifiers, so values such as `legacy`, `prototype`, `customer-a`, or
-`abc-v1.0.1` are valid. They are categorization metadata—not Git tags, release
-approval, or a replacement for a KiCad/toolchain version. Keep lifecycle tags
-(`legacy`, `active`), product-family tags (`status-led`), and approved internal
-baseline labels distinct so selection remains understandable.
+CI uploads shared schema/library exports, product-local generated views, and native
+review evidence, portable reports and the rehearsed package. Reports record the
+observed source commit and file hashes. Dirty local reports remain useful for
+development but cannot supply release evidence. Configure artifact retention and required branch checks during
+[adoption](START_HERE.md); a configured workflow is not evidence of a hosted run.
 
-`--project` and repeated `--tag` options are combined as an OR selection;
-repeated `--exclude-tag` options are then subtracted. With no selector, the full
-gate runs. A selector that matches no project is a failure. The same selectors
-work with `tools.ci`, `tools.ci --kicad`, `tools.ci --matrix`,
-`tools.lint_registry`, and `tools.check_all`.
+## Replaying a native CI lane locally
+
+The official pinned images do not include pip. `tools.native_deps` probes the image's
+Python version and uses host pip to prepare compatible Linux x86 wheels from
+`pyproject.toml` in an ignored directory. The image itself remains unchanged.
+Install the repository's Python environment first, then use the image string from
+`catalog/toolchains.json` for the selected project. On a macOS/Linux Docker host:
+
+```sh
+# Set KICAD_IMAGE to the exact image selected by the project's toolchain.
+python -B -m tools.native_deps --image "$KICAD_IMAGE" --output build/policy-deps
+docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" --entrypoint sh \
+  -e HOME=/tmp/kicad-template -e PYTHONDONTWRITEBYTECODE=1 \
+  -e PYTHONPATH=/work/build/policy-deps -v "$PWD:/work" -w /work "$KICAD_IMAGE" \
+  -ec 'python3 -m tools.ci --kicad --project battery-board --output build/review-001'
+```
+
+Use a new dependency directory for a different image/runtime and a fresh evidence
+directory for each native attempt. The native CI job uses this same setup. The
+x86 image can run under Docker emulation on Apple Silicon; native Windows execution
+of these shell examples is not provided. CI keeps dependency wheels out of review
+artifacts. Its hosted job scheduling, permissions and upload remain separate from a
+local container rehearsal.

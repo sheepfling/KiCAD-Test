@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
-from pathlib import Path
 
+from tests.support import reference_root
 from tools.hwrepo.metrics import collect, deviation_metrics
 from tools.hwrepo.models import DeviationStatus, ReleaseDeviation
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = reference_root()
 
 
 class TemplateMetricsTests(unittest.TestCase):

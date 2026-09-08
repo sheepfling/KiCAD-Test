@@ -16,6 +16,7 @@ from .models import (
 
 POLICY_PATH = "docs/documentation-policy.json"
 DEFAULT_ROOTS = ("README.md",)
+PRESERVED_LEGAL_NAMES = frozenset({"license.md", "licence.md", "copying.md", "notice.md"})
 IGNORED_DIRECTORIES = frozenset(
     {
         ".git",
@@ -23,6 +24,10 @@ IGNORED_DIRECTORIES = frozenset(
         ".evidence",
         ".pytest_cache",
         ".ruff_cache",
+        ".venv",
+        "venv",
+        "dist",
+        "htmlcov",
         "__pycache__",
         "build",
     }
@@ -158,19 +163,29 @@ def layout_issues(document: Path, root: Path, text: str) -> tuple[DocumentationI
 def split_destination(raw: str) -> tuple[str, str | None]:
     """Separate a local Markdown destination from its optional fragment."""
     destination = raw.strip()
-    if destination.startswith("<") and destination.endswith(">"):
-        destination = destination[1:-1]
-    if " " in destination:
+    if destination.startswith("<") and ">" in destination:
+        destination = destination[1:destination.index(">")]
+    elif " " in destination:
         destination = destination.split(maxsplit=1)[0]
     path, marker, fragment = destination.partition("#")
-    return path, unquote(fragment) if marker else None
+    return unquote(path), unquote(fragment) if marker else None
 
 
 def local_target(root: Path, document: Path, destination: str) -> Path:
     """Resolve one local link using the shared portable-path boundary."""
-    parent = document.parent.relative_to(root).as_posix()
-    relative = (PurePosixPath(parent) / destination).as_posix()
-    return repo_path(root, relative)
+    if PurePosixPath(destination).is_absolute():
+        raise ValueError("Absolute documentation link")
+    parts = list(document.parent.relative_to(root).parts)
+    for component in destination.split("/"):
+        if component == "..":
+            if not parts:
+                raise ValueError("Documentation link escapes repository")
+            parts.pop()
+        elif component != ".":
+            parts.append(component)
+            # Validate each segment before a later '..' can hide a bad path or link.
+            repo_path(root, "/".join(parts))
+    return repo_path(root, "/".join(parts))
 
 
 def link_issues(
@@ -310,6 +325,14 @@ def check(root: Path, today: date | None = None) -> DocumentationPolicyReport:
             resolved_root,
             read_model(repo_path(resolved_root, POLICY_PATH), DocumentationPolicy),
         )
+        island_roots = tuple(
+            path.relative_to(resolved_root).as_posix()
+            for directory in ("projects", "products", "examples/projects", "examples/products")
+            for path in sorted((resolved_root / directory).glob("*/README.md"))
+        )
+        policy = validate_policy_paths(resolved_root, policy.model_copy(update={
+            "roots": tuple(dict.fromkeys((*policy.roots, *island_roots))),
+        }))
     except (OSError, ValueError) as exc:
         report_findings.append(
             DocumentationIssue(
@@ -328,7 +351,8 @@ def check(root: Path, today: date | None = None) -> DocumentationPolicyReport:
         document_text[relative] = text
         anchors, _ = document_headings(document, resolved_root, text)
         anchors_by_path[relative] = anchors
-        report_findings.extend(layout_issues(document, resolved_root, text))
+        if document.name.casefold() not in PRESERVED_LEGAL_NAMES:
+            report_findings.extend(layout_issues(document, resolved_root, text))
     edges: dict[str, tuple[str, ...]] = {}
     for document in documents:
         relative = label(document, resolved_root)
@@ -360,7 +384,7 @@ def check(root: Path, today: date | None = None) -> DocumentationPolicyReport:
         pending.extend(edges[current])
     for document in documents:
         relative = label(document, resolved_root)
-        if relative not in reachable:
+        if relative not in reachable and document.name.casefold() not in PRESERVED_LEGAL_NAMES:
             report_findings.append(
                 issue(
                     "DOC105",

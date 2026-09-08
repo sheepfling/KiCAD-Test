@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Protocol, TypeVar
 
 from .contracts import read_model, repo_path
+from .discovery import load_config, load_registry
 from .models import (
     AssemblyKind,
     Assurance,
@@ -38,7 +39,6 @@ from .models import (
     ProjectConfig,
     ProjectKind,
     ProjectRecord,
-    ProjectRegistry,
     SystemWiringValidationContract,
     Terminal,
     TerminalKind,
@@ -170,7 +170,7 @@ def validate_product(
                 fail("PROJECT_REF", assembly.id, assembly.project_id)
                 continue
             try:
-                config = read_model(repo_path(root, project.config), ProjectConfig)
+                config = load_config(root, project.config)
                 project_bindings[assembly.id] = project
                 if (
                     assembly.kind is not AssemblyKind.BUILT
@@ -442,7 +442,7 @@ def load_repository(
     projects: Mapping[str, ProjectRecord] = {}
     try:
         index = read_model(repo_path(root, "catalog/products.json"), ProductIndex)
-        registry = read_model(repo_path(root, "catalog/projects.json"), ProjectRegistry)
+        registry = load_registry(root)
         parts_catalog = read_model(repo_path(root, registry.catalogs.parts), PartsCatalog)
         interfaces_catalog = read_model(
             repo_path(root, registry.catalogs.interfaces), InterfacesCatalog
@@ -454,7 +454,7 @@ def load_repository(
             str, list[tuple[str, ProductTraceabilityValidationContract]]
         ] = {}
         for project in registry.projects:
-            config = read_model(repo_path(root, project.config), ProjectConfig)
+            config = load_config(root, project.config)
             if isinstance(
                 config.validation,
                 (SystemWiringValidationContract, HarnessInterfaceValidationContract),
@@ -560,7 +560,8 @@ def load_repository(
             found = {
                 path.relative_to(root).as_posix()
                 for product_root in ("products", "examples/products")
-                for path in (root / product_root).rglob("*.json")
+                if product_root == "products" or any(name.startswith("examples/") for name in declared)
+                for path in (root / product_root).glob("*/product.json")
                 if (root / product_root).is_dir()
             }
             if declared != found:
@@ -736,11 +737,9 @@ def check_project_netlist(
         for assembly in product.assemblies
         if assembly.project_id == project_id
     )
-    if not bindings:
-        return NetlistIdentityReport(
-            status="NOT_APPLICABLE",
-            reason="No product assembly maps this project",
-        )
+    project = repository.projects[project_id]
+    if not bindings and not project.component_identity.required:
+        return NetlistIdentityReport(status="NOT_APPLICABLE", reason="Project does not require component identity")
     tree = ET.parse(path).getroot()
     components: dict[str, Mapping[str, str]] = {}
     for component in tree.findall("./components/comp"):
@@ -755,6 +754,29 @@ def check_project_netlist(
             field.attrib["name"]: field.text or ""
             for field in fields
         }
+    if project.component_identity.required:
+        from .discovery import load_config
+        from .models import PcbValidationContract, SchematicValidationContract
+
+        config = load_config(root, project.config)
+        if isinstance(config.validation, (PcbValidationContract, SchematicValidationContract)):
+            expected_parts = {ref: component.part_id for ref, component in config.validation.components.items()}
+            if set(components) != set(expected_parts):
+                raise ValueError("KiCad and project component inventories differ")
+            for reference, identifier in expected_parts.items():
+                if identifier is None or components[reference].get("PART_ID") != identifier:
+                    raise ValueError(f"KiCad PART_ID mismatch: {reference}, expected {identifier}")
+        actual_ids = {fields.get("PART_ID") for fields in components.values()}
+        if not components or actual_ids != set(project.component_identity.part_ids):
+            raise ValueError("KiCad PART_ID inventory differs from the standalone project")
+        for reference, fields in components.items():
+            part = repository.parts.get(fields.get("PART_ID", ""))
+            if part is None:
+                raise ValueError(f"Unknown KiCad PART_ID at {reference}")
+            if part.status is PartStatus.APPROVED and (
+                fields.get("Manufacturer") != part.manufacturer or fields.get("MPN") != part.mpn
+            ):
+                raise ValueError(f"KiCad Manufacturer/MPN mismatch: {reference}")
     for assembly in bindings:
         expected = {member.ref: member.item for member in assembly.members}
         if set(components) != set(expected):

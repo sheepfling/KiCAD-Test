@@ -16,4 +16,8 @@ main and hand back the assignment.
 
 On conflict, missing libraries, new tool versions or unexpected changes: stop, preserve work and ask the maintainer with branch, SHA, status and error. Never guess ours/theirs.
 
-Checks: `python -m tools.validate --output build/review-001` (new output name each time). Use the exact catalogued toolchain for the project; this template exercises KiCad 10.0.0 and 10.0.5. Python 3.12+. Libraries travel with the project.
+Run `python -B -m tools.ci --project <project-id>` for the selected board's portable
+checks and `python -B -m tools.ci` for the full shared gate. With its exact catalogued
+KiCad installed, run `python -B -m tools.ci --kicad --project <project-id> --output build/review-001`
+using a fresh output name each time. The template exercises KiCad 10.0.0 and 10.0.5.
+Use Python 3.12+ and preserve every declared local/shared library dependency.

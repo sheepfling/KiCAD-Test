@@ -5,8 +5,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from .hwrepo.contracts import read_model, repo_path
-from .hwrepo.models import CiMatrix, MatrixEntry, ProjectConfig, ProjectRegistry
+from .hwrepo.discovery import load_config, load_registry
+from .hwrepo.models import CiMatrix, MatrixEntry
 from .lint_registry import lint
 
 
@@ -17,22 +17,24 @@ def build_matrix(root: Path, selected: tuple[str, ...] | None = None) -> CiMatri
         raise ValueError(
             f"Refusing CI matrix for invalid registry: {governance.issues}"
         )
-    registry = read_model(root / "catalog/projects.json", ProjectRegistry)
+    registry = load_registry(root)
     include: list[MatrixEntry] = []
     selected_ids = None if selected is None else frozenset(selected)
     for project in registry.projects:
         if selected_ids is not None and project.id not in selected_ids:
             continue
-        config = read_model(repo_path(root, project.config), ProjectConfig)
+        config = load_config(root, project.config)
         include.append(
             MatrixEntry(
                 project=project.id,
                 image=config.image,
                 kicad_version=config.kicad_version,
+                fault_probes=(
+                    project.id == "controller"
+                    and project.project == "examples/projects/controller/kicad/controller.kicad_pro"
+                ),
             )
         )
-    if not include:
-        raise ValueError("Project registry contains no CI projects")
     return CiMatrix(include=tuple(include))
 
 

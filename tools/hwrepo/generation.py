@@ -7,6 +7,7 @@ import io
 import json
 import platform
 import subprocess
+import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from pydantic import BaseModel
 
 from . import __version__
 from .contracts import read_model, repo_path, write_model
+from .discovery import load_registry
 from .models import (
     AssemblyKind,
     BomRow,
@@ -27,8 +29,8 @@ from .models import (
     PartRecord,
     ProductIndex,
     ProductRecord,
-    ProjectConfig,
-    ProjectRegistry,
+    ProjectManifest,
+    ProjectTestContract,
     ReleaseManifest,
     ReleasePoliciesCatalog,
     SnapshotManifest,
@@ -42,6 +44,7 @@ from .models import (
     Variant,
 )
 from .product import excluded, load_repository, occurrences
+from .repository import ephemeral
 
 
 def model_json_bytes(model: BaseModel) -> bytes:
@@ -286,7 +289,7 @@ def system_view(product: ProductRecord, variant: Variant) -> SystemView:
 
 def library_sbom(root: Path) -> LibrarySbom:
     """Project the controlled shared-CAD-library inventory with evidence hashes."""
-    registry = read_model(repo_path(root, "catalog/projects.json"), ProjectRegistry)
+    registry = load_registry(root)
     catalog = read_model(repo_path(root, registry.catalogs.libraries), LibrariesCatalog)
     return LibrarySbom(libraries=tuple(sorted(catalog.libraries, key=lambda item: item.id)))
 
@@ -303,7 +306,8 @@ def expected_outputs(
         outputs = {
             "schemas/product-v1.schema.json": schema_json_bytes(ProductRecord),
             "schemas/product-index-v1.schema.json": schema_json_bytes(ProductIndex),
-            "schemas/project-config-v1.schema.json": schema_json_bytes(ProjectConfig),
+            "schemas/project-manifest-v1.schema.json": schema_json_bytes(ProjectManifest),
+            "schemas/project-tests-v1.schema.json": schema_json_bytes(ProjectTestContract),
             "schemas/release-manifest-v1.schema.json": schema_json_bytes(ReleaseManifest),
             "schemas/release-policies-v1.schema.json": schema_json_bytes(
                 ReleasePoliciesCatalog
@@ -320,9 +324,11 @@ def expected_outputs(
                 SourcingSnapshot
             ),
         }
+    index = read_model(repo_path(root, "catalog/products.json"), ProductIndex)
+    product_paths = {entry.id: str(Path(entry.path).parent) for entry in index.products}
     for product in repository.products:
         for variant in product.variants:
-            prefix = f"generated/product/{product.id}/{variant.id}"
+            prefix = f"{product_paths[product.id]}/build/{variant.id}"
             outputs[prefix + ".bom.csv"] = csv_bytes(
                 bom_rows(product, repository.parts, variant)
             )
@@ -339,42 +345,58 @@ def expected_outputs(
 
 
 def drift(
-    root: Path, selected_project_ids: tuple[str, ...] | None = None
+    root: Path, selected_project_ids: tuple[str, ...] | None = None,
+    *, output: Path | None = None,
 ) -> tuple[str, ...]:
     """Detect full or selected-product output drift without writing files."""
     outputs = expected_outputs(root, selected_project_ids)
+    destination = root if output is None else output
     issues = [
         f"GENERATION_DRIFT: {name}"
         for name, expected in sorted(outputs.items())
-        if not (path := repo_path(root, name)).is_file() or path.read_bytes() != expected
+        if not (path := repo_path(destination, name)).is_file() or path.read_bytes() != expected
     ]
-    selected_products = {
-        name.split("/", maxsplit=3)[2]
-        for name in outputs
-        if name.startswith("generated/product/")
-    }
+    index = read_model(repo_path(root, "catalog/products.json"), ProductIndex)
+    directories = ["generated", "schemas"] if selected_project_ids is None else []
+    directories.extend(
+        f"{Path(entry.path).parent.as_posix()}/build"
+        for entry in index.products
+        if selected_project_ids is None or set(selected_project_ids).intersection(entry.project_ids)
+    )
     found = {
-        path.relative_to(root).as_posix()
-        for path in (root / "generated/product").rglob("*")
+        path.relative_to(destination).as_posix()
+        for directory in directories
+        for path in (destination / directory).rglob("*")
         if path.is_file()
-        and (
-            selected_project_ids is None
-            or path.relative_to(root).parts[2] in selected_products
-        )
+        and path.relative_to(destination).as_posix() not in {"generated/README.md", "schemas/README.md"}
     }
     issues.extend(f"STALE_OUTPUT: {name}" for name in sorted(found - set(outputs)))
     return tuple(issues)
 
 
-def generate(root: Path) -> tuple[str, ...]:
+def generate(
+    root: Path, output: Path | None = None,
+    selected_project_ids: tuple[str, ...] | None = None,
+) -> tuple[str, ...]:
     """Write validated projections only; intentional stale files remain for review."""
-    outputs = expected_outputs(root)
-    destinations = {name: repo_path(root, name) for name in outputs}
+    outputs = expected_outputs(root, selected_project_ids)
+    destination = root if output is None else output
+    destinations = {name: repo_path(destination, name) for name in outputs}
     for path in destinations.values():
         path.parent.mkdir(parents=True, exist_ok=True)
     for name, content in outputs.items():
         destinations[name].write_bytes(content)
     return tuple(sorted(outputs))
+
+
+def check_generation(
+    root: Path, selected_project_ids: tuple[str, ...] | None = None
+) -> tuple[str, ...]:
+    """Regenerate in isolation and compare an independent pass, without cached outputs."""
+    with tempfile.TemporaryDirectory(prefix="kicad-generation-") as temporary:
+        output = Path(temporary).resolve()
+        generate(root, output, selected_project_ids)
+        return drift(root, selected_project_ids, output=output)
 
 
 def _git(root: Path, *args: str) -> str:
@@ -401,7 +423,6 @@ def snapshot(root: Path, output: Path) -> SnapshotManifest:
     sources: set[Path] = set()
     for directory in (
         "catalog",
-        "configs",
         "products",
         "projects",
         "examples",
@@ -410,20 +431,19 @@ def snapshot(root: Path, output: Path) -> SnapshotManifest:
         "tests",
         ".github",
         "docs",
+        "templates",
     ):
         sources.update(
             path
             for path in (root / directory).rglob("*")
             if path.is_file()
-            and "__pycache__" not in path.parts
-            and path.suffix not in {".kicad_prl", ".pyc"}
-            and path.name != "fp-info-cache"
+            and not ephemeral(path.relative_to(root).as_posix())
         )
     source_hashes = {
         path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(sources)
     }
-    for name in (".gitattributes", ".gitignore", "pyproject.toml"):
+    for name in ("README.md", ".gitattributes", ".gitignore", "pyproject.toml", "template-adoption.json"):
         if (root / name).is_file():
             source_hashes[name] = hashlib.sha256((root / name).read_bytes()).hexdigest()
     manifest = SnapshotManifest(

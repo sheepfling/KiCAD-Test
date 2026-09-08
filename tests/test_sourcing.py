@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import unittest
 from datetime import datetime, timezone
-from pathlib import Path
 
+from tests.support import reference_root
 from tools.hwrepo.models import SourcingSnapshot, SupplierOffer
 from tools.hwrepo.sourcing import check
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = reference_root()
 
 
 class SourcingSnapshotTests(unittest.TestCase):

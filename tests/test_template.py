@@ -7,11 +7,17 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.support import initialize_git, reference_root
 from tools.hwrepo.contracts import read_model, write_model
-from tools.hwrepo.models import TemplateAdoptionRecord, TemplateUpgrade, TemplateUpgradesCatalog
+from tools.hwrepo.models import (
+    TemplateAdoptionRecord,
+    TemplateContract,
+    TemplateUpgrade,
+    TemplateUpgradesCatalog,
+)
 from tools.hwrepo.template import bootstrap, plan_upgrade, preflight
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = reference_root()
 
 
 class TemplateToolTests(unittest.TestCase):
@@ -26,10 +32,12 @@ class TemplateToolTests(unittest.TestCase):
             ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"),
         )
 
+        initialize_git(self.root)
+
     def test_preflight_accepts_the_declared_template_contract(self) -> None:
         report = preflight(self.root)
         self.assertEqual(report.status, "PASS", report.issues)
-        self.assertEqual(report.template_version, "0.1.0")
+        self.assertEqual(report.template_version, "0.3.0")
         self.assertFalse(report.build_authorized)
 
     def test_preflight_rejects_a_missing_required_template_path(self) -> None:
@@ -48,6 +56,19 @@ class TemplateToolTests(unittest.TestCase):
         self.assertEqual(adoption.project_id, "example-board")
         self.assertEqual(adoption.status, "needs_adoption")
 
+    def test_bootstrap_excludes_ignored_downloads_and_generated_outputs(self) -> None:
+        for name in ("private.zip", "generated/old.json", "schemas/old.schema.json", ".venv/private.txt"):
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("local only", encoding="utf-8")
+        destination = self.parent / "source-only"
+        with patch("tools.hwrepo.template.working_tree_is_clean", return_value=True):
+            report = bootstrap(self.root, destination, "example-board")
+        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertTrue((destination / "README.md").is_file())
+        for name in ("private.zip", "generated/old.json", "schemas/old.schema.json", ".venv"):
+            self.assertFalse((destination / name).exists(), name)
+
     def test_upgrade_plan_requires_one_forward_catalog_path(self) -> None:
         catalog_path = self.root / "templates/template-upgrades.json"
         catalog = read_model(catalog_path, TemplateUpgradesCatalog)
@@ -57,9 +78,9 @@ class TemplateToolTests(unittest.TestCase):
                 update={
                     "upgrades": (
                         TemplateUpgrade(
-                            id="template-0.1-to-0.2",
-                            from_version="0.1.0",
-                            to_version="0.2.0",
+                            id="template-0.3-to-0.4",
+                            from_version="0.3.0",
+                            to_version="0.4.0",
                             breaking=True,
                             steps=(
                                 "Review the documented migration before changing source.",
@@ -70,14 +91,43 @@ class TemplateToolTests(unittest.TestCase):
                 }
             ),
         )
+        report = plan_upgrade(self.root, "0.4.0")
+        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertEqual([upgrade.id for upgrade in report.upgrades], ["template-0.3-to-0.4"])
+
+    def test_upgrade_plan_rejects_missing_forward_path(self) -> None:
+        report = plan_upgrade(self.root, "0.4.0")
+        self.assertEqual(report.status, "FAIL")
+        self.assertIn("TEMPLATE_UPGRADE_PATH", {issue.code for issue in report.issues})
+
+    def test_upgrade_uses_adopted_version_after_upstream_contract_is_updated(self) -> None:
+        write_model(self.root / "template-adoption.json", TemplateAdoptionRecord(
+            template_version="0.2.0", project_id="adopted-board", status="initialized"))
+        report = plan_upgrade(self.root, "0.3.0")
+        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertEqual(report.current_version, "0.2.0")
+        self.assertEqual([upgrade.id for upgrade in report.upgrades], ["template-0.2-to-0.3"])
+
+    def test_production_workflow_has_a_forward_migration_without_changing_adopter_files(self) -> None:
+        before = (self.root / "catalog/projects.json").read_bytes()
+        report = plan_upgrade(self.root, "1.0.0")
+        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertEqual([upgrade.id for upgrade in report.upgrades], ["template-0.3-to-1.0"])
+        self.assertEqual((self.root / "catalog/projects.json").read_bytes(), before)
+
+    def test_source_only_migration_has_a_reviewable_forward_plan(self) -> None:
+        path = self.root / "templates/template-contract.json"
+        contract = read_model(path, TemplateContract)
+        write_model(path, contract.model_copy(update={"template_version": "0.1.0"}))
         report = plan_upgrade(self.root, "0.2.0")
         self.assertEqual(report.status, "PASS", report.issues)
         self.assertEqual([upgrade.id for upgrade in report.upgrades], ["template-0.1-to-0.2"])
+        self.assertTrue(report.upgrades[0].breaking)
 
-    def test_upgrade_plan_rejects_missing_forward_path(self) -> None:
-        report = plan_upgrade(self.root, "0.2.0")
+    def test_same_version_plan_cannot_hide_failed_preflight(self) -> None:
+        (self.root / "tools/ci.py").unlink()
+        report = plan_upgrade(self.root, "0.3.0")
         self.assertEqual(report.status, "FAIL")
-        self.assertIn("TEMPLATE_UPGRADE_PATH", {issue.code for issue in report.issues})
 
 
 if __name__ == "__main__":

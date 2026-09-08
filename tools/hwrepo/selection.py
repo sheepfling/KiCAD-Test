@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .contracts import read_model
+from .discovery import load_registry
 from .models import ProjectRecord, ProjectRegistry
 
 
@@ -62,5 +62,5 @@ def select_projects(
 
 def resolve_project_ids(root: Path, selector: ProjectSelector) -> tuple[str, ...]:
     """Load the authoritative registry and return selected project identities."""
-    registry = read_model(root.resolve() / "catalog/projects.json", ProjectRegistry)
+    registry = load_registry(root)
     return tuple(project.id for project in select_projects(registry, selector))

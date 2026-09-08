@@ -1,55 +1,52 @@
-# Start here — adopting the KiCad/Git template
+# Start here — adopting the KiCad workflow
 
-This repository is the reference implementation of the team template. Read the
-[authority model](AUTHORITY_MODEL.md) first: the reusable process is in `docs/`,
-`templates/`, `tools/`, `tests/`, and the repository controls, while the complete
-sample system under `examples/` is discardable reference material.
+Use the [folder standard](REPOSITORY_STRUCTURE.md) and [authority model](AUTHORITY_MODEL.md)
+to understand what belongs with each board and what is shared.
 
-Complete this record before copying the structure to a real repository. A blank
-field is a decision to make with the designated maintainer, not a value to guess.
+## Start development
 
-Run `python -B -m tools.template preflight` before bootstrap or adoption; see
-[template bootstrap and upgrades](TEMPLATE_ADOPTION.md) for the safe copy and
-migration-plan commands.
+1. Fork or copy the repository and complete the [Python setup](../README.md#first-run-setup).
+   Run `python -B -m tools.template init --project-id my-hardware`, then `python -B -m tools.ci`.
+2. For an optional [reference-project rehearsal](../examples/README.md), use a separate
+   uninitialized template checkout: initialization disables live example discovery.
+   Check Git status before and after opening it in the exact catalogued KiCad version.
+3. Create an adopted project with `tools.template new-project`, choosing its ID, kind
+   and toolchain. It starts in `development`, visibly NOT FOR MANUFACTURE.
+4. Save its real source under `projects/<id>/kicad/`. Complete `project.json` and
+   `tests/contract.json`; keep board requirements and decisions in its local docs.
+5. Use a short-lived branch, run the selected and full gates, and review source and
+   exported evidence. A new island's README is discovered automatically by docs policy.
 
-| Required decision | Record before adoption |
+No product model or production governance record is needed to start a standalone
+board. Add shared libraries through explicit dependencies. Add a product only when
+cross-board assembly, wiring or integration requirements need their own record.
+
+Initialization enables only `projects` in the live discovery configuration, empties
+reference product/part/interface/library catalogs, and keeps toolchain and policy
+defaults. It preserves `examples/` for independent shared-tool regression tests.
+It refuses to replace customized catalogs or existing designs. Run it before imports;
+after initialization, repeating it is a no-op for the same repository identity.
+
+## Before production
+
+Record actual decisions and evidence before changing a project to `production`:
+
+| Decision | Record |
 | --- | --- |
-| Repository and default branch | URL and protected branch name |
-| Project identity | Project ID and `projects/<domain>/<project-id>/<project-id>.kicad_pro` |
-| Approved KiCad build | Exact version, installer source, and rollout owner |
-| Library model | Project-local, shared, or both; approved versions and owners |
-| Mechanical owner | Interface reviewer and backup |
-| Electrical owner | Schematic/PCB reviewer and backup |
-| Integrator | Person authorized to merge and tag releases |
-| Required checks | Exact check names, evidence retention, and failure policy |
-| Assurance profile | `training` for rehearsal or `production` for a real board; record the decision in both registry and config |
-| GitHub governance | Protected branch, exact required checks, three role assignments, and evidence record |
-| Release authority | Who signs the release manifest and where immutable artifacts live |
-| Recovery path | Backup, restore, and handoff procedure |
+| Repository and branch controls | Default branch, required checks and hosted enforcement |
+| Engineering ownership | Electrical/mechanical reviewers and integrator |
+| Toolchain and libraries | Approved versions, installer sources, dependencies and owners |
+| Mechanical handoff | Board-local reviewed interface and fit records |
+| Release authority | Approval roles, exact frozen BOM/package location and retention |
+| Recovery and handoff | Tag, artifact hashes, restore procedure and responsible owner |
 
-## First rehearsal
+Use the [production profile](ASSURANCE_PROFILES.md), [GitHub governance](GITHUB_GOVERNANCE.md)
+and [release workflow](VERSIONING.md). Do not fill real-world approvals with template
+placeholders. Development checks do not establish manufacturing readiness.
 
-1. Clone the repository and read `README.md`.
-2. Record `git status` and the current branch before opening KiCad.
-3. Open the `.kicad_pro` in the approved KiCad build. Close KiCad and record `git status` again.
-4. Make one non-electrical text change on a short-lived branch, run ERC/DRC and the repository checks, then complete a reviewed PR rehearsal.
-5. Run a separate toolchain-migration rehearsal before deploying a newer KiCad build to the team.
+Before native editing, run `python -m tools.check_toolchain --toolchain <toolchain-id>`.
+A different installed version requires the approved build or a dedicated toolchain
+migration. The controller fixture uses 10.0.0; the other reference projects use 10.0.5.
 
-The examples demonstrate repository mechanics; a real design still needs its own
-identity, review, sourcing, mechanical handoff, and release record.
-
-Before editing, run `python -m tools.check_toolchain --toolchain <toolchain-id>`;
-the smallest bundled controller reference uses `kicad-10.0.0` and the LED
-references use `kicad-10.0.5`.
-A failure means the installed KiCad is read-only for this repository: do not save or
-convert; use the approved build or open a dedicated migration branch.
-
-## Reference examples
-
-Use these to learn the project, library, firmware, catalog, and review workflow:
-
-- [Arduino Uno R3 D13 status LED](examples/arduino-uno-status-led.md)
-- [Raspberry Pi 40-pin GPIO17 status LED](examples/raspberry-pi-status-led.md)
-
-They are deliberately small and synthetic. They are examples of organization and
-review flow, not product requirements.
+For a fresh local copy or a deliberate version update, see
+[template bootstrap and migrations](TEMPLATE_ADOPTION.md).

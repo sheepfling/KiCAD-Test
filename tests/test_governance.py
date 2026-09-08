@@ -6,30 +6,53 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests.support import reference_root
 from tools.check_toolchain import assessment, toolchain
 from tools.ci_matrix import build_matrix
 from tools.hwrepo.contracts import read_model, write_model
-from tools.hwrepo.models import ComponentIdentity, PartsCatalog, ProjectConfig, ProjectRegistry
+from tools.hwrepo.models import (
+    ComponentIdentity,
+    GovernanceRecord,
+    PartsCatalog,
+    ProjectManifest,
+    TeamPolicy,
+)
 from tools.hwrepo.selection import ProjectSelector, resolve_project_ids
-from tools.lint_registry import lint
+from tools.lint_registry import lint, lint_governance_record
 
-ROOT: Path = Path(__file__).resolve().parents[1]
+ROOT: Path = reference_root()
 
 
 class GovernanceLintTests(unittest.TestCase):
+    def test_two_person_policy_requires_independent_review_and_can_be_stricter(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "catalog").mkdir()
+            policy = TeamPolicy(rationale="Synthetic two-person unit-test policy")
+            write_model(root / "catalog/team-policy.json", policy)
+            record = GovernanceRecord(branch="main", required_status_checks=("Template acceptance",),
+                authors=("author-A",), reviewers=("reviewer-B",), integrators=("author-A",),
+                release_authorities=("author-A",), branch_protection_evidence=("fixture-record",),
+                branch_protection_verified_at="2026-09-08")
+            write_model(root / "governance.json", record)
+            issues: list[str] = []
+            lint_governance_record(root, "governance.json", "board", issues)
+            self.assertEqual(issues, [])
+            write_model(root / "governance.json", record.model_copy(update={"reviewers": ("AUTHOR-a",)}))
+            lint_governance_record(root, "governance.json", "board", issues)
+            self.assertTrue(any("independent" in issue for issue in issues))
+            write_model(root / "governance.json", record)
+            write_model(root / "catalog/team-policy.json", policy.model_copy(update={"minimum_actors": 3}))
+            issues.clear()
+            lint_governance_record(root, "governance.json", "board", issues)
+            self.assertTrue(any("3 distinct" in issue for issue in issues))
+
     def test_all_declared_projects_pass_static_lint(self) -> None:
         result = lint(ROOT)
         self.assertEqual(result.status, "PASS", result.issues)
         self.assertEqual(
             result.projects,
-            (
-                "controller",
-                "arduino-uno-status-led",
-                "raspberry-pi-status-led",
-                "status-indicator-wiring",
-                "passive-signal-reference",
-                "status-indicator-harness-interface",
-            ),
+            ('arduino-uno-status-led', 'controller', 'passive-signal-reference', 'raspberry-pi-status-led', 'status-indicator-harness-interface', 'status-indicator-wiring'),
         )
 
     def test_individual_project_lint_passes(self) -> None:
@@ -43,22 +66,11 @@ class GovernanceLintTests(unittest.TestCase):
         )
         self.assertEqual(
             resolve_project_ids(ROOT, ProjectSelector(tags=("status-led",))),
-            (
-                "arduino-uno-status-led",
-                "raspberry-pi-status-led",
-                "status-indicator-wiring",
-                "status-indicator-harness-interface",
-            ),
+            ('arduino-uno-status-led', 'raspberry-pi-status-led', 'status-indicator-harness-interface', 'status-indicator-wiring'),
         )
         self.assertEqual(
             resolve_project_ids(ROOT, ProjectSelector(excluded_tags=("legacy",))),
-            (
-                "arduino-uno-status-led",
-                "raspberry-pi-status-led",
-                "status-indicator-wiring",
-                "passive-signal-reference",
-                "status-indicator-harness-interface",
-            ),
+            ('arduino-uno-status-led', 'passive-signal-reference', 'raspberry-pi-status-led', 'status-indicator-harness-interface', 'status-indicator-wiring'),
         )
         with self.assertRaisesRegex(ValueError, "No projects matched"):
             resolve_project_ids(ROOT, ProjectSelector(tags=("absent",)))
@@ -80,31 +92,16 @@ class GovernanceLintTests(unittest.TestCase):
                 staged,
                 ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"),
             )
-            registry_path = staged / "catalog/projects.json"
-            registry = read_model(registry_path, ProjectRegistry)
-            duplicate_tagged = registry.projects[0].model_copy(
-                update={"tags": ("legacy", "LEGACY")}
-            )
-            write_model(
-                registry_path,
-                registry.model_copy(
-                    update={"projects": (duplicate_tagged, *registry.projects[1:])}
-                ),
-            )
+            path = staged / "examples/projects/controller/project.json"
+            manifest = read_model(path, ProjectManifest)
+            write_model(path, manifest.model_copy(update={"tags": ("legacy", "LEGACY")}))
             self.assertIn("project controller: duplicate metadata tag", lint(staged).issues)
 
     def test_ci_matrix_uses_each_project_pin(self) -> None:
         matrix = build_matrix(ROOT)
         self.assertEqual(
             [row.project for row in matrix.include],
-            [
-                "controller",
-                "arduino-uno-status-led",
-                "raspberry-pi-status-led",
-                "status-indicator-wiring",
-                "passive-signal-reference",
-                "status-indicator-harness-interface",
-            ],
+            ['arduino-uno-status-led', 'controller', 'passive-signal-reference', 'raspberry-pi-status-led', 'status-indicator-harness-interface', 'status-indicator-wiring'],
         )
         expected_versions = {
             "controller": "10.0.0",
@@ -170,27 +167,12 @@ class GovernanceLintTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             staged: Path = Path(temporary) / "template"
             shutil.copytree(ROOT, staged, ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"))
-            registry_path: Path = staged / "catalog/projects.json"
-            registry = read_model(registry_path, ProjectRegistry)
-            project = registry.projects[0].model_copy(
-                update={
-                    "status": "engineering",
-                    "assurance_profile": "production",
-                    "component_identity": ComponentIdentity(required=False, part_ids=()),
-                }
-            )
-            write_model(
-                registry_path,
-                registry.model_copy(update={"projects": (project, *registry.projects[1:])}),
-            )
-            config_path: Path = staged / "examples/configs/controller.json"
-            config = read_model(config_path, ProjectConfig)
-            write_model(
-                config_path,
-                config.model_copy(
-                    update={"assurance_profile": "production", "not_for_manufacture": False}
-                ),
-            )
+            path = staged / "examples/projects/controller/project.json"
+            manifest = read_model(path, ProjectManifest)
+            write_model(path, manifest.model_copy(update={
+                "status": "engineering", "assurance_profile": "production",
+                "component_identity": ComponentIdentity(required=False, part_ids=()),
+            }))
             issues = lint(staged, ["controller"]).issues
             self.assertTrue(any("production profile cannot disable ERC or DRC checks" in issue for issue in issues))
             self.assertTrue(any("production profile must require component identity" in issue for issue in issues))

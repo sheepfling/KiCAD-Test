@@ -8,16 +8,18 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from .contracts import read_model, repo_path
+from .discovery import load_config, load_registry
+from .evidence import source_state, verify_native, verify_portable
 from .models import (
     Assurance,
     DeviationStatus,
+    GovernanceRecord,
     InterfacesCatalog,
     LibrariesCatalog,
     PolicyIssue,
     ProductRecord,
-    ProjectConfig,
+    ProjectKind,
     ProjectRecord,
-    ProjectRegistry,
     ReleaseArtifactKind,
     ReleaseAssurancePolicy,
     ReleaseClass,
@@ -25,13 +27,11 @@ from .models import (
     ReleasePoliciesCatalog,
     ReleaseReadinessReport,
     ReleaseStatus,
+    TeamPolicy,
     ToolchainsCatalog,
 )
 from .product import ProductRepository, load_repository
 
-REQUIRED_CHECKS = frozenset(
-    {"repository", "product_model", "generation_drift", "harness", "kicad"}
-)
 MATURITY_ORDER = {
     "training": 0,
     "engineering_review": 1,
@@ -133,8 +133,8 @@ def selected_products(
                 issue("RELEASE_VARIANT_REVISION", selection.variant, "Variant revision does not match")
             )
         selected[product.id] = product
-    if not manifest.variants:
-        issues.append(issue("RELEASE_VARIANT", "variants", "At least one product/variant is required"))
+    if not manifest.variants and not manifest.projects:
+        issues.append(issue("RELEASE_SELECTION", "projects", "Select a project or product/variant"))
     return tuple(selected[identifier] for identifier in sorted(selected))
 
 
@@ -154,10 +154,16 @@ def product_scope(product: ProductRecord) -> frozenset[str]:
 
 
 def selected_project_records(
-    repository: ProductRepository, products: Iterable[ProductRecord]
+    repository: ProductRepository, products: Iterable[ProductRecord], explicit: tuple[str, ...] = ()
 ) -> tuple[ProjectRecord, ...]:
     """Resolve controlled KiCad projects used by the selected product definitions."""
     projects: dict[str, ProjectRecord] = {}
+    if len(set(explicit)) != len(explicit):
+        raise ValueError("Duplicate standalone project selection")
+    for identifier in explicit:
+        if identifier not in repository.projects:
+            raise ValueError(f"Unknown project {identifier}")
+        projects[identifier] = repository.projects[identifier]
     for product in products:
         for assembly in product.assemblies:
             if assembly.project_id is None:
@@ -171,12 +177,12 @@ def selected_project_records(
 
 def configured_toolchains(root: Path, projects: Iterable[ProjectRecord]) -> frozenset[str]:
     """Resolve declared toolchain identities used by selected KiCad projects."""
-    registry = read_model(repo_path(root, "catalog/projects.json"), ProjectRegistry)
+    registry = load_registry(root)
     toolchains = read_model(repo_path(root, registry.catalogs.toolchains), ToolchainsCatalog)
     known = {record.id for record in toolchains.toolchains}
     used: set[str] = set()
     for project in projects:
-        config = read_model(repo_path(root, project.config), ProjectConfig)
+        config = load_config(root, project.config)
         if config.toolchain_id not in known:
             raise ValueError(f"Project has unknown toolchain {config.toolchain_id}")
         used.add(config.toolchain_id)
@@ -190,7 +196,7 @@ def validate_dependencies(
     findings: list[PolicyIssue],
 ) -> None:
     """Bind release records to every selected shared-library/interface revision."""
-    registry = read_model(repo_path(root, "catalog/projects.json"), ProjectRegistry)
+    registry = load_registry(root)
     libraries = {
         record.id: record
         for record in read_model(
@@ -247,7 +253,7 @@ def validate_dependencies(
 
 def assurance_policy(root: Path, release_class: ReleaseClass) -> ReleaseAssurancePolicy:
     """Load one explicit assurance floor for the selected release maturity."""
-    registry = read_model(repo_path(root, "catalog/projects.json"), ProjectRegistry)
+    registry = load_registry(root)
     policies = read_model(
         repo_path(root, registry.catalogs.release_policies), ReleasePoliciesCatalog
     ).policies
@@ -286,7 +292,7 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
     findings.extend(repository.issues)
     products = selected_products(repository, manifest, findings)
     try:
-        projects = selected_project_records(repository, products)
+        projects = selected_project_records(repository, products, manifest.projects)
         validate_dependencies(resolved_root, projects, manifest, findings)
     except (OSError, ValueError) as exc:
         findings.append(issue("RELEASE_DEPENDENCY", "projects", str(exc)))
@@ -301,6 +307,12 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
         findings.append(issue("RELEASE_GIT", "repository", str(exc)))
 
     required_maturity = RELEASE_MATURITY[manifest.release_class]
+    for project in projects:
+        if manifest.release_class is not ReleaseClass.ENGINEERING_REVIEW and (
+            project.assurance_profile != "production" or project.status != "release_candidate"
+        ):
+            findings.append(issue("RELEASE_PROJECT_MATURITY", project.id,
+                                  "Build releases require production-profile release_candidate projects"))
     try:
         validate_assurance(products, assurance_policy(resolved_root, manifest.release_class), findings)
     except (OSError, ValueError) as exc:
@@ -333,12 +345,29 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
     except (OSError, ValueError) as exc:
         findings.append(issue("RELEASE_TOOLCHAIN", "toolchain_id", str(exc)))
 
-    missing_checks = sorted(
-        name for name in REQUIRED_CHECKS if manifest.checks.get(name) != "PASS"
-    )
-    if missing_checks:
-        findings.append(
-            issue("RELEASE_CHECK", "checks", f"Required passing checks missing: {missing_checks}"))
+    try:
+        if manifest.evidence is None:
+            raise ValueError("Retained portable and native reports are required; PASS labels are insufficient")
+        source = source_state(resolved_root)
+        if source.commit != manifest.source_commit or not source.clean:
+            raise ValueError("Release evidence requires the clean source commit checked out")
+        verify_portable(resolved_root, manifest.evidence.portable, source)
+        if set(manifest.evidence.native) != {project.id for project in projects}:
+            raise ValueError("Native evidence must cover exactly the selected projects")
+        for project in projects:
+            verify_native(resolved_root, manifest.evidence.native[project.id], source, project.id)
+        from .exports import verify_exports
+
+        if not set(manifest.evidence.exports) <= {project.id for project in projects}:
+            raise ValueError("Export evidence names an unselected project")
+        for project in projects:
+            exported = manifest.evidence.exports.get(project.id)
+            if exported is not None:
+                verify_exports(resolved_root, exported, source, project.id, project.config)
+            elif project.kind is ProjectKind.PCB and manifest.release_class is ReleaseClass.PRODUCTION:
+                raise ValueError(f"Production board {project.id} requires native fabrication and assembly exports")
+    except (OSError, ValueError, KeyError, StopIteration) as exc:
+        findings.append(issue("RELEASE_EVIDENCE", "evidence", str(exc)))
 
     artifact_ids: set[str] = set()
     artifact_kinds: set[ReleaseArtifactKind] = set()
@@ -359,6 +388,9 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
     if not manifest.artifacts:
         findings.append(issue("RELEASE_ARTIFACT", "artifacts", "At least one retained artifact is required"))
     required_artifact_kinds = set(REQUIRED_ARTIFACT_KINDS[manifest.release_class])
+    if not any(project.kind is ProjectKind.PCB for project in projects):
+        required_artifact_kinds -= {ReleaseArtifactKind.PCB_EXPORT, ReleaseArtifactKind.BOM,
+                                   ReleaseArtifactKind.FABRICATION_PACKAGE, ReleaseArtifactKind.ASSEMBLY_PACKAGE}
     if manifest.release_class in {ReleaseClass.PILOT, ReleaseClass.PRODUCTION} and any(
         product.harnesses for product in products
     ):
@@ -375,9 +407,10 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
             )
         )
 
-    scope = frozenset(identifier for product in products for identifier in product_scope(product))
+    scope = frozenset((*[project.id for project in projects],
+                       *[identifier for product in products for identifier in product_scope(product)]))
     evidence = frozenset(
-        identifier for product in products for identifier in (record.id for record in product.evidence)
+        (*artifact_ids, *(record.id for product in products for record in product.evidence))
     )
     effective_today = today or datetime.now(timezone.utc).date()
     seen_deviations: set[str] = set()
@@ -399,13 +432,47 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
         findings.append(issue("RELEASE_STATUS", "status", "Non-review releases must be approved"))
     if requires_approval and manifest.approval is None:
         findings.append(issue("RELEASE_APPROVAL", "approval", "Approval record is required"))
+    if manifest.approval is not None:
+        approval = manifest.approval
+        if not approval.evidence or not set(approval.evidence) <= artifact_ids:
+            findings.append(issue("RELEASE_APPROVAL", "approval", "Approval must reference retained artifacts"))
+        if approval.approved_at > effective_today:
+            findings.append(issue("RELEASE_APPROVAL", "approval", "Approval date is in the future"))
+        try:
+            policy = read_model(root / "catalog/team-policy.json", TeamPolicy)
+            actors = {actor.casefold() for actor in (approval.electrical_reviewer,
+                      approval.mechanical_reviewer, approval.integrator, approval.release_authority) if actor is not None}
+            if len(actors) < policy.minimum_actors:
+                findings.append(issue("RELEASE_APPROVAL", "approval", "Approval does not meet team actor policy"))
+            if requires_approval:
+                if approval.release_authority is None:
+                    findings.append(issue("RELEASE_APPROVAL", "approval", "Named release authority is required"))
+                for project in projects:
+                    if project.kind is ProjectKind.PCB and approval.mechanical_reviewer is None:
+                        findings.append(issue("RELEASE_APPROVAL", project.id, "PCB release requires mechanical review"))
+                    if project.governance_record is None:
+                        findings.append(issue("RELEASE_APPROVAL", project.id, "Governance assignment is missing"))
+                        continue
+                    governance = read_model(repo_path(root, project.governance_record), GovernanceRecord)
+                    for actor, allowed, role in (
+                        (approval.electrical_reviewer, governance.reviewers, "electrical reviewer"),
+                        (approval.mechanical_reviewer, governance.reviewers, "mechanical reviewer"),
+                        (approval.integrator, governance.integrators, "integrator"),
+                        (approval.release_authority, governance.release_authorities, "release authority"),
+                    ):
+                        if actor is not None and actor.casefold() not in {name.casefold() for name in allowed}:
+                            findings.append(issue("RELEASE_APPROVAL", project.id, f"Unassigned {role}: {actor}"))
+        except (OSError, ValueError) as exc:
+            findings.append(issue("RELEASE_APPROVAL", "approval", str(exc)))
     if requires_approval and manifest.source_tag is None:
         findings.append(issue("RELEASE_TAG", "source_tag", "Annotated tag is required"))
     if manifest.source_tag is not None:
         try:
-            if git(resolved_root, "cat-file", "-t", manifest.source_tag) != "tag":
+            tag_ref = f"refs/tags/{manifest.source_tag}"
+            git(resolved_root, "check-ref-format", tag_ref)
+            if git(resolved_root, "cat-file", "-t", tag_ref) != "tag":
                 findings.append(issue("RELEASE_TAG", "source_tag", "Tag must be annotated"))
-            if git(resolved_root, "rev-parse", f"{manifest.source_tag}^{{}}") != manifest.source_commit:
+            if git(resolved_root, "rev-parse", f"{tag_ref}^{{}}") != manifest.source_commit:
                 findings.append(issue("RELEASE_TAG", "source_tag", "Tag does not resolve to source_commit"))
         except (OSError, subprocess.SubprocessError) as exc:
             findings.append(issue("RELEASE_TAG", "source_tag", str(exc)))

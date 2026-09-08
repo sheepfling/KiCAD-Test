@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "harness_interface",
+    "product_id": "status-indicator-system",
+    "connection_ids": [
+      "C-RETURN",
+      "C-SIGNAL"
+    ],
+    "terminal_ids": [
+      "T-CABLE-1",
+      "T-CABLE-2",
+      "T-UNO-RETURN",
+      "T-UNO-SIGNAL"
+    ],
+    "harness_ids": [
+      "H-STATUS"
+    ],
+    "expected_ignored_checks": {
+      "erc": [
+        "single_global_label",
+        "four_way_junction",
+        "simulation_model_issue",
+        "footprint_filter"
+      ],
+      "drc": []
+    }
+  }
+}

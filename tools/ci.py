@@ -9,14 +9,17 @@ from pathlib import Path
 
 from .ci_matrix import build_matrix
 from .hwrepo.documentation import check as documentation_check
-from .hwrepo.generation import drift
+from .hwrepo.evidence import source_state
+from .hwrepo.generation import check_generation
 from .hwrepo.models import (
     CommandEvidence,
     GenerationReport,
     ProjectStaticPipelineReport,
+    ProjectTestsReport,
     StaticPipelineReport,
 )
 from .hwrepo.product import check as product_check
+from .hwrepo.project_tests import run_tests
 from .hwrepo.repository import check_repository
 from .hwrepo.selection import ProjectSelector, resolve_project_ids
 from .lint_registry import lint
@@ -57,18 +60,20 @@ def project_static_pipeline(
     repository = check_repository(root, selected)
     product = product_check(root, selected_project_ids=selected)
     try:
-        errors = drift(root, selected)
+        errors = check_generation(root, selected)
         generation = GenerationReport(
             status="FAIL" if errors else "PASS",
             issues=errors,
         )
     except (OSError, ValueError) as exc:
         generation = GenerationReport(status="FAIL", issues=(str(exc),))
+    project_tests = checked_project_tests(root, selected)
     passed = (
         registry.status == "PASS"
         and repository.status == "PASS"
         and product.status == "PASS"
         and generation.status == "PASS"
+        and project_tests.status == "PASS"
     )
     return ProjectStaticPipelineReport(
         status="PASS" if passed else "FAIL",
@@ -77,6 +82,7 @@ def project_static_pipeline(
         repository=repository,
         product=product,
         generation=generation,
+        project_tests=project_tests,
     )
 
 
@@ -86,20 +92,21 @@ def static_pipeline(
     """Run the full shared gate or the fast local lane for selected projects."""
     if selected is not None:
         return project_static_pipeline(root, tuple(selected))
+    before = source_state(root)
     registry = lint(root)
     repository = check_repository(root)
     documentation = documentation_check(root)
     product = product_check(root)
     try:
-        errors = drift(root)
+        errors = check_generation(root)
         generation = GenerationReport(
             status="FAIL" if errors else "PASS",
             issues=errors,
         )
     except (OSError, ValueError) as exc:
         generation = GenerationReport(status="FAIL", issues=(str(exc),))
-    ruff = run_command(root, "ruff", "check", "--no-cache", "tools", "tests")
-    pyright = run_command(root, "pyright", "--pythonpath", sys.executable, "tools")
+    ruff = run_command(root, sys.executable, "-m", "ruff", "check", "--no-cache", "tools", "tests")
+    pyright = run_command(root, sys.executable, "-m", "pyright", "--pythonpath", sys.executable, "tools")
     unit_tests = run_command(
         root,
         sys.executable,
@@ -111,6 +118,7 @@ def static_pipeline(
         "tests",
         "-v",
     )
+    project_tests = checked_project_tests(root)
     passed = (
         registry.status == "PASS"
         and repository.status == "PASS"
@@ -120,9 +128,11 @@ def static_pipeline(
         and ruff.returncode == 0
         and pyright.returncode == 0
         and unit_tests.returncode == 0
+        and project_tests.status == "PASS"
     )
     return StaticPipelineReport(
         status="PASS" if passed else "FAIL",
+        source=before.model_copy(update={"clean": before.clean and source_state(root) == before}),
         registry=registry,
         repository=repository,
         documentation=documentation,
@@ -131,7 +141,19 @@ def static_pipeline(
         ruff=ruff,
         pyright=pyright,
         unit_tests=unit_tests,
+        project_tests=project_tests,
     )
+
+
+def checked_project_tests(root: Path, selected: tuple[str, ...] | None = None) -> ProjectTestsReport:
+    """Keep malformed discovery records as a typed failure in the portable report."""
+    try:
+        return run_tests(root, selected)
+    except (OSError, ValueError) as exc:
+        return ProjectTestsReport(status="FAIL", commands={
+            "discovery": CommandEvidence(argv=("project-test-discovery",),
+                started_utc=datetime.now(timezone.utc).isoformat(), returncode=1, error=str(exc)),
+        })
 
 
 def main() -> int:
@@ -248,6 +270,11 @@ def main() -> int:
         print(metrics.model_dump_json(indent=2))
         return 0
     static = static_pipeline(root, None if selected is None else list(selected))
+    if args.output is not None:
+        from .hwrepo.contracts import write_model
+
+        args.output.mkdir(parents=True, exist_ok=False)
+        write_model(args.output / "portable.json", static)
     print(static.model_dump_json(indent=2))
     return 0 if static.status == "PASS" else 1
 

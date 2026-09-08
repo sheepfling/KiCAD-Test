@@ -9,6 +9,7 @@ from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
+from tests.support import reference_root
 from tools.hwrepo.contracts import read_model, write_model
 from tools.hwrepo.models import (
     DeviationStatus,
@@ -27,7 +28,7 @@ from tools.hwrepo.models import (
 )
 from tools.hwrepo.release import check
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = reference_root()
 COMMIT = "a" * 40
 
 
@@ -41,7 +42,7 @@ class ReleaseReadinessTests(unittest.TestCase):
             self.root,
             ignore=shutil.ignore_patterns(".git", "build", ".evidence", "__pycache__"),
         )
-        product_path = self.root / "examples/products/status-indicator-system.json"
+        product_path = self.root / "examples/products/status-indicator-system/product.json"
         product = read_model(product_path, ProductRecord)
         write_model(product_path, product.model_copy(update={"maturity": "engineering_review"}))
 
@@ -104,10 +105,11 @@ class ReleaseReadinessTests(unittest.TestCase):
             return ""
         raise AssertionError(f"Unexpected Git query: {args}")
 
-    def test_engineering_review_candidate_is_readiness_pass_not_build_authorization(self) -> None:
+    def test_self_declared_passing_checks_cannot_supply_release_evidence(self) -> None:
         with patch("tools.hwrepo.release.git", side_effect=self.git):
             report = check(self.root, self.manifest())
-        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertEqual(report.status, "FAIL", report.issues)
+        self.assertIn("RELEASE_EVIDENCE", {finding.code for finding in report.issues})
         self.assertFalse(report.build_authorized)
 
     def test_commit_mismatch_and_open_deviation_fail(self) -> None:
@@ -126,7 +128,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         self.assertEqual(report.status, "FAIL")
         self.assertEqual(
             {finding.code for finding in report.issues},
-            {"RELEASE_COMMIT", "DEVIATION_STATUS", "DEVIATION_EVIDENCE"},
+            {"RELEASE_COMMIT", "DEVIATION_STATUS", "DEVIATION_EVIDENCE", "RELEASE_EVIDENCE"},
         )
 
     def test_prototype_rejects_candidate_training_level_controls(self) -> None:
@@ -140,7 +142,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         )
 
     def test_release_class_enforces_the_catalogued_assurance_floor(self) -> None:
-        product_path = self.root / "examples/products/status-indicator-system.json"
+        product_path = self.root / "examples/products/status-indicator-system/product.json"
         product = read_model(product_path, ProductRecord)
         write_model(product_path, product.model_copy(update={"maturity": "prototype"}))
         manifest = self.manifest(release_class=ReleaseClass.PROTOTYPE)

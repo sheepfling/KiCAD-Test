@@ -6,8 +6,9 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
-from .contracts import read_model, repo_path
-from .models import ProjectConfig, ProjectKind, ProjectRegistry, RepositoryPolicyReport
+from .contracts import repo_path
+from .discovery import load_config, load_registry, settings
+from .models import RepositoryPolicyReport
 
 LOCAL_STATE_NAMES = frozenset(
     {
@@ -18,6 +19,7 @@ LOCAL_STATE_NAMES = frozenset(
         "ehthumbs.db",
         "fp-info-cache",
         "thumbs.db",
+        ".coverage",
     }
 )
 LOCAL_STATE_DIRECTORIES = frozenset(
@@ -33,6 +35,10 @@ LOCAL_STATE_DIRECTORIES = frozenset(
         ".trashes",
         ".vscode",
         ".vs",
+        ".venv",
+        "venv",
+        "dist",
+        "htmlcov",
         "$recycle.bin",
         "__macosx",
         "__pycache__",
@@ -70,6 +76,7 @@ UNMANAGED_ARTIFACT_SUFFIXES = frozenset(
         ".avif",
         ".bmp",
         ".bz2",
+        ".bundle",
         ".doc",
         ".docm",
         ".docx",
@@ -152,28 +159,54 @@ def ephemeral(name: str) -> bool:
         path.suffix.casefold() in LOCAL_STATE_SUFFIXES
         or path.name.casefold() in LOCAL_STATE_NAMES
         or path.name.startswith(("._", ".nfs", "_autosave-", "~"))
+        or path.name.startswith(".coverage.")
         or path.name.endswith("-bak")
         or any(
             part.casefold() in LOCAL_STATE_DIRECTORIES
             or part.casefold().endswith("-backups")
+            or part.casefold().endswith(".egg-info")
             or part.casefold().startswith(".trash-")
             for part in path.parts
         )
     )
 
 
+def generated_artifact(name: str) -> bool:
+    """Classify output locations and unambiguous native manufacturing exports."""
+    path = PurePosixPath(name)
+    return (
+        (bool(path.parts) and path.parts[0].casefold() in {"generated", "schemas"}
+         and name not in {"generated/README.md", "schemas/README.md"})
+        or path.suffix.casefold() in {".gbr", ".gbrjob", ".ger", ".drl", ".pos", ".net"}
+    )
+
+
 def unmanaged_artifact(name: str) -> bool:
     """Return whether a force-added Office, archive, installer or media file is forbidden."""
     path = PurePosixPath(name)
+    # Authored documentation figures are source. CAD exports belong in build/.
+    if path.suffix.casefold() in {".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif"} and any(
+        pair == ("docs", "assets") for pair in zip(path.parts, path.parts[1:])
+    ):
+        return False
     return path.suffix.casefold() in UNMANAGED_ARTIFACT_SUFFIXES
 
 
 def cad_dependencies(root: Path, file: Path, project_dir: Path, major: str) -> list[str]:
     issues: list[str] = []
     text = file.read_text(encoding="utf-8")
+    embedded = set(re.findall(
+        r'\(file\s+\(name\s+"([^"\n]+)"\)\s+\(type\s+model\)\s+'
+        r'\(data\s+\|[A-Za-z0-9+/=\s]+\|\s*\)\s+\(checksum\s+"[A-Fa-f0-9]+"\)\s*\)', text))
     for match in re.finditer(r'\((?:uri|model)\s+"([^"\n]*)"', text):
         value = match.group(1)
         label = file.relative_to(root).as_posix()
+        if value.startswith("kicad-embed://"):
+            # The containing native file is itself inventoried and hashed. Check
+            # record presence here; native KiCad owns decoding the embedded bytes.
+            if value.removeprefix("kicad-embed://") not in embedded:
+                issues.append(f"CAD_PATH: {label}: missing embedded model {value!r}")
+            continue
         if "\\" in value or PureWindowsPath(value).drive or value.startswith("/"):
             issues.append(f"CAD_PATH: {label}: machine-local dependency {value!r}")
             continue
@@ -208,12 +241,12 @@ def check_repository(
     selected = None if selected_project_ids is None else frozenset(selected_project_ids)
     issues: list[str] = []
     try:
-        registry = read_model(root / "catalog/projects.json", ProjectRegistry)
+        registry = load_registry(root)
         inventories: set[str] = set()
         for project in registry.projects:
             if selected is not None and project.id not in selected:
                 continue
-            config = read_model(repo_path(root, project.config), ProjectConfig)
+            config = load_config(root, project.config)
             directory = repo_path(root, project.project).parent
             inventories.update(config.required_inputs)
             for name in config.required_inputs:
@@ -230,16 +263,19 @@ def check_repository(
         if selected is None:
             found = {
                 path.relative_to(root).as_posix()
-                for kind in ProjectKind
-                for path in (root / kind.design_root).rglob("*")
-                if (root / kind.design_root).is_dir()
+                for directory in settings(root).project_roots
+                for path in (root / directory).rglob("*")
+                if (root / directory).is_dir()
                 and path.suffix in {".kicad_pro", ".kicad_sch", ".kicad_pcb"}
                 and not ephemeral(path.relative_to(root).as_posix())
             }
             issues.extend(f"UNREGISTERED_DESIGN: {name}" for name in sorted(found - inventories))
         result = subprocess.run(["git", "-c", f"safe.directory={root.as_posix()}", "-C", str(root), "ls-files", "-z"], capture_output=True, text=True, check=True)
         for name in result.stdout.split("\0"):
-            if name and ephemeral(name):
+            if name and generated_artifact(name) and (root / name).exists():
+                # A working-tree deletion is the intended fix; CI checks the committed tree.
+                issues.append(f"TRACKED_GENERATED_OUTPUT: {name}")
+            elif name and ephemeral(name):
                 issues.append(f"TRACKED_LOCAL_STATE: {name}")
             elif name and unmanaged_artifact(name):
                 issues.append(f"TRACKED_UNMANAGED_ARTIFACT: {name}")

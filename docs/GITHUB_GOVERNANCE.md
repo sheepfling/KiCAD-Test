@@ -2,12 +2,15 @@
 
 Repository files can document and gate the expected policy, but only GitHub can
 enforce branch protection and permissions. Before a project is promoted to the
-`production` assurance profile, create `governance/<project-id>.json` from
+`production` assurance profile, create `projects/<project-id>/releases/governance.json` from
 `templates/github-governance.example.json` and replace every placeholder.
 
 The production lint requires a protected branch, exact required check names, branch
-protection evidence, release authority, and at least three distinct people across
-author, reviewer, and integrator roles.
+protection evidence and release authority. `catalog/team-policy.json` defines the
+minimum actor count, independent-review requirement and required status checks.
+The default needs two people: an author and an independent reviewer; either may
+integrate. Teams can adopt stricter separation or an explicitly reviewed solo policy
+by changing that file and its rationale. Case differences cannot create extra actors.
 
 ## Configure in GitHub
 
@@ -24,8 +27,8 @@ For the default branch, configure and verify:
    separately recorded release authority.
 
 Record the GitHub settings URL, API output reference, or approved screenshot in the
-governance record's `branch_protection_evidence`. Test the policy with three people:
-one author, one reviewer, and one integrator. Also rehearse a rejected check,
+governance record's `branch_protection_evidence`. Test the actual configured roles
+and independent-review rule. Also rehearse a rejected check,
 conflict handoff, access revocation, and release restore before relying on it.
 
 ## Tool access

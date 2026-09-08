@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "validation": {
+    "kind": "pcb",
+    "components": {
+      "R1": {
+        "value": "1k",
+        "footprint": "Pilot:R_Test"
+      },
+      "R2": {
+        "value": "2k",
+        "footprint": "Pilot:R_Test"
+      }
+    },
+    "nets": {
+      "PILOT_A": [
+        "R1.1",
+        "R2.1"
+      ],
+      "PILOT_B": [
+        "R1.2",
+        "R2.2"
+      ]
+    },
+    "expected_ignored_checks": {
+      "erc": [
+        "single_global_label",
+        "four_way_junction",
+        "simulation_model_issue",
+        "footprint_filter"
+      ],
+      "drc": [
+        "missing_courtyard",
+        "track_not_centered_on_via",
+        "tuning_profile_track_geometries",
+        "footprint_filters_mismatch",
+        "footprint_type_mismatch"
+      ]
+    }
+  }
+}

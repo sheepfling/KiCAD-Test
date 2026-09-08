@@ -35,12 +35,12 @@ automatic pinout inference, or a mandatory cloud service.
 | Packet requirement | Status | Evidence |
 | --- | --- | --- |
 | Exact supported KiCad policy and CI execution | Implemented and tested | `catalog/toolchains.json`, `python -m tools.check_toolchain`, digest-pinned KiCad lanes |
-| Source/generated/local-state tree policy | Implemented and tested | `README.md`, repository policy, hygiene gate and generated-view drift |
+| Source/generated/local-state tree policy | Implemented and tested | `README.md`, repository policy, hygiene gate and isolated generation and output hygiene |
 | Portable attributes and ignored local state | Implemented and tested | `.gitattributes`, `.gitignore`, forced-artifact regression tests |
 | Typed parts, assemblies, interfaces/terminals, connections, variants and evidence | Implemented and tested | strict Pydantic records and product schemas |
 | Identity/reference/path checks | Implemented and tested | product/repository policy and deliberate-defect tests |
 | KiCad project discovery, version, ERC and DRC | Implemented and tested | registry, native validator, fault probes and hosted workflow |
-| Deterministic outputs and hashes | Implemented and tested | BOM/system/electrical projections, schema drift and review snapshot |
+| Deterministic outputs and hashes | Implemented and tested | BOM/system/electrical projections, schema export tests and review snapshot |
 | One local entry point and matching hosted checks | Implemented and tested | `python -B -m tools.ci` and the thin workflow driver |
 
 ## P1 — release-candidate controls
@@ -51,7 +51,7 @@ automatic pinout inference, or a mandatory cloud service.
 | Harness validation seam | Implemented and tested | typed harness/terminal records bind to exact declared interface pins and relation-kind checks; WireViz remains optional |
 | Semantic system view | Implemented and tested | generated `*.system.json` preserves electrical, functional and mechanical kinds |
 | Maturity profiles, deviations and release readiness | Implemented and tested | [release-readiness gate](RELEASE_READINESS.md), typed assurance-floor catalog, manifest/deviation models and tests |
-| Generated-output drift and documentation graph policy | Implemented and tested | static pipeline, Markdown policy and negative tests |
+| Reproducible outputs and documentation graph policy | Implemented and tested | static pipeline, Markdown policy and negative tests |
 | CODEOWNERS/ruleset live pilot | Template control; external acceptance | `CODEOWNERS.example`, governance record and live-pilot instructions |
 | Fresh-clone/fresh-workstation rehearsal | Template control; external acceptance | onboarding/preflight procedure; must run on permitted clean workstations |
 | Immutable tag, hosted release and restore | Template control; external acceptance | release gate requires annotated tag; creating/publishing/restoring one needs release authority |
@@ -71,7 +71,7 @@ automatic pinout inference, or a mandatory cloud service.
 ## Remaining acceptance before a real release
 
 The next executable code work is complete only when the static and native CI lanes
-pass. The following cannot be completed by editing this template: three distinct
+pass. The following cannot be completed by editing this template: the configured independent
 people exercising GitHub rules, exact supported KiCad on a clean workstation,
 independent electrical/mechanical review, physical fit, an approved component source,
 or release authority creating and restoring an immutable tag. Record those results in

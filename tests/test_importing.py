@@ -1,0 +1,122 @@
+"""Import portability, isolation and failure recovery without external demo fixtures."""
+from __future__ import annotations
+
+import hashlib
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from tests.support import initialize_git, reference_root
+from tools.hwrepo.contracts import read_model
+from tools.hwrepo.discovery import load_registry
+from tools.hwrepo.importing import import_project
+from tools.hwrepo.models import ProjectManifest
+from tools.hwrepo.repository import cad_dependencies
+
+
+class ImportTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory(prefix="import-workflow-")
+        self.addCleanup(temporary.cleanup)
+        self.base = Path(temporary.name).resolve()
+        self.root = self.base / "repository"
+        shutil.copytree(reference_root(), self.root, ignore=shutil.ignore_patterns(".git", "build"))
+        initialize_git(self.root)
+        self.source = self.base / "Old board"
+        self.source.mkdir()
+        self.project = self.source / "Old board.kicad_pro"
+        self.project.write_text("{}")
+        self.project.with_suffix(".kicad_sch").write_text('(kicad_sch (property "Sheetfile" "sheets/channel.kicad_sch"))')
+        self.project.with_suffix(".kicad_pcb").write_text("(kicad_pcb)")
+        (self.source / "sheets").mkdir()
+        (self.source / "sheets/channel.kicad_sch").write_text('(kicad_sch (property "Sheetfile" "../shared.kicad_sch"))')
+        (self.source / "shared.kicad_sch").write_text("(kicad_sch)")
+        (self.source / "symbols.kicad_sym").write_text("(kicad_symbol_lib)")
+        (self.source / "LICENSE").write_text("Test fixture source")
+
+    def run_import(self, dry_run: bool = False):
+        return import_project(self.root, self.project, "battery-board", "kicad-10.0.5", dry_run)
+
+    def test_preserves_native_bytes_spaces_hierarchy_and_dependencies_without_catalog_edit(self) -> None:
+        before = {p.relative_to(self.source).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                  for p in self.source.rglob('*') if p.is_file()}
+        catalog = (self.root / "catalog/projects.json").read_bytes()
+        result = self.run_import()
+        self.assertEqual(result.status, "PASS", result.issues)
+        self.assertEqual(result.copied_sha256, before)
+        island = self.root / result.directory
+        manifest = read_model(island / "project.json", ProjectManifest)
+        self.assertEqual(manifest.project, "kicad/Old board.kicad_pro")
+        self.assertFalse(manifest.component_identity.required)
+        self.assertEqual(set(manifest.required_inputs), {f"kicad/{name}" for name in before})
+        for name, digest in before.items():
+            self.assertEqual(hashlib.sha256((island / 'kicad' / name).read_bytes()).hexdigest(), digest)
+            self.assertEqual(hashlib.sha256((self.source / name).read_bytes()).hexdigest(), digest)
+        self.assertEqual((self.root / "catalog/projects.json").read_bytes(), catalog)
+        self.assertIn("battery-board", {p.id for p in load_registry(self.root).projects})
+        self.assertEqual(self.run_import().status, "FAIL")
+
+    def test_dry_run_reports_working_exports_and_separate_projects_without_writes(self) -> None:
+        for name in ("other.kicad_pro", "other.kicad_sch", "other.kicad_pcb", "old.gbr", ".DS_Store", "photo.png"):
+            (self.source / name).write_text("excluded")
+        nested = self.source / "child"; nested.mkdir()
+        (nested / "child.kicad_pro").write_text("{}")
+        result = self.run_import(True)
+        self.assertEqual(result.status, "PASS", result.issues)
+        self.assertFalse((self.root / result.directory).exists())
+        self.assertIn("old.gbr", result.excluded)
+        self.assertIn("other.kicad_pro", result.excluded)
+        self.assertIn("child/child.kicad_pro", result.excluded)
+        self.assertIn("photo.png", result.excluded)
+        self.assertNotIn("other.kicad_sch", result.copied_sha256)
+
+    def test_cli_never_silently_ignores_dry_run_on_another_command(self) -> None:
+        result = subprocess.run((sys.executable, "-B", "-m", "tools.template", "new-project",
+            "--root", str(self.root), "--project-id", "dry-board", "--toolchain", "kicad-10.0.5", "--dry-run"),
+            capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("require import-project", result.stderr)
+        self.assertFalse((self.root / "projects/dry-board").exists())
+
+    def test_missing_or_escaping_sheets_fail_without_publishing(self) -> None:
+        for name in ("missing.kicad_sch", "../outside.kicad_sch"):
+            self.project.with_suffix(".kicad_sch").write_text(f'(property "Sheetfile" "{name}")')
+            report = self.run_import()
+            self.assertEqual(report.status, "FAIL")
+            self.assertFalse((self.root / report.directory).exists())
+
+    def test_board_without_schematic_is_explicitly_unsupported(self) -> None:
+        self.project.with_suffix(".kicad_sch").unlink()
+        result = self.run_import()
+        self.assertEqual(result.status, "FAIL")
+        self.assertIn("PCB-only", result.issues[0])
+
+    def test_symlink_rejected_and_interrupted_copy_cleans_staging(self) -> None:
+        link = self.source / "linked.kicad_sym"
+        try:
+            link.symlink_to(self.source / "symbols.kicad_sym")
+        except OSError:
+            self.skipTest("Symlink creation unavailable")
+        self.assertEqual(self.run_import().status, "FAIL")
+        link.unlink()
+        with patch("tools.hwrepo.importing.shutil.copy2", side_effect=OSError("disk full")):
+            self.assertEqual(self.run_import().status, "FAIL")
+        self.assertFalse(list((self.root / "projects").glob(".import-project-*")))
+        self.assertFalse((self.root / "projects/battery-board").exists())
+
+    def test_embedded_models_are_local_dependencies_but_missing_records_fail(self) -> None:
+        board = self.source / "embedded.kicad_pcb"
+        board.write_text('(kicad_pcb (model "kicad-embed://part.step") '
+                         '(embedded_files (file (name "part.step") (type model) '
+                         '(data |YWJj|) (checksum "AABB"))))')
+        self.assertEqual(cad_dependencies(self.base, board, self.source, "10"), [])
+        board.write_text('(kicad_pcb (model "kicad-embed://part.step"))')
+        self.assertIn("missing embedded model", cad_dependencies(self.base, board, self.source, "10")[0])
+
+
+if __name__ == "__main__":
+    unittest.main()

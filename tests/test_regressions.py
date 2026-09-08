@@ -8,11 +8,11 @@ import unittest
 from pathlib import Path
 from typing import TypedDict
 
-from tools.hwrepo.contracts import read_model
-from tools.hwrepo.models import ProjectConfig
+from tests.support import reference_root
+from tools.hwrepo.discovery import load_config
 from tools.validate import check_report, hashes, svg_files
 
-ROOT: Path = Path(__file__).resolve().parents[1]
+ROOT: Path = reference_root()
 
 
 class IgnoredCheck(TypedDict):
@@ -36,7 +36,7 @@ class RegressionTests(unittest.TestCase):
         self.temp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root: Path = Path(self.temp.name)
-        self.config = read_model(ROOT / "examples/configs/controller.json", ProjectConfig)
+        self.config = load_config(ROOT, ROOT / "examples/projects/controller/project.json")
     ####
 
     def erc_report(self) -> ErcReport:
@@ -60,17 +60,17 @@ class RegressionTests(unittest.TestCase):
     ####
 
     def test_known_local_state_does_not_change_source_identity(self) -> None:
-        shutil.copytree(ROOT / "examples/projects/pcb", self.root / "examples/projects/pcb")
+        shutil.copytree(ROOT / "examples/projects", self.root / "examples/projects")
         before = hashes(self.root, self.config.source_roots)
-        (self.root / "examples/projects/pcb/controller/controller.kicad_prl").write_text("local preferences")
-        (self.root / "examples/projects/pcb/controller/fp-info-cache").write_text("local cache")
+        (self.root / "examples/projects/controller/kicad/controller.kicad_prl").write_text("local preferences")
+        (self.root / "examples/projects/controller/kicad/fp-info-cache").write_text("local cache")
         self.assertEqual(before, hashes(self.root, self.config.source_roots))
     ####
 
     def test_other_new_source_still_changes_inventory(self) -> None:
-        shutil.copytree(ROOT / "examples/projects/pcb", self.root / "examples/projects/pcb")
+        shutil.copytree(ROOT / "examples/projects", self.root / "examples/projects")
         before = hashes(self.root, self.config.source_roots)
-        (self.root / "examples/projects/pcb/controller/new.kicad_sch").write_text("unregistered")
+        (self.root / "examples/projects/controller/kicad/new.kicad_sch").write_text("unregistered")
         self.assertNotEqual(before, hashes(self.root, self.config.source_roots))
     ####
 

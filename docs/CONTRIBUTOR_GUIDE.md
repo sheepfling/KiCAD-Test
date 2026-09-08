@@ -7,7 +7,8 @@ project identity and branch names to the adopted repository.
 
 ## 01 / Get set up once
 
-Install Git, Python 3.12+ and the repository's approved KiCad build. Clone your repository, keeping the complete project and its adjacent libraries together. Replace `REPOSITORY_URL` and `REVIEW_BRANCH` below with the repository and branch assigned for the work. Confirm the default branch and the example's availability with the maintainer.
+Install Git, Python 3.12+ and the repository's approved KiCad build. Follow the
+[Python environment setup](../README.md#checks) before running checks. Clone your repository, keeping the complete project and its adjacent libraries together. Replace `REPOSITORY_URL` and `REVIEW_BRANCH` below with the repository and branch assigned for the work. Confirm the default branch and the example's availability with the maintainer.
 
 ```sh
 git clone "REPOSITORY_URL" kicad-project
@@ -16,7 +17,7 @@ git fetch origin
 git switch --track "origin/REVIEW_BRANCH"
 ```
 
-For a first rehearsal, open `examples/projects/pcb/controller/controller.kicad_pro`. Do not change an unrecognized library path or discard a load warning to continue. The worked fixture is for learning the workflow; adopted engineering work belongs under `projects/`.
+For a first rehearsal, open `examples/projects/controller/kicad/controller.kicad_pro`. Do not change an unrecognized library path or discard a load warning to continue. The worked fixture is for learning the workflow; adopted engineering work belongs under `projects/`.
 
 ## 02 / Start a change
 
@@ -50,7 +51,7 @@ Save changes in KiCad; inspect `git status` and `git diff`; stage only intended 
 
 ```sh
 git status --short
-git add projects/pcb/<project-id>
+git add projects/<project-id>
 git diff --cached
 git commit -m "Describe the intended engineering change"
 git push -u origin HEAD

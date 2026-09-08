@@ -1,0 +1,25 @@
+{
+  "schema_version": "1",
+  "id": "REPLACE-WITH-PROJECT-ID",
+  "kind": "pcb",
+  "status": "engineering",
+  "assurance_profile": "development",
+  "toolchain_id": "kicad-10.0.0",
+  "project": "kicad/REPLACE-WITH-PROJECT-ID.kicad_pro",
+  "source_roots": [
+    "kicad"
+  ],
+  "required_inputs": [
+    "kicad/REPLACE-WITH-PROJECT-ID.kicad_pro",
+    "kicad/REPLACE-WITH-PROJECT-ID.kicad_sch",
+    "kicad/REPLACE-WITH-PROJECT-ID.kicad_pcb"
+  ],
+  "checks": "tests/contract.json",
+  "component_identity": {
+    "required": true,
+    "part_ids": []
+  },
+  "tags": [],
+  "interfaces": [],
+  "library_ids": []
+}

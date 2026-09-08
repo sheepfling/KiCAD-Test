@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "policies": [
+    {
+      "release_class": "engineering_review",
+      "minimum_assurance": "unknown"
+    },
+    {
+      "release_class": "prototype",
+      "minimum_assurance": "observed"
+    },
+    {
+      "release_class": "pilot",
+      "minimum_assurance": "manufacturer_documented"
+    },
+    {
+      "release_class": "production",
+      "minimum_assurance": "verified"
+    }
+  ]
+}

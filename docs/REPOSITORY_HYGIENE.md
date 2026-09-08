@@ -10,7 +10,7 @@ Windows Explorer or an Office application rather than Git commands.
 temporary files, Office files, media, archives and installers. The repository policy
 also rejects those files if someone uses a force-add command or a graphical client
 overrides the ignore list. A policy failure is reported as either
-`TRACKED_LOCAL_STATE` or `TRACKED_UNMANAGED_ARTIFACT`.
+`TRACKED_LOCAL_STATE`, `TRACKED_UNMANAGED_ARTIFACT` or `TRACKED_GENERATED_OUTPUT`.
 
 Ignored files remain on the contributor's computer; the rule does not delete them.
 Do not use a force-add option to bypass it. If an ignored file appears to be needed,
@@ -32,15 +32,25 @@ audit trail without turning a binary bundle into repository history.
 - KiCad locks, local preferences, autosaves, caches and backup directories.
 - Editor/workspace settings, temporary/recovery files and local test/build output.
 - Word, Excel, PowerPoint, LibreOffice, Apple iWork, OneNote and mail-client files.
-- Images, audio, video, archives, downloaded installers and disk images.
+- Audio, video, archives, downloaded installers and disk images; images outside
+  the authored-documentation location described below.
 
 ## What remains eligible for review
 
-KiCad source, project-local libraries, Python, Markdown, JSON/YAML and generated
-CSV views remain normal tracked source. PDF, STEP/STP and DXF are not globally
+KiCad source, project-local libraries, Python, Markdown and authored JSON/YAML
+records remain tracked source. Reproducible BOMs, review views, native manufacturing
+exports and model-derived schemas are ignored and rejected if force-added. Only
+the README files in `generated/` and `schemas/` are source. Keep other derived files
+under `build/`; their extension alone cannot always distinguish an input from an export. PDF, STEP/STP and DXF are not globally
 ignored because a real mechanical handoff may need a reviewed drawing or model.
 When they are used, give them a stable repository path, declare or link them from
 the relevant project/handoff record, and review their source, revision and hash.
+
+Keep authored PNG, SVG, JPEG, WebP and GIF figures under `docs/assets/`, either at
+the root or within a project/product island. Link them from the relevant document.
+Generated schematic/PCB figures belong in `build/`, including during releases.
+License, notice and copying Markdown files retain their upstream formatting and do
+not need a synthetic heading or navigation link; their local links are still checked.
 
 Before requesting review, close KiCad and inspect `git status --short`. Stage only
 the intended source and evidence records. Unexpected files are a stop condition:

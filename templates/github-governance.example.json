@@ -1,8 +1,8 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "1",
   "branch": "main",
   "required_status_checks": [
-    "REPLACE-WITH-EXACT-CI-CHECK-NAME"
+    "Template acceptance"
   ],
   "authors": [
     "REPLACE-WITH-ENGINEERING-AUTHOR"
@@ -17,5 +17,5 @@
     "REPLACE-WITH-RELEASE-AUTHORITY"
   ],
   "branch_protection_verified_at": "REPLACE-WITH-ISO-8601-TIMESTAMP",
-  "branch_protection_evidence": "REPLACE-WITH-GITHUB-SETTINGS-URL-OR-APPROVED-EVIDENCE-REFERENCE"
+  "branch_protection_evidence": ["REPLACE-WITH-GITHUB-SETTINGS-URL-OR-APPROVED-EVIDENCE-REFERENCE"]
 }

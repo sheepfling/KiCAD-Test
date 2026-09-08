@@ -1,42 +1,23 @@
 # Assurance profiles
 
-The repository supports two deliberately different project classes. A project must
-declare the same `assurance_profile` in its registry entry and validation JSON.
-Changing profile is an engineering decision, not a label change.
+The project manifest owns its assurance profile. Profiles describe the work's maturity;
+production readiness is separate from creating a project folder.
 
-| Profile | Intended use | `not_for_manufacture` | Identity and checks |
-| --- | --- | --- | --- |
-| `training` | Workflow rehearsal and synthetic examples | `true` | Generic parts and documented ignored-check inventory are allowed. |
-| `production` | A real engineering board | `false` | Approved parts and libraries, a mechanical handoff, GitHub governance record, and zero disabled ERC/DRC checks are required. |
+| Profile | Intended use | Requirements |
+| --- | --- | --- |
+| `training` | Synthetic workflow fixtures | Training status, NOT FOR MANUFACTURE, explicit accepted-check inventory |
+| `development` | Real, unreleased engineering work | Engineering status, NOT FOR MANUFACTURE, all applicable ERC/DRC rules enabled; release/governance paperwork is not required yet |
+| `production` | Reviewed production-level controls | Approved identities/libraries, mechanical handoff, governance record and no disabled applicable checks |
 
-## Training profile
+`tools.template new-project` starts in `development`. Native sources and independent
+contracts must still be completed before checks pass. The profile does not permit
+missing dependencies, malformed data or inconsistent electrical expectations.
 
-Training projects remain visibly marked **NOT FOR MANUFACTURE**. Their validation
-configuration records every intentionally ignored ERC/DRC check so a new suppression
-cannot silently pass. Training libraries may contain generic footprints solely for
-instruction; they are never an approved manufacturing source.
+For production, use the production manifest template and add the project's reviewed
+`docs/mechanical.md` and `releases/governance.json` (or explicitly declared local paths).
+Configure real hosted branch controls as described in [GitHub governance](GITHUB_GOVERNANCE.md).
+Passing a production check still does not authorize ordering or manufacturing.
 
-## Production profile
-
-Start from `templates/production-project-config.example.json` and
-`templates/production-project-registry.example.json`. The static gate rejects a
-production project unless every declared part has reviewed manufacturer, MPN,
-datasheet, lifecycle, and `approved` status; every declared shared library is
-approved; and no ERC or DRC check is disabled.
-
-The registry entry must also point to a project-specific mechanical-handoff record
-and a completed GitHub governance record. CI enforces the presence and completeness
-of those records; the team must still configure the corresponding GitHub controls.
-
-Passing a production-profile check is engineering evidence, not authority to order or
-manufacture. The release manifest and designated release authority remain required.
-
-## Release assurance floors
-
-`catalog/release-policies.json` sets the minimum assurance for every retained
-connection, harness and mechanical claim in a release candidate: `unknown` for
-engineering review, `observed` for prototype, `manufacturer_documented` for pilot,
-and `verified` for production. The release-readiness gate enforces this catalog in
-addition to product maturity, blocking items, deviations, artifacts and approvals.
-Raising a release class therefore cannot silently promote an unresolved semantic
-claim; change the claim only with appropriate scoped evidence and review.
+`catalog/release-policies.json` independently sets the assurance floor for retained
+connection, harness and mechanical claims. See [release readiness](RELEASE_READINESS.md)
+for product maturity, evidence, deviations, approvals and artifact hashes.

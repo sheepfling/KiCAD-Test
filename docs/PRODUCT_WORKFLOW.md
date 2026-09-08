@@ -6,7 +6,7 @@ dataset; an adopted repository replaces it with its own reviewed product records
 
 ## Start with the working example
 
-`examples/products/status-indicator-system.json` adds a system layer around the existing
+`examples/products/status-indicator-system/product.json` adds a system layer around the existing
 Arduino and Raspberry Pi status-LED boards. It has a phantom system, two built
 board assemblies, one purchased cable assembly, an enclosure, three variants,
 typed terminals/relationships, and an explicitly unresolved mechanical handoff.
@@ -16,11 +16,11 @@ cable, or a complete physical product. The host GPIOs must not be wired together
 | Fact | Authoritative location | Checked/generated view |
 | --- | --- | --- |
 | Internal part identity, manufacturer, MPN, part revision | `catalog/parts.json` | Product memberships, KiCad `PART_ID`, review BOM |
-| PCB electrical connectivity, symbol reference, footprint, PCB geometry | `projects/pcb/<id>/` | Native netlist, ERC/DRC, reference contract |
-| Schematic-only electrical intent and interface review | `projects/schematic/<id>/` | ERC and schematic SVG; no board/netlist/BOM claim |
-| System blockout/wiring review view | `projects/system-wiring/<id>/` plus typed `products/*.json` relationship records | Complete relation/terminal/harness/mechanical traceability, ERC, and schematic SVG; a diagram line alone is not electrical truth |
-| Harness-interface review view and schedule | `projects/harness-interface/<id>/` plus typed `products/*.json` harness records | Exact electrical conductor/endpoint/harness traceability; generated JSON/CSV schedule for review |
-| Assembly membership and quantity | `products/*.json` | Expanded variant BOM |
+| PCB electrical connectivity, symbol reference, footprint, PCB geometry | `projects/<id>/kicad/` | Native netlist, ERC/DRC, reference contract |
+| Schematic-only electrical intent and interface review | `projects/<id>/kicad/` | ERC and schematic SVG; no board/netlist/BOM claim |
+| System blockout/wiring review view | `projects/<id>/kicad/` plus typed `products/<id>/product.json` relationship records | Complete relation/terminal/harness/mechanical traceability, ERC, and schematic SVG; a diagram line alone is not electrical truth |
+| Harness-interface review view and schedule | `projects/<id>/kicad/` plus typed `products/<id>/product.json` harness records | Exact electrical conductor/endpoint/harness traceability; generated JSON/CSV schedule for review |
+| Assembly membership and quantity | `products/<id>/product.json` | Expanded variant BOM |
 | Harness terminals and construction assumptions | Product terminals/harness records in this v1 example | Electrical connection JSON; future harness renderer consumes these IDs |
 | Functional, protocol and mechanical relationships | Typed product connections | Generated semantic system view; never exported as electrical continuity |
 | Datum, units, drawing reference, unresolved fit questions | Product mechanical record plus controlled drawing | Reference/units checks; physical fit still reviewed by engineers |
@@ -46,7 +46,7 @@ python -B -m tools.ci --kicad --output build/review-001
 ```
 
 The first command runs registry/discovery/path/link/local-state policy, product
-validation, generation drift detection and unit/mutation tests. It explicitly
+validation, fresh isolated generation and unit/mutation tests. It explicitly
 reports `static_only` and KiCad `NOT_RUN`. `--project <id>` reports
 `project_static` and limits local work to the selected board plus product records
 that declare it; it does not run unrelated historical boards or the repository-wide
@@ -54,11 +54,9 @@ Python quality suite. `--kicad` adds actual pinned KiCad checks; use a new evide
 directory every time. KiCad must be closed and exactly match the declared version.
 No command stashes, resets, commits, pushes, merges, buys parts or changes permissions.
 
-`generate` overwrites only the documented generated product views and published
-schema paths. It does
-not edit design source, identities, pins or assurance. Review its diff and rerun
-checks. Renamed/deleted variants leave old output files: the drift gate flags them;
-review and remove those specific obsolete outputs yourself. No automatic cleanup.
+`generate` writes only ignored review views and schema exports. To retain a complete
+current inventory, use a new snapshot directory or download the CI artifact.
+CI checks fresh generation without requiring cached exports in the checkout.
 
 The helper uses Python 3.10+ and Pydantic 2.13.4, pinned in pyproject.toml; the
 hosted matrix targets Python 3.12 on Windows, Linux and macOS. JSON avoids an
@@ -66,7 +64,7 @@ extra YAML loader in the pinned KiCad container. Every repository JSON record is
 decoded once at the file boundary, rejects duplicate keys/non-finite numbers, then
 becomes a strict immutable Pydantic model. Extra fields, wrong types and unsupported
 versions fail before engineering policy runs. Published schemas are generated from
-those Pydantic models and drift-checked. See [the scripting standard](SCRIPTING_STANDARD.md).
+those Pydantic models and exported on demand. See [the scripting standard](SCRIPTING_STANDARD.md).
 
 Ruff 0.16.1 and strict Pyright 1.1.411 are pinned quality gates. Dependency hash
 locking and migration commands remain adoption work, not claims of completed

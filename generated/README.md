@@ -1,12 +1,11 @@
-# Generated review views
+# Shared generated views
 
-Run `python -B -m tools.hardware generate` at the repository root, then review the
-diff and run `python -B -m tools.ci`. Do not hand-edit these BOM/connection files.
-These small deterministic review views are intentionally tracked and drift-checked.
-Large native exports and per-run logs belong in ignored `build/` evidence folders.
-Published input and release schemas live under `schemas/`; their authoritative
-definitions are the Pydantic models in `tools/hwrepo/models.py`. Internal report
-models are validated by Python and are not duplicated as committed schemas.
+`python -B -m tools.hardware generate` exports the shared library inventory here and
+published schemas under `schemas/`. These working exports are ignored; only this
+guidance is tracked. Product variant views are generated inside each product's own
+`build/` folder. The portable gate verifies fresh generation in a temporary directory.
 
-Every BOM here is NOT FOR MANUFACTURE. Electrical connection JSON is a projection
-for adapter/review testing, not a wire harness drawing or KiCad source file.
+Use a new `python -B -m tools.hardware snapshot --output build/review-001` directory
+for a retained review package and `tools.hardware verify-snapshot --output build/review-001`
+to verify its bytes. See the [BOM policy](../docs/BOM_POLICY.md) for the distinction
+between authored inputs, working exports and frozen released outputs.

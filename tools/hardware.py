@@ -1,11 +1,11 @@
-"""Cross-platform product policy and deterministic review artifacts (standard library only)."""
+"""Cross-platform typed product policy and deterministic review artifacts."""
 from __future__ import annotations
 
 import argparse
 import subprocess
 from pathlib import Path
 
-from .hwrepo.generation import drift, generate, snapshot, verify_snapshot
+from .hwrepo.generation import check_generation, generate, snapshot, verify_snapshot
 from .hwrepo.product import check
 
 
@@ -24,7 +24,7 @@ def main() -> int:
             policy = check(root, args.release)
             result: dict[str, object] = policy.model_dump(mode="json")
             if policy.status == "PASS":
-                generation_drift = drift(root)
+                generation_drift = check_generation(root)
                 result["generation_drift"] = generation_drift
                 if generation_drift:
                     result["status"] = "FAIL"

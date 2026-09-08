@@ -6,32 +6,20 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CORE_MODULES = (
-    "tools/hwrepo/product.py",
-    "tools/hwrepo/generation.py",
-    "tools/hwrepo/repository.py",
-    "tools/hwrepo/documentation.py",
-    "tools/hwrepo/release.py",
-    "tools/hwrepo/metrics.py",
-    "tools/hwrepo/sourcing.py",
-    "tools/hwrepo/selection.py",
-    "tools/hwrepo/template.py",
-    "tools/lint_registry.py",
-    "tools/check_toolchain.py",
-    "tools/ci_matrix.py",
-    "tools/check_all.py",
-    "tools/ci.py",
-    "tools/docs_policy.py",
-    "tools/release.py",
-    "tools/metrics.py",
-    "tools/sourcing.py",
-    "tools/template.py",
-)
 JSON_ADAPTERS = {
     "tools/hwrepo/contracts.py",
     "tools/validate.py",
     "tools/fault_probe.py",
 }
+# Discover services automatically so a new module cannot evade architecture checks.
+CORE_MODULES = tuple(
+    sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").rglob("*.py")
+        if path.name not in {"__init__.py", "models.py"}
+        and path.relative_to(ROOT).as_posix() not in JSON_ADAPTERS | {"tools/hardware.py"}
+    )
+)
 
 
 class ScriptArchitectureTests(unittest.TestCase):

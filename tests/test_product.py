@@ -14,12 +14,15 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
+from tests.support import reference_root
 from tools.hwrepo.contracts import read_model, repo_path
+from tools.hwrepo.discovery import load_config
 from tools.hwrepo.generation import (
     bom_rows,
     csv_bytes,
     drift,
     electrical_view,
+    expected_outputs,
     generate,
     harness_schedule,
     harness_schedule_csv_bytes,
@@ -28,7 +31,7 @@ from tools.hwrepo.generation import (
 )
 from tools.hwrepo.models import (
     ProductRecord,
-    ProjectConfig,
+    ProjectManifest,
     ReleaseManifest,
     ReleasePoliciesCatalog,
     TemplateContract,
@@ -49,7 +52,7 @@ from tools.hwrepo.repository import (
 )
 from tools.lint_registry import lint, reviewed_value
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = reference_root()
 
 
 class ProductTests(unittest.TestCase):
@@ -103,9 +106,7 @@ class ProductTests(unittest.TestCase):
         self.assertTrue(result.open_items[self.product.id])
 
     def test_system_wiring_contract_requires_complete_typed_coverage(self):
-        config = read_model(
-            ROOT / "examples/configs/status-indicator-wiring.json", ProjectConfig
-        )
+        config = load_config(ROOT, ROOT / "examples/projects/status-indicator-wiring/project.json")
         check_system_wiring_contract(ROOT, config)
         bad = config.model_copy(
             update={
@@ -118,9 +119,7 @@ class ProductTests(unittest.TestCase):
             check_system_wiring_contract(ROOT, bad)
 
     def test_harness_interface_contract_and_schedule_are_typed(self):
-        config = read_model(
-            ROOT / "examples/configs/status-indicator-harness-interface.json", ProjectConfig
-        )
+        config = load_config(ROOT, ROOT / "examples/projects/status-indicator-harness-interface/project.json")
         check_harness_interface_contract(ROOT, config)
         schedule = harness_schedule(self.product, self.product.variants[0])
         self.assertEqual(schedule.rows[0].harness_id, "H-STATUS")
@@ -326,37 +325,29 @@ class ProductTests(unittest.TestCase):
         root = self.stage()
         generate(root)
         self.assertEqual(drift(root), ())
-        target = root / "generated/product/status-indicator-system/STANDARD.bom.csv"
+        target = root / "examples/products/status-indicator-system/build/STANDARD.bom.csv"
         target.write_text("stale", encoding="utf-8")
         self.assertTrue(any("STANDARD.bom.csv" in issue for issue in drift(root)))
         (target.parent / "OLD.bom.csv").write_text("old", encoding="utf-8")
         self.assertTrue(any("STALE_OUTPUT" in issue for issue in drift(root)))
 
     def test_published_schema_matches_implementation(self):
-        schema = json.loads((ROOT / "schemas/product-v1.schema.json").read_text(encoding="utf-8"))
-        self.assertEqual(schema, ProductRecord.model_json_schema())
-        project_config_schema = json.loads(
-            (ROOT / "schemas/project-config-v1.schema.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        self.assertEqual(project_config_schema, ProjectConfig.model_json_schema())
-        release_schema = json.loads(
-            (ROOT / "schemas/release-manifest-v1.schema.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual(release_schema, ReleaseManifest.model_json_schema())
-        policy_schema = json.loads(
-            (ROOT / "schemas/release-policies-v1.schema.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual(policy_schema, ReleasePoliciesCatalog.model_json_schema())
-        template_schema = json.loads(
-            (ROOT / "schemas/template-contract-v1.schema.json").read_text(encoding="utf-8")
-        )
-        self.assertEqual(template_schema, TemplateContract.model_json_schema())
+        outputs = expected_outputs(ROOT)
+        for name, model in (
+            ("product-v1", ProductRecord),
+            ("project-manifest-v1", ProjectManifest),
+            ("release-manifest-v1", ReleaseManifest),
+            ("release-policies-v1", ReleasePoliciesCatalog),
+            ("template-contract-v1", TemplateContract),
+        ):
+            with self.subTest(schema=name):
+                self.assertEqual(json.loads(outputs[f"schemas/{name}.schema.json"]),
+                                 model.model_json_schema())
 
     def test_unregistered_product_discovered(self):
         root = self.stage()
-        (root / "examples/products/forgotten.json").write_text("{}", encoding="utf-8")
+        (root / "examples/products/forgotten").mkdir()
+        (root / "examples/products/forgotten/product.json").write_text("{}", encoding="utf-8")
         self.assertIn("PRODUCT_DISCOVERY", {issue.code for issue in load_repository(root).issues})
 
     def test_project_scope_checks_only_products_that_declare_the_project(self):
@@ -375,7 +366,7 @@ class ProductTests(unittest.TestCase):
 
     def test_unregistered_project_discovered_even_in_selected_check(self):
         root = self.stage()
-        (root / "examples/projects/pcb/forgotten.kicad_pro").write_text("{}", encoding="utf-8")
+        (root / "examples/projects/forgotten.kicad_pro").write_text("{}", encoding="utf-8")
         self.assertTrue(any("project discovery" in issue for issue in lint(root, ["controller"]).issues))
 
     def test_native_netlist_identity_adapter(self):
@@ -392,6 +383,36 @@ class ProductTests(unittest.TestCase):
         ET.ElementTree(root).write(path)
         with self.assertRaisesRegex(ValueError, "PART_ID mismatch"):
             check_project_netlist(ROOT, "arduino-uno-status-led", path)
+
+    def test_standalone_board_identity_catches_swapped_part_ids_without_a_product(self):
+        repository = self.stage()
+        directory = repository / "projects/standalone-led"
+        shutil.copytree(repository / "examples/projects/arduino-uno-status-led", directory)
+        manifest = json.loads((directory / "project.json").read_text())
+        manifest["id"] = "standalone-led"
+        (directory / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
+        discovery_path = repository / "catalog/projects.json"
+        discovery = json.loads(discovery_path.read_text())
+        discovery["project_roots"] = ["projects"]
+        discovery_path.write_text(json.dumps(discovery), encoding="utf-8")
+        (repository / "catalog/products.json").write_text(
+            json.dumps({"schema_version": "1", "products": []}), encoding="utf-8")
+        root = ET.Element("export")
+        components = ET.SubElement(root, "components")
+        fields_by_ref = {}
+        for member in self.data["assemblies"][1]["members"]:
+            component = ET.SubElement(components, "comp", ref=member["ref"])
+            fields = ET.SubElement(component, "fields")
+            field = ET.SubElement(fields, "field", name="PART_ID")
+            field.text = member["item"]
+            fields_by_ref[member["ref"]] = field
+        path = self.temp / "unit-only-netlist.xml"
+        ET.ElementTree(root).write(path)
+        self.assertEqual(check_project_netlist(repository, "standalone-led", path).status, "PASS")
+        fields_by_ref["D1"].text, fields_by_ref["R1"].text = fields_by_ref["R1"].text, fields_by_ref["D1"].text
+        ET.ElementTree(root).write(path)
+        with self.assertRaisesRegex(ValueError, "PART_ID mismatch"):
+            check_project_netlist(repository, "standalone-led", path)
 
     def test_windows_posix_traversal_and_case_paths(self):
         for value in ("C:/private/model.step", "C:relative.step", "//server/share", "/tmp/file", "../escape", "a/../b", "a\\b", "a//b", "NUL.txt", "a./file", "a?b", "a|b", "."):
@@ -422,16 +443,16 @@ class ProductTests(unittest.TestCase):
 
     def test_tracked_local_state_classification(self):
         for value in (
-            "examples/projects/pcb/a.kicad_prl",
-            "examples/projects/pcb/~a.lck",
-            "examples/projects/pcb/a-backups/a.zip",
+            "examples/projects/a.kicad_prl",
+            "examples/projects/~a.lck",
+            "examples/projects/a-backups/a.zip",
             "build/bom.csv",
             "tools/__pycache__/a.pyc",
             "Desktop.ini",
             ".vscode/settings.json",
         ):
             self.assertTrue(ephemeral(value), value)
-        for value in ("examples/projects/pcb/a.kicad_pro", "libraries/a.kicad_sym", "generated/product/a/STANDARD.bom.csv"):
+        for value in ("examples/projects/a.kicad_pro", "libraries/a.kicad_sym", "generated/product/a/STANDARD.bom.csv"):
             self.assertFalse(ephemeral(value), value)
 
     def test_unmanaged_artifacts_are_rejected_but_engineering_records_remain_available(self):
@@ -447,7 +468,6 @@ class ProductTests(unittest.TestCase):
             "docs/released-drawing.pdf",
             "mechanical/enclosure.step",
             "mechanical/outline.dxf",
-            "generated/product/a/STANDARD.bom.csv",
             "catalog/parts.json",
         ):
             self.assertFalse(unmanaged_artifact(value), value)
@@ -477,6 +497,8 @@ class ProductTests(unittest.TestCase):
             "meeting/demo.mp4",
             "downloads/vendor.zip",
             "install/kicad.msi",
+            "generated/product/a/STANDARD.bom.csv",
+            "schemas/product-v1.schema.json",
         ):
             with self.subTest(ignored=ignored):
                 result = subprocess.run(
@@ -486,11 +508,10 @@ class ProductTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0)
         for source in (
-            "examples/projects/pcb/controller/controller.kicad_pro",
+            "examples/projects/controller/kicad/controller.kicad_pro",
             "docs/released-drawing.pdf",
             "mechanical/enclosure.step",
             "mechanical/outline.dxf",
-            "generated/product/a/STANDARD.bom.csv",
         ):
             with self.subTest(source=source):
                 result = subprocess.run(
@@ -508,7 +529,7 @@ class ProductTests(unittest.TestCase):
         root = self.stage()
         output = root / "build/review"
         def fake_git(argv, **kwargs):
-            return subprocess.CompletedProcess(argv, 0, "a" * 40 if "rev-parse" in argv else " M examples/products/status-indicator-system.json\n", "")
+            return subprocess.CompletedProcess(argv, 0, "a" * 40 if "rev-parse" in argv else " M examples/products/status-indicator-system/product.json\n", "")
         with patch("tools.hwrepo.generation.subprocess.run", side_effect=fake_git):
             manifest = snapshot(root, output)
             self.assertFalse(manifest.working_tree_clean)
@@ -517,14 +538,14 @@ class ProductTests(unittest.TestCase):
             self.assertEqual(verify_snapshot(output).status, "PASS")
             with self.assertRaises(FileExistsError):
                 snapshot(root, output)
-        (output / "generated/product/status-indicator-system/STANDARD.bom.csv").write_text("tampered", encoding="utf-8")
+        (output / "examples/products/status-indicator-system/build/STANDARD.bom.csv").write_text("tampered", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "hash mismatch"):
             verify_snapshot(output)
 
     def test_generation_does_not_write_invalid_product(self):
         root = self.stage()
         self.data["connections"][0]["to"] = "missing"
-        (root / "examples/products/status-indicator-system.json").write_text(json.dumps(self.data), encoding="utf-8")
+        (root / "examples/products/status-indicator-system/product.json").write_text(json.dumps(self.data), encoding="utf-8")
         with self.assertRaises(ValueError):
             generate(root)
         self.assertFalse((root / "generated").exists())
@@ -533,13 +554,13 @@ class ProductTests(unittest.TestCase):
         from tools.validate import validate
         root = self.stage()
         self.data["connections"][0]["to"] = "missing"
-        (root / "examples/products/status-indicator-system.json").write_text(json.dumps(self.data), encoding="utf-8")
+        (root / "examples/products/status-indicator-system/product.json").write_text(json.dumps(self.data), encoding="utf-8")
         with patch("tools.validate.execute") as execute:
             result = validate(
                 root,
                 root / "output",
                 "must-not-run",
-                Path("examples/configs/arduino-uno-status-led.json"),
+                Path("examples/projects/arduino-uno-status-led/project.json"),
             )
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.checks["product_policy"].status, "FAIL")

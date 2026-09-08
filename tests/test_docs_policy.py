@@ -46,6 +46,16 @@ class DocumentationPolicyTests(unittest.TestCase):
         self.assertEqual(report.status, "PASS")
         self.assertEqual(report.documents, 2)
 
+    def test_legal_text_keeps_upstream_format_but_unsafe_links_still_fail(self) -> None:
+        self.write_policy()
+        self.write("README.md", "# Root\n")
+        original = "Copyright fixture\n\tPreserve this upstream layout.  \n"
+        self.write("vendor/LICENSE.md", original)
+        self.assertEqual(self.codes(), set())
+        self.assertEqual((self.root / "vendor/LICENSE.md").read_text(), original)
+        self.write("vendor/LICENSE.md", original + "[Missing](missing.md)\n")
+        self.assertEqual(self.codes(), {"DOC102"})
+
     def test_case_mismatch_and_missing_fragment_fail(self) -> None:
         self.write_policy()
         self.write(
@@ -55,6 +65,33 @@ class DocumentationPolicyTests(unittest.TestCase):
         self.write("docs/guide.md", "# Guide\n")
 
         self.assertEqual(self.codes(), {"DOC101", "DOC103", "DOC105"})
+
+    def test_project_readme_is_discovered_without_a_central_link_edit(self) -> None:
+        self.write_policy()
+        self.write("README.md", "# Repository\n")
+        self.write("projects/battery-board/README.md", "# Battery board\n\n[Design](docs/design.md)\n")
+        self.write("projects/battery-board/docs/design.md", "# Design notes\n")
+        self.assertEqual(self.codes(), set())
+        self.write("projects/battery-board/docs/forgotten.md", "# Forgotten notes\n")
+        self.assertEqual(self.codes(), {"DOC105"})
+
+    def test_parent_relative_links_within_repository_are_valid(self) -> None:
+        self.write_policy()
+        self.write("README.md", "# Root\n\n[Guide](docs/guide.md)\n")
+        self.write("docs/guide.md", "# Guide\n\n[Home](../README.md)\n")
+        self.assertEqual(self.codes(), set())
+        self.write("docs/guide.md", "# Guide\n\n[Escape](../../outside.md)\n")
+        self.assertEqual(self.codes(), {"DOC101"})
+
+    def test_encoded_and_angle_bracket_spaces_resolve_without_allowing_encoded_escape(self) -> None:
+        self.write_policy()
+        self.write("docs/board notes.md", "# Board notes\n")
+        self.write("docs/native #1.kicad_pro", "{}")
+        for link in ('docs/board%20notes.md', '<docs/board notes.md> "Title"'):
+            self.write("README.md", f"# Root\n\n[Board]({link})\n[Native](docs/native%20%231.kicad_pro)\n")
+            self.assertEqual(self.codes(), set())
+        self.write("docs/board notes.md", "# Board notes\n\n[Escape](%2E%2E/%2E%2E/outside.md)\n")
+        self.assertEqual(self.codes(), {"DOC101"})
 
     def test_path_escape_and_orphan_fail(self) -> None:
         self.write_policy()

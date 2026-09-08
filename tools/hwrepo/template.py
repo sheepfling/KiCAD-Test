@@ -18,11 +18,10 @@ from .models import (
     TemplateUpgradePlan,
     TemplateUpgradesCatalog,
 )
-from .repository import ephemeral
+from .repository import ephemeral, generated_artifact
 
 CONTRACT_PATH = "templates/template-contract.json"
 ADOPTION_RECORD_PATH = "template-adoption.json"
-EXCLUDED_COPY_NAMES = frozenset({".git", ".evidence", "build"})
 
 
 def finding(code: str, location: str, message: str) -> PolicyIssue:
@@ -75,15 +74,6 @@ def working_tree_is_clean(root: Path) -> bool:
         check=True,
     )
     return not result.stdout
-
-
-def ignored_copy_names(_directory: str, names: list[str]) -> set[str]:
-    """Exclude source-control metadata and known local state from a bootstrap copy."""
-    return {
-        name
-        for name in names
-        if name in EXCLUDED_COPY_NAMES or ephemeral(name)
-    }
 
 
 def bootstrap(root: Path, destination: Path, project_id: str) -> TemplateBootstrapReport:
@@ -145,14 +135,26 @@ def bootstrap(root: Path, destination: Path, project_id: str) -> TemplateBootstr
     staging_parent = Path(tempfile.mkdtemp(prefix="kicad-template-bootstrap-", dir=resolved_destination.parent))
     staging = staging_parent / resolved_destination.name
     try:
-        shutil.copytree(resolved_root, staging, ignore=ignored_copy_names)
+        tracked = subprocess.run(
+            ["git", "-c", f"safe.directory={resolved_root.as_posix()}",
+             "-C", str(resolved_root), "ls-files", "-z"],
+            capture_output=True, text=True, check=True,
+        )
+        staging.mkdir()
+        for name in tracked.stdout.split("\0"):
+            if not name or ephemeral(name) or generated_artifact(name):
+                continue
+            source = repo_path(resolved_root, name)
+            target = repo_path(staging, name)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
         write_model(
             staging / ADOPTION_RECORD_PATH,
             adoption,
         )
         os.replace(staging, resolved_destination)
         staging_parent.rmdir()
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
         shutil.rmtree(staging_parent, ignore_errors=True)
         return TemplateBootstrapReport(
             template_version=report.template_version,
@@ -213,13 +215,16 @@ def plan_upgrade(root: Path, target_version: str) -> TemplateUpgradePlan:
         )
     current = report.template_version
     try:
+        adoption_path = repo_path(resolved_root, ADOPTION_RECORD_PATH)
+        if adoption_path.is_file():
+            current = read_model(adoption_path, TemplateAdoptionRecord).template_version
         if version_key(target_version) < version_key(current):
             issues.append(finding("TEMPLATE_UPGRADE", target_version, "Downgrades are not supported"))
         elif target_version == current:
             return TemplateUpgradePlan(
                 current_version=current,
                 target_version=target_version,
-                status="PASS",
+                status="FAIL" if issues else "PASS",
                 upgrades=(),
                 issues=tuple(issues),
             )

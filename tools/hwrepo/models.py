@@ -27,6 +27,7 @@ Digest = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
 GitCommit = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{40}$")]
 RepositoryPath = Annotated[str, StringConstraints(min_length=1)]
 NonEmptyText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+NetName = Annotated[str, StringConstraints(min_length=1)]
 TemplateVersion = Annotated[str, StringConstraints(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")]
 PositiveCount = Annotated[int, Field(gt=0)]
 NonNegativeCount = Annotated[int, Field(ge=0)]
@@ -163,7 +164,7 @@ class ProjectKind(str, Enum):
     @property
     def design_root(self) -> str:
         """Return the canonical root for adopted-repository project sources."""
-        return f"projects/{self.domain_name}"
+        return "projects"
 
     @property
     def example_root(self) -> str:
@@ -180,7 +181,7 @@ class ProjectRecord(StrictModel):
     id: Identifier
     kind: ProjectKind
     status: Literal["training_fixture", "engineering", "release_candidate"]
-    assurance_profile: Literal["training", "production"]
+    assurance_profile: Literal["training", "development", "production"]
     config: RepositoryPath
     project: RepositoryPath
     component_identity: ComponentIdentity
@@ -207,7 +208,8 @@ class ProjectRegistry(StrictModel):
 
 class ComponentContract(StrictModel):
     value: NonEmptyText
-    footprint: NonEmptyText
+    footprint: str
+    part_id: Identifier | None = None
 
 
 class IgnoredChecks(StrictModel):
@@ -220,7 +222,7 @@ class PcbValidationContract(StrictModel):
 
     kind: Literal[ProjectKind.PCB]
     components: Mapping[Identifier, ComponentContract]
-    nets: Mapping[Identifier, tuple[Reference, ...]]
+    nets: Mapping[NetName, tuple[Reference, ...]]
     expected_ignored_checks: IgnoredChecks
 
 
@@ -228,6 +230,8 @@ class SchematicValidationContract(StrictModel):
     """Native checks for a schematic-only deliverable with no manufactured PCB."""
 
     kind: Literal[ProjectKind.SCHEMATIC]
+    components: Mapping[Identifier, ComponentContract] = Field(default_factory=dict)
+    nets: Mapping[NetName, tuple[Reference, ...]] = Field(default_factory=dict)
     expected_ignored_checks: IgnoredChecks
 
 
@@ -290,9 +294,10 @@ ProjectValidationContract = Annotated[
 class ProjectConfig(StrictModel):
     schema_version: NonEmptyText
     kind: ProjectKind
-    assurance_profile: Literal["training", "production"]
+    assurance_profile: Literal["training", "development", "production"]
     not_for_manufacture: bool
     project_id: Identifier
+    component_identity: ComponentIdentity
     toolchain_id: Identifier
     kicad_version: NonEmptyText
     image: NonEmptyText
@@ -306,6 +311,78 @@ class ProjectConfig(StrictModel):
         if self.kind is not self.validation.kind:
             raise ValueError("project kind must match validation contract kind")
         return self
+
+
+class ProjectDiscovery(StrictModel):
+    """Repository-wide dependencies and roots; project records live with boards."""
+
+    schema_version: Literal["1"] = "1"
+    catalogs: CatalogPaths
+    project_roots: tuple[RepositoryPath, ...]
+
+    @model_validator(mode="after")
+    def live_projects_are_always_discovered(self) -> ProjectDiscovery:
+        if "projects" not in self.project_roots or len(set(self.project_roots)) != len(self.project_roots):
+            raise ValueError("Discovery must include projects exactly once; examples/projects is optional")
+        return self
+
+
+class ReleaseExportSettings(StrictModel):
+    """Manufacturer-facing settings reviewed with each board's source."""
+
+    gerber_layers: Annotated[tuple[NonEmptyText, ...], Field(min_length=1)]
+    coordinate_origin: Literal["absolute", "plot"] = "absolute"
+    position_units: Literal["mm", "in"] = "mm"
+
+
+class ProjectManifest(StrictModel):
+    """Authored project-local inputs. Shared paths are explicitly repository-relative."""
+
+    schema_version: Literal["1"] = "1"
+    id: Identifier
+    kind: ProjectKind
+    status: Literal["training_fixture", "engineering", "release_candidate"]
+    assurance_profile: Literal["training", "development", "production"]
+    toolchain_id: Identifier
+    project: RepositoryPath
+    source_roots: tuple[RepositoryPath, ...]
+    required_inputs: tuple[RepositoryPath, ...]
+    checks: RepositoryPath = "tests/contract.json"
+    shared_source_roots: tuple[RepositoryPath, ...] = ()
+    shared_inputs: tuple[RepositoryPath, ...] = ()
+    component_identity: ComponentIdentity
+    tags: tuple[Identifier, ...] = ()
+    interfaces: tuple[Identifier, ...] = ()
+    library_ids: tuple[Identifier, ...] = ()
+    mechanical_handoff: RepositoryPath | None = None
+    governance_record: RepositoryPath | None = None
+    release_exports: ReleaseExportSettings | None = None
+
+
+class ProjectTestContract(StrictModel):
+    schema_version: Literal["1"] = "1"
+    validation: ProjectValidationContract
+
+
+class ProjectScaffoldReport(StrictModel):
+    status: Literal["PASS", "FAIL"]
+    directory: str
+    issues: tuple[str, ...] = ()
+    next_step: str = "Create the native KiCad design, then complete the test contract and run tools.ci."
+
+
+class ProjectImportReport(StrictModel):
+    """Import receipt; copying source is separate from accepting its engineering checks."""
+
+    status: Literal["PASS", "FAIL"]
+    directory: str
+    source_project: str
+    dry_run: bool
+    copied_sha256: Mapping[RepositoryPath, Digest] = Field(default_factory=dict)
+    excluded: Mapping[RepositoryPath, str] = Field(default_factory=dict)
+    issues: tuple[str, ...] = ()
+    review_required: Literal[True] = True
+    next_step: str = "Review dependencies, populate independent test expectations, then run tools.ci. Import does not approve the design."
 
 
 class ProductIndexEntry(StrictModel):
@@ -635,10 +712,30 @@ class ReleaseDeviation(StrictModel):
 
 class ReleaseApproval(StrictModel):
     electrical_reviewer: NonEmptyText
-    mechanical_reviewer: NonEmptyText
+    mechanical_reviewer: NonEmptyText | None = None
     integrator: NonEmptyText
+    release_authority: NonEmptyText | None = None
     approved_at: date
     evidence: tuple[Identifier, ...]
+
+
+class SourceState(StrictModel):
+    """Observed Git identity and source bytes, never a caller-supplied assertion."""
+
+    commit: GitCommit | None = None
+    clean: bool = False
+    files_sha256: Mapping[RepositoryPath, Digest] = Field(default_factory=dict)
+
+
+class EvidenceFile(StrictModel):
+    path: RepositoryPath
+    sha256: Digest
+
+
+class ReleaseEvidence(StrictModel):
+    portable: EvidenceFile
+    native: Mapping[Identifier, EvidenceFile]
+    exports: Mapping[Identifier, EvidenceFile] = Field(default_factory=dict)
 
 
 class ReleaseManifest(StrictModel):
@@ -649,10 +746,12 @@ class ReleaseManifest(StrictModel):
     source_commit: GitCommit
     source_tag: NonEmptyText | None = None
     toolchain_id: Identifier
-    variants: tuple[ReleaseVariant, ...]
+    projects: tuple[Identifier, ...] = ()
+    variants: tuple[ReleaseVariant, ...] = ()
     libraries: tuple[ReleaseLibrary, ...]
     interfaces: tuple[ReleaseInterface, ...]
-    checks: Mapping[Identifier, Literal["PASS", "NOT_APPLICABLE"]]
+    checks: Mapping[Identifier, Literal["PASS", "NOT_APPLICABLE"]] = Field(default_factory=dict)
+    evidence: ReleaseEvidence | None = None
     artifacts: tuple[ReleaseArtifact, ...]
     deviations: tuple[ReleaseDeviation, ...] = ()
     approval: ReleaseApproval | None = None
@@ -680,6 +779,7 @@ class GenerationReport(StrictModel):
 
 
 class GovernanceRecord(StrictModel):
+    schema_version: Literal["1"] = "1"
     branch: NonEmptyText
     required_status_checks: tuple[NonEmptyText, ...]
     authors: tuple[NonEmptyText, ...]
@@ -688,6 +788,16 @@ class GovernanceRecord(StrictModel):
     release_authorities: tuple[NonEmptyText, ...]
     branch_protection_evidence: tuple[NonEmptyText, ...]
     branch_protection_verified_at: NonEmptyText
+
+
+class TeamPolicy(StrictModel):
+    """Reviewed team choices, kept separately from project-specific assignments."""
+
+    schema_version: Literal["1"] = "1"
+    minimum_actors: Annotated[int, Field(ge=1)] = 2
+    independent_review: bool = True
+    required_status_checks: Annotated[tuple[NonEmptyText, ...], Field(min_length=1)] = ("Template acceptance",)
+    rationale: NonEmptyText
 
 
 class GovernanceLintReport(StrictModel):
@@ -711,6 +821,7 @@ class MatrixEntry(StrictModel):
     project: Identifier
     image: NonEmptyText
     kicad_version: NonEmptyText
+    fault_probes: bool = False
 
 
 class CiMatrix(StrictModel):
@@ -724,6 +835,32 @@ class CommandEvidence(StrictModel):
     stdout: str = ""
     stderr: str = ""
     error: str | None = None
+
+
+class ReleaseExportReport(StrictModel):
+    schema_version: Literal["1"] = "1"
+    project_id: Identifier
+    source: SourceState
+    toolchain_id: Identifier
+    settings: ReleaseExportSettings
+    commands: Mapping[Identifier, CommandEvidence]
+    artifacts_sha256: Mapping[RepositoryPath, Digest]
+    status: Literal["PASS", "FAIL"]
+
+
+class ReleasePackageIndex(StrictModel):
+    schema_version: Literal["1"] = "1"
+    source_commit: GitCommit
+    manifest: RepositoryPath
+    files_sha256: Mapping[RepositoryPath, Digest]
+
+
+class ReleasePackageReport(StrictModel):
+    status: Literal["PASS", "FAIL"]
+    source_commit: GitCommit
+    package: str
+    manifest: RepositoryPath
+    build_authorized: Literal[False] = False
 
 
 class DocumentationException(StrictModel):
@@ -787,7 +924,14 @@ class TemplateAdoptionRecord(StrictModel):
     schema_version: Literal["1"] = "1"
     template_version: TemplateVersion
     project_id: Identifier
-    status: Literal["needs_adoption"] = "needs_adoption"
+    status: Literal["needs_adoption", "initialized"] = "needs_adoption"
+
+
+class TemplateInitReport(StrictModel):
+    status: Literal["PASS", "FAIL"]
+    project_id: str
+    changed: tuple[RepositoryPath, ...] = ()
+    issues: tuple[PolicyIssue, ...] = ()
 
 
 class TemplatePreflightReport(StrictModel):
@@ -890,7 +1034,7 @@ class CheckEvidence(StrictModel):
 
 class NetlistContract(StrictModel):
     components: Mapping[Identifier, ComponentContract]
-    nets: Mapping[Identifier, tuple[Reference, ...]]
+    nets: Mapping[NetName, tuple[Reference, ...]]
 
 
 class ValidationSummary(StrictModel):
@@ -898,8 +1042,10 @@ class ValidationSummary(StrictModel):
     lane: Literal["KICAD_CLI"] = "KICAD_CLI"
     timestamp_utc: NonEmptyText
     checked_commit: NonEmptyText
+    source: SourceState | None = None
+    project_id: Identifier | None = None
     pr_head_commit: str | None = None
-    assurance_profile: Literal["training", "production"] | None = None
+    assurance_profile: Literal["training", "development", "production"] | None = None
     not_for_manufacture: bool | None = None
     project_kind: ProjectKind | None = None
     checks: Mapping[Identifier, CheckEvidence]
@@ -917,6 +1063,7 @@ class CheckAllSummary(StrictModel):
     schema_version: Literal["1"] = "1"
     lane: Literal["KICAD_CLI_ALL_PROJECTS"] = "KICAD_CLI_ALL_PROJECTS"
     governance: GovernanceLintReport
+    repository: RepositoryPolicyReport
     product_policy: ProductPolicyReport
     projects: tuple[ProjectCheckSummary, ...]
     status: Literal["PASS", "FAIL"]
@@ -952,8 +1099,14 @@ class FailedCheck(StrictModel):
     error: NonEmptyText
 
 
+class ProjectTestsReport(StrictModel):
+    status: Literal["PASS", "FAIL"]
+    commands: Mapping[Identifier, CommandEvidence]
+
+
 class StaticPipelineReport(StrictModel):
     status: Literal["PASS", "FAIL"]
+    source: SourceState | None = None
     scope: Literal["static_only"] = "static_only"
     build_authorized: Literal[False] = False
     registry: GovernanceLintReport
@@ -964,6 +1117,7 @@ class StaticPipelineReport(StrictModel):
     ruff: CommandEvidence
     pyright: CommandEvidence
     unit_tests: CommandEvidence
+    project_tests: ProjectTestsReport
 
 
 class ProjectStaticPipelineReport(StrictModel):
@@ -977,3 +1131,4 @@ class ProjectStaticPipelineReport(StrictModel):
     repository: RepositoryPolicyReport
     product: ProductPolicyReport
     generation: GenerationReport
+    project_tests: ProjectTestsReport

@@ -5,14 +5,15 @@ import argparse
 import sys
 from pathlib import Path
 
-from .hwrepo.contracts import read_model, write_model
+from .hwrepo.contracts import write_model
+from .hwrepo.discovery import load_registry
 from .hwrepo.models import (
     CheckAllSummary,
     ProjectCheckSummary,
     ProjectRecord,
-    ProjectRegistry,
 )
 from .hwrepo.product import check as check_product
+from .hwrepo.repository import check_repository
 from .lint_registry import lint
 from .validate import validate
 
@@ -20,7 +21,7 @@ from .validate import validate
 def selected_projects(
     root: Path, requested: list[str] | None
 ) -> tuple[ProjectRecord, ...]:
-    registry = read_model(root / "catalog/projects.json", ProjectRegistry)
+    registry = load_registry(root)
     available = {project.id: project for project in registry.projects}
     identifiers = tuple(available) if requested is None else tuple(requested)
     unknown = [identifier for identifier in identifiers if identifier not in available]
@@ -38,9 +39,10 @@ def check_all(
     output.mkdir(parents=True)
     governance = lint(root, requested)
     selected = None if requested is None else tuple(requested)
+    repository = check_repository(root, selected)
     product_policy = check_product(root, selected_project_ids=selected)
     rows: list[ProjectCheckSummary] = []
-    if governance.status == "PASS" and product_policy.status == "PASS":
+    if governance.status == "PASS" and repository.status == "PASS" and product_policy.status == "PASS":
         for project in selected_projects(root, requested):
             report = validate(root, output / project.id, cli, Path(project.config))
             rows.append(
@@ -52,6 +54,7 @@ def check_all(
             )
     result = CheckAllSummary(
         governance=governance,
+        repository=repository,
         product_policy=product_policy,
         projects=tuple(rows),
         status=(

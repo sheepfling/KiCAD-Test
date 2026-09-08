@@ -1,96 +1,125 @@
-# KiCad + Git team repository template
+# KiCad team workflow template
 
-This repository is the reference implementation of a reusable, platform-agnostic
-KiCad/Git workflow. It is organized so a new team can understand the process,
-copy the templates, and run the same checks on PCB, schematic, system-wiring, and
-harness-interface work.
+A forkable repository for independently developed boards with shared automation.
+Each project keeps its KiCad source, documentation, test expectations and release
+records together. A battery board and a PWM board can be checked and released
+independently; an optional product describes how they work together.
 
-Read the [authority model](docs/AUTHORITY_MODEL.md) before copying anything. It
-labels what is normative process, what becomes adopted project source, what is a
-copyable template, and what is safe to delete after rehearsal.
+```text
+projects/<id>/
+  README.md
+  project.json
+  kicad/
+  docs/
+  tests/contract.json
+  tests/test_*.py       # optional custom checks
+  firmware/            # optional companion source
+  releases/            # optional authored release records and frozen BOMs
+  build/               # ignored exports and test evidence
+```
 
-The authoritative process is deliberately separate from the worked examples:
+Use [the folder standard](docs/REPOSITORY_STRUCTURE.md) for ownership and boundaries,
+[Start here](docs/START_HERE.md) for adoption, and [the contributor guide](docs/CONTRIBUTOR_GUIDE.md)
+for branches, review and handoff. The [worked examples](examples/README.md) use this
+same layout and provide regression fixtures for the shared tools.
+See also the [quick reference](docs/QUICK_REFERENCE.md),
+[mechanical handoff](docs/MECHANICAL_HANDOFF.md), [metrics](docs/METRICS.md)
+and [Markdown policy](docs/MARKDOWN_POLICY.md).
 
-| Area | Purpose |
-| --- | --- |
-| `docs/` | Authoritative workflow, review, sourcing, release, and collaboration guidance |
-| `templates/` | Copyable project, catalog, handoff, and governance records |
-| `tools/` | The executable policy, generation, and validation services |
-| `tests/` | Unit and policy tests that define expected behavior |
-| `catalog/`, [`configs/`](configs/README.md), [`products/`](products/README.md), `schemas/` | Controlled registries, adopted-project check contracts, cross-project product records, and published input/release contracts |
-| `generated/` | Deterministic review views produced by the tooling |
-| [`projects/`](projects/README.md) | Canonical source root for projects created from this template |
-| [`examples/`](examples/README.md) | A complete reference system showing how the process fits together |
+## First-run setup
 
-Start with [Start here](docs/START_HERE.md). The examples are intentionally
-small so the workflow is easy to inspect; their organization and checks are the
-lesson, not their component choices or product claims.
+Install Git and Python 3.12+ (`python3` may be the executable name on macOS/Linux).
+From the repository root:
 
-## Use this template deliberately
+```sh
+python -m venv .venv
+# macOS/Linux
+source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -e '.[dev]'
+# Once in your fork, before adding designs:
+python -B -m tools.template init --project-id my-hardware
+python -B -m tools.ci
+```
 
-1. Read [Start here](docs/START_HERE.md), then set the adoption fields before editing a real board.
-2. Use the [reference examples](examples/README.md) to rehearse the workflow. For adopted work, choose the deliverable kind first: projects live under `projects/pcb/`, `projects/schematic/`, `projects/system-wiring/`, or `projects/harness-interface/`. Each has a different required source inventory and native-check profile.
-3. Put reusable assets under `libraries/` only after declaring them in the source scope and release metadata. See [Library policy](docs/LIBRARIES.md).
-4. Record the exact KiCad version, project/library revisions, and evidence before tagging a release. See [Versioning and releases](docs/VERSIONING.md).
-5. Promote a real board only through the production assurance profile and complete [GitHub governance](docs/GITHUB_GOVERNANCE.md).
-6. Bootstrap a clean template copy or plan a template update with the typed [template adoption guide](docs/TEMPLATE_ADOPTION.md).
+If activation is unavailable, invoke `.venv/bin/python` or
+`.venv\Scripts\python.exe` directly. Portable checks do not need KiCad after
+Python dependencies are installed. Native checks require the exact version selected
+by the project's `toolchain_id` in `catalog/toolchains.json`.
+Initialization keeps examples as independent test fixtures, clears their live
+catalog entries, and names your repository. Repeating it preserves your work.
+An empty fork passes scaffold checks and reports that no hardware was validated.
 
-The approved KiCad build is recorded in `catalog/toolchains.json`; check the exact
-project-selected pin before opening a project. The template currently supports
-catalogued KiCad 10.0.0 and 10.0.5 pins. Toolchain migration is a deliberate
-workflow change documented in [Project workflow](docs/PROJECT_WORKFLOW.md).
+## Start a board
 
-## Included guidance
+```sh
+python -B -m tools.template new-project --project-id battery-board --kind pcb --toolchain kicad-10.0.5
+python -B -m tools.template new-project --project-id pwm-board --kind pcb --toolchain kicad-10.0.5
+```
 
-- [Project workflow](docs/PROJECT_WORKFLOW.md): branches, edits, review, and safe recovery.
-- [Libraries](docs/LIBRARIES.md): project-local versus shared assets and path rules.
-- [Mechanical handoff](docs/MECHANICAL_HANDOFF.md): interface details a board project must publish for mechanical work.
-- [Versioning and releases](docs/VERSIONING.md): toolchain pins, tags, release records, and migrations.
-- [Release readiness](docs/RELEASE_READINESS.md): typed candidate, deviation, artifact, toolchain and tag checks without auto-release authority.
-- [Checks and CI](docs/CHECKS_AND_CI.md): individual-project and repository-wide gates.
-- [Assurance profiles](docs/ASSURANCE_PROFILES.md): the enforced boundary between training and production projects.
-- [GitHub governance](docs/GITHUB_GOVERNANCE.md): required branch protection, roles, and evidence for a production project.
-- [Identity and sourcing](docs/IDENTITY_AND_SOURCING.md): controlled part, pinout, supplier, and price records.
-- [Product workflow](docs/PRODUCT_WORKFLOW.md): authority boundaries, assembly/variant BOMs, harness semantics, evidence and mechanical collaboration.
-- [Project kinds](docs/PROJECT_KINDS.md): when a deliverable is a PCB, schematic-only sheet, or system-wiring review view—and the checks each type receives.
-- [Acceptance coverage](docs/TEMPLATE_ACCEPTANCE.md): executable checks, limits and remaining adoption work.
-- [Plan completion matrix](docs/PLAN_COMPLETION_MATRIX.md): requirement-by-requirement implementation and external-acceptance boundary for the generic packet.
-- [Scripting standard](docs/SCRIPTING_STANDARD.md): typed Pydantic contracts, adapter boundaries and test rules for Python tooling.
-- [Template adoption](docs/TEMPLATE_ADOPTION.md): safe local bootstrap and review-only migration planning.
-- [Template metrics](docs/METRICS.md): read-only current-policy, stale-evidence and deviation counts.
-- [Markdown documentation policy](docs/MARKDOWN_POLICY.md): deterministic layout, local-link, anchor, portability and documentation-graph rules.
-- [Repository hygiene](docs/REPOSITORY_HYGIENE.md): two-layer protection against temporary, Office, media and downloaded files.
-- [Contributor guide](docs/CONTRIBUTOR_GUIDE.md): the normal assignment, edit, review, and handoff workflow.
-- [Quick reference](docs/QUICK_REFERENCE.md): the short version for day-to-day work.
-- [Arduino Uno R3 example](docs/examples/arduino-uno-status-led.md): a D13/LED_BUILTIN interface contract, KiCad project, and sketch.
-- [Raspberry Pi example](docs/examples/raspberry-pi-status-led.md): a GPIO17 interface contract, KiCad project, and GPIO Zero script.
+The command creates the folder, manifest, notes and test-contract skeleton. Create
+and save the actual KiCad design in its `kicad/` folder, then complete its source
+inventory and electrical expectations. An incomplete scaffold intentionally fails
+checks. It never copies a training circuit into your design or overwrites a project.
+Discovery automatically adds each `projects/*/project.json` to CI.
 
-The contributor guide and quick reference are workflow guidance, not approval records.
+For an existing design, use the [import workflow](docs/IMPORT_WORKFLOW.md).
+The [demo rehearsal](docs/DEMO_REHEARSAL.md) records real import and CI evidence.
 
 ## Checks
 
-On each pull request, Actions runs checker unit tests, real KiCad ERC/DRC with parity and zone refill, a netlist contract, SVG review exports, source-integrity checks, and deliberate defect probes. The final job rejects unsuccessful prerequisite jobs. The selected reference configuration is under `examples/configs/`; download the `kicad-review-*` artifact for review evidence.
-
-From the repository root, with Python 3.12+ and the exact KiCad version selected by
-the project on PATH:
-
 ```sh
+# Selected board, its dependencies and applicable board/product tests
+python -B -m tools.ci --project battery-board
+# Shared policy and tools, every project, all unit and project tests
 python -B -m tools.ci
-# Fast local policy check for one project and the products that declare it
-python -B -m tools.ci --project arduino-uno-status-led
-# Select a group by metadata, or omit legacy fixtures
-python -B -m tools.ci --tag status-led
-python -B -m tools.ci --exclude-tag legacy
-python -B -m tools.ci --kicad --output build/complete-review-001
-python -m unittest discover -s tests -v
-python -m tools.check_toolchain --toolchain kicad-10.0.0  # controller baseline
-python -m tools.check_toolchain --toolchain kicad-10.0.5  # LED/reference fixtures
-python -m tools.lint_registry --all
-python -m tools.lint_registry --project controller
-python -m tools.lint_registry --project arduino-uno-status-led
-python -m tools.validate --output build/review-001
-python -m tools.check_all --all --output build/all-review-001
-python -m tools.fault_probe --output build/faults-001
+# Preview automatic native CI lanes
+python -B -m tools.ci --matrix
+# Pinned native check; use a fresh output path each attempt
+python -B -m tools.ci --kicad --project battery-board --output projects/battery-board/build/review-001
+# Shared tooling tests alone
+python -B -m unittest discover -s tests -v
 ```
 
-Close KiCad before checking. Use a new output directory per attempt; retained evidence is never overwritten. No proprietary designs, private handoffs, credentials, customer data, or hardware orders belong here.
+See [checks and CI](docs/CHECKS_AND_CI.md) and [extending tests](tests/README.md).
+In an uninitialized template checkout, select `arduino-uno-status-led`,
+`raspberry-pi-status-led` or `controller` for a bundled rehearsal. Initialization
+removes these examples from live discovery; shared-tool tests still use their
+independent fixture catalogs. Close KiCad before native checks.
+
+## BOMs and releases
+
+Commit authored design and BOM inputs. Generate working BOMs and review exports;
+retain exact approved outputs when releasing or manufacturing. Authored assembly
+lists and frozen release BOMs can be tracked. A generated file is not automatically
+disposable, and a BOM should have one authoritative editing location. See the
+[BOM policy](docs/BOM_POLICY.md) and [versioning](docs/VERSIONING.md).
+
+After committing reviewed source, prepare a standalone candidate with Docker running:
+
+```sh
+python -B -m tools.release prepare --project battery-board --release-id battery-review-001
+python -B -m tools.release package --manifest build/releases/battery-review-001/manifest.json --output build/battery-review-001.zip
+python -B -m tools.release restore --archive build/battery-review-001.zip --destination ../battery-review-restored
+```
+
+Preparation runs portable tests and the pinned KiCad container. Packaging verifies
+the evidence and performs a restore before completing. The default is an engineering
+review candidate; production requires the controls in [release readiness](docs/RELEASE_READINESS.md).
+
+## Shared areas
+
+- [Projects](projects/README.md) own board-local work; [products](products/README.md)
+  own optional integration records and tests.
+- [Catalogs](catalog/README.md) own reusable identities, toolchains and discovery roots.
+- [Libraries](libraries/README.md) contain declared shared CAD dependencies.
+- [Tools](tools/README.md), [tests](tests/README.md) and [templates](templates/README.md)
+  implement and demonstrate the common workflow.
+- [Generated shared views](generated/README.md) and [schemas](schemas/README.md)
+  are optional local exports, ignored except for their guidance files.
+
+The [authority model](docs/AUTHORITY_MODEL.md) distinguishes source, fixtures and
+release evidence. [Assurance profiles](docs/ASSURANCE_PROFILES.md) distinguish
+training, development and production. Complete [hosted governance](docs/GITHUB_GOVERNANCE.md)
+before production adoption. [Template upgrades](docs/TEMPLATE_ADOPTION.md) record
+layout migrations; [the audit](docs/REPOSITORY_AUDIT.md) records earlier findings.

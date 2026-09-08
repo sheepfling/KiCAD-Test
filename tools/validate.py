@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import Literal, cast
 
 from .check_toolchain import toolchain
-from .hwrepo.contracts import read_model, repo_path, write_model
+from .hwrepo.contracts import repo_path, write_model
+from .hwrepo.discovery import load_config
 from .hwrepo.models import (
     CheckEvidence,
     CommandEvidence,
@@ -25,6 +26,7 @@ from .hwrepo.models import (
     PcbValidationContract,
     ProjectConfig,
     ProjectKind,
+    SchematicValidationContract,
     ValidationSummary,
 )
 
@@ -36,6 +38,7 @@ def hashes(
     root: Path, source_roots: Sequence[str] | None = None
 ) -> dict[str, str]:
     """Hash the declared design and library roots, excluding local KiCad state."""
+    root = root.resolve()
     roots = ("projects",) if source_roots is None else tuple(source_roots)
     if not roots or any(not item for item in roots):
         raise ValueError("source_roots must be a non-empty list of relative directories")
@@ -112,8 +115,8 @@ def check_report(
             for key in ("violations", "unconnected_items", "schematic_parity")
         )
     return sum(len(items) for items in findings)
-def check_netlist(path: Path, validation: PcbValidationContract) -> NetlistContract:
-    """Adapter: compare a native KiCad XML export with the typed board contract."""
+def read_netlist(path: Path) -> NetlistContract:
+    """Parse actual KiCad names, including hierarchical nets and unassigned footprints."""
     tree = ET.parse(path).getroot()
     components: dict[str, ComponentContract] = {}
     for comp in tree.findall("./components/comp"):
@@ -123,6 +126,7 @@ def check_netlist(path: Path, validation: PcbValidationContract) -> NetlistContr
         components[ref] = ComponentContract(
             value=comp.findtext("value", ""),
             footprint=comp.findtext("footprint", ""),
+            part_id=comp.findtext("./fields/field[@name='PART_ID']") or None,
         )
     nets: dict[str, tuple[str, ...]] = {}
     for net in tree.findall("./nets/net"):
@@ -135,9 +139,24 @@ def check_netlist(path: Path, validation: PcbValidationContract) -> NetlistContr
                 for node in net.findall("node")
             )
         )
-    contract = NetlistContract(components=components, nets=nets)
-    if contract.components != validation.components or contract.nets != validation.nets:
-        raise ValueError(f"Independent netlist contract mismatch: {components=}, {nets=}")
+    return NetlistContract(components=components, nets=nets)
+
+
+def check_netlist(path: Path, validation: PcbValidationContract | SchematicValidationContract) -> NetlistContract:
+    """Compare a native export with reviewed expectations, never an empty scaffold."""
+    if not validation.components:
+        raise ValueError("Complete the component test contract before native validation")
+    contract = read_netlist(path)
+    compared = {reference: component if validation.components.get(reference) is not None
+                and validation.components[reference].part_id is not None
+                else component.model_copy(update={"part_id": None})
+                for reference, component in contract.components.items()}
+    if compared != validation.components or contract.nets != validation.nets:
+        changed_components = sorted(key for key in set(contract.components) | set(validation.components)
+                                    if compared.get(key) != validation.components.get(key))
+        changed_nets = sorted(key for key in set(contract.nets) | set(validation.nets)
+                              if contract.nets.get(key) != validation.nets.get(key))
+        raise ValueError(f"Independent netlist contract mismatch: components={changed_components}, nets={changed_nets}")
     return contract
 def svg_files(output: Path, name: str) -> list[Path]:
     files: list[Path] = (
@@ -179,28 +198,33 @@ def validate(
     """Run a typed, fail-closed KiCad check for one declared configuration."""
     output.mkdir(parents=True, exist_ok=False)
     root = root.resolve()
+    from .hwrepo.evidence import source_state
+
+    source_before = source_state(root)
     checks: dict[str, CheckEvidence] = {}
     before: dict[str, str] = {}
     source_roots: tuple[str, ...] = ("projects",)
     config: ProjectConfig | None = None
-    profile: Literal["training", "production"] | None = None
+    profile: Literal["training", "development", "production"] | None = None
     not_for_manufacture: bool | None = None
     selected_config = root / (
-        Path("examples/configs/controller.json") if config_path is None else config_path
+        Path("examples/projects/controller/project.json") if config_path is None else config_path
     )
     try:
         if root not in selected_config.resolve().parents:
             raise ValueError("Configuration path must remain inside the repository root")
-        config = read_model(selected_config, ProjectConfig)
+        config = load_config(root, selected_config)
         from .hwrepo.product import check as check_product
         from .hwrepo.product import (
             check_harness_interface_contract,
             check_project_netlist,
             check_system_wiring_contract,
         )
+        from .hwrepo.repository import check_repository
         from .lint_registry import lint
 
         governance = lint(root, [config.project_id])
+        repository = check_repository(root, (config.project_id,))
         product_policy = check_product(
             root, selected_project_ids=(config.project_id,)
         )
@@ -208,6 +232,8 @@ def validate(
             status=governance.status,
             error="; ".join(governance.issues) if governance.issues else None,
         )
+        checks["repository"] = CheckEvidence(status=repository.status,
+            error="; ".join(repository.issues) if repository.issues else None)
         checks["product_policy"] = CheckEvidence(
             status=product_policy.status,
             error=(
@@ -219,9 +245,9 @@ def validate(
                 else None
             ),
         )
-        if governance.status != "PASS" or product_policy.status != "PASS":
+        if governance.status != "PASS" or repository.status != "PASS" or product_policy.status != "PASS":
             raise ValueError(
-                f"Repository preflight failed: {governance.issues}; {product_policy.issues}"
+                f"Repository preflight failed: {governance.issues}; {repository.issues}; {product_policy.issues}"
             )
         declared_toolchain = toolchain(root, config.toolchain_id)
         if (
@@ -297,17 +323,26 @@ def validate(
         elif config.kind is ProjectKind.HARNESS_INTERFACE:
             check_harness_interface_contract(root, config)
             checks["harness_contract"] = CheckEvidence(status="PASS")
+        if config.component_identity.required or (
+            isinstance(config.validation, SchematicValidationContract) and config.validation.components
+        ):
+            commands["netlist"] = ("sch", "export", "netlist", "--format", "kicadxml", "--output",
+                                   str(output / "netlist.xml"), str(base.with_suffix(".kicad_sch")))
         for name, arguments in commands.items():
             command = execute((executable, *arguments), root, output, name)
             evidence = CheckEvidence(status="FAIL", returncode=command.returncode)
             try:
-                if command.returncode != 0:
+                if command.returncode != 0 and not (name in {"erc", "drc"} and command.returncode == 5):
                     raise ValueError(
                         f"KiCad command failed with {command.returncode}"
                     )
                 if name in {"erc", "drc"}:
                     kind: Literal["erc", "drc"] = "erc" if name == "erc" else "drc"
-                    findings = check_report(output / f"{name}.json", kind, config)
+                    # KiCad uses exit 5 for findings. Retain their count and report
+                    # identity even when the gate correctly rejects the design.
+                    findings = check_report(output / f"{name}.json", kind)
+                    evidence = evidence.model_copy(update={"findings": findings})
+                    check_report(output / f"{name}.json", kind, config)
                     ignored = (
                         config.validation.expected_ignored_checks.erc
                         if kind == "erc"
@@ -321,10 +356,12 @@ def validate(
                     )
                     if findings:
                         raise ValueError(f"{findings} findings, including exclusions")
+                    if command.returncode != 0:
+                        raise ValueError(f"KiCad command failed with {command.returncode}")
                 elif name == "netlist":
                     validation = config.validation
-                    if not isinstance(validation, PcbValidationContract):
-                        raise ValueError("Netlist check requires a PCB validation contract")
+                    if not isinstance(validation, (PcbValidationContract, SchematicValidationContract)):
+                        raise ValueError("Netlist check requires an electrical component contract")
                     check_netlist(output / "netlist.xml", validation)
                     identity = check_project_netlist(
                         root, config.project_id, output / "netlist.xml"
@@ -359,7 +396,7 @@ def validate(
                         }
                     )
                 checks[name] = evidence.model_copy(update={"status": "PASS"})
-            except (OSError, ValueError, ET.ParseError) as exc:
+            except (OSError, ValueError, TypeError, KeyError, ET.ParseError) as exc:
                 checks[name] = evidence.model_copy(update={"error": str(exc)})
     except (OSError, ValueError) as exc:
         checks["preflight"] = CheckEvidence(status="FAIL", error=str(exc))
@@ -380,6 +417,10 @@ def validate(
         required.add("system_contract")
     elif config is not None and config.kind is ProjectKind.HARNESS_INTERFACE:
         required.add("harness_contract")
+    if config is not None and (config.component_identity.required or (
+        isinstance(config.validation, SchematicValidationContract) and config.validation.components
+    )):
+        required.add("netlist")
     status = (
         "PASS"
         if required.issubset(checks)
@@ -388,7 +429,11 @@ def validate(
     )
     summary = ValidationSummary(
         timestamp_utc=datetime.now(timezone.utc).isoformat(),
-        checked_commit=os.environ.get("CHECKED_SHA", "LOCAL_UNBOUND"),
+        checked_commit=source_before.commit or "LOCAL_UNBOUND",
+        source=source_before.model_copy(update={
+            "clean": source_before.clean and source_state(root) == source_before,
+        }),
+        project_id=None if config is None else config.project_id,
         pr_head_commit=os.environ.get("PR_HEAD_SHA"),
         assurance_profile=profile,
         not_for_manufacture=not_for_manufacture,
@@ -409,7 +454,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--cli", default="kicad-cli")
     parser.add_argument(
-        "--config", type=Path, default=Path("examples/configs/controller.json")
+        "--config", type=Path, default=Path("examples/projects/controller/project.json")
     )
     args: argparse.Namespace = parser.parse_args()
     summary = validate(args.root.resolve(), args.output.resolve(), args.cli, args.config)

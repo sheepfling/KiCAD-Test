@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Protocol, TypeVar
 
 from .hwrepo.contracts import read_model, repo_path, write_model
+from .hwrepo.discovery import load_config, load_registry, settings
 from .hwrepo.models import (
     GovernanceLintReport,
     GovernanceRecord,
@@ -16,11 +17,12 @@ from .hwrepo.models import (
     LibrariesCatalog,
     PartsCatalog,
     PartStatus,
-    ProjectConfig,
+    PcbValidationContract,
     ProjectKind,
-    ProjectRegistry,
     ReleaseClass,
     ReleasePoliciesCatalog,
+    SchematicValidationContract,
+    TeamPolicy,
     ToolchainsCatalog,
 )
 from .validate import hashes
@@ -71,6 +73,7 @@ def lint_governance_record(
         return
     try:
         record = read_model(path, GovernanceRecord)
+        policy = read_model(root / "catalog/team-policy.json", TeamPolicy)
     except (OSError, ValueError) as exc:
         issues.append(f"project {identifier}: invalid governance record: {exc}")
         return
@@ -89,9 +92,16 @@ def lint_governance_record(
         if not assigned or any(not reviewed_value(person) for person in assigned):
             issues.append(f"project {identifier}: governance record needs reviewed {field}")
             continue
-        people.update(assigned)
-    if len(people) < 3:
-        issues.append(f"project {identifier}: governance record needs three distinct actors across author, review, and integration roles")
+        people.update(person.casefold() for person in assigned)
+    if len(people) < policy.minimum_actors:
+        issues.append(f"project {identifier}: governance record needs {policy.minimum_actors} distinct actors")
+    if policy.independent_review and (
+        {person.casefold() for person in record.authors}
+        & {person.casefold() for person in record.reviewers}
+    ):
+        issues.append(f"project {identifier}: reviewers must be independent of authors")
+    if not set(policy.required_status_checks) <= set(record.required_status_checks):
+        issues.append(f"project {identifier}: governance record omits team-required status checks")
     for field, assigned in (
         ("release_authorities", record.release_authorities),
         ("branch_protection_evidence", record.branch_protection_evidence),
@@ -110,7 +120,8 @@ def lint(
     issues: list[str] = []
     requested = tuple(selected or ())
     try:
-        registry = read_model(root / "catalog/projects.json", ProjectRegistry)
+        registry = load_registry(root)
+        read_model(root / "catalog/team-policy.json", TeamPolicy)
         parts = records_by_id(
             read_model(repo_path(root, registry.catalogs.parts), PartsCatalog).parts,
             "parts catalog",
@@ -196,8 +207,7 @@ def lint(
     declared = {project.project for project in projects.values()}
     discovered = {
         path.relative_to(root).as_posix()
-        for kind in ProjectKind
-        for design_root in kind.accepted_roots
+        for design_root in settings(root).project_roots
         for path in (root / design_root).rglob("*.kicad_pro")
         if (root / design_root).is_dir()
         and not any(part.endswith("-backups") for part in path.parts)
@@ -218,7 +228,7 @@ def lint(
             project_file = repo_path(root, project.project)
             if not project_file.is_file():
                 issues.append(f"project {identifier}: project file is missing")
-            config = read_model(repo_path(root, project.config), ProjectConfig)
+            config = load_config(root, project.config)
         except (OSError, ValueError) as exc:
             issues.append(f"project {identifier}: invalid project/configuration: {exc}")
             continue
@@ -258,7 +268,12 @@ def lint(
                 issues.append(
                     f"project {identifier}: training profile must be a not_for_manufacture training_fixture"
                 )
-        else:
+        elif project.assurance_profile == "development":
+            if project.status != "engineering" or not config.not_for_manufacture:
+                issues.append(f"project {identifier}: development must be unreleased engineering work")
+            if config.validation.expected_ignored_checks.erc or config.validation.expected_ignored_checks.drc:
+                issues.append(f"project {identifier}: development cannot disable ERC or DRC checks")
+        elif project.assurance_profile == "production":
             if (
                 project.status not in {"engineering", "release_candidate"}
                 or config.not_for_manufacture
@@ -314,7 +329,7 @@ def lint(
             )
 
         identity = project.component_identity
-        if project.assurance_profile == "production" and not identity.required:
+        if project.assurance_profile == "production" and project.kind in {ProjectKind.PCB, ProjectKind.SCHEMATIC} and not identity.required:
             issues.append(
                 f"project {identifier}: production profile must require component identity"
             )
@@ -322,6 +337,10 @@ def lint(
             issues.append(
                 f"project {identifier}: component identity is required but no part ids are declared"
             )
+        if identity.required and isinstance(config.validation, (PcbValidationContract, SchematicValidationContract)):
+            expected_ids = {component.part_id for component in config.validation.components.values()}
+            if None in expected_ids or expected_ids != set(identity.part_ids):
+                issues.append(f"project {identifier}: component contracts must bind each reference to its declared part_id")
         for part_id in identity.part_ids:
             part = parts.get(part_id)
             if part is None:
