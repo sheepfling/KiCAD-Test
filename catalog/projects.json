@@ -8,7 +8,6 @@
     "release_policies": "catalog/release-policies.json"
   },
   "project_roots": [
-    "projects",
-    "examples/projects"
+    "projects"
   ]
 }

@@ -1,4 +1,4 @@
-# KiCad team workflow template
+# empty-ci-probe
 
 A forkable repository for independently developed boards with shared automation.
 Each project keeps its KiCad source, documentation, test expectations and release
