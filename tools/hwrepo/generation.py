@@ -325,7 +325,7 @@ def expected_outputs(
             ),
         }
     index = read_model(repo_path(root, "catalog/products.json"), ProductIndex)
-    product_paths = {entry.id: str(Path(entry.path).parent) for entry in index.products}
+    product_paths = {entry.id: Path(entry.path).parent.as_posix() for entry in index.products}
     for product in repository.products:
         for variant in product.variants:
             prefix = f"{product_paths[product.id]}/build/{variant.id}"

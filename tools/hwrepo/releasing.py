@@ -1,8 +1,8 @@
 """Prepare candidates from executed checks, without inventing review approvals."""
 from __future__ import annotations
 
-import os
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -58,7 +58,11 @@ def run_native(root: Path, project: ProjectRecord, output: Path, cli: str | None
     config = load_config(root, project.config)
     command = ("tools.release", "export", "--project", project.id) if export_only else (
         "tools.validate", "--config", project.config)
-    user = ("--user", f"{os.getuid()}:{os.getgid()}") if hasattr(os, "getuid") else ()
+    user: tuple[str, ...] = ()
+    if sys.platform != "win32":
+        import os
+
+        user = ("--user", f"{os.getuid()}:{os.getgid()}")
     argv = ("docker", "run", "--rm", "--platform", "linux/amd64", *user,
                     "--entrypoint", "python3", "-e", "HOME=/tmp/kicad-release",
                     "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", f"PYTHONPATH=/work/{dependencies.as_posix()}",
