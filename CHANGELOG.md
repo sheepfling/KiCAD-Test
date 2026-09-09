@@ -10,6 +10,8 @@ revisions. See [versioning](docs/VERSIONING.md) and [adoption](docs/TEMPLATE_ADO
 - Print the complete release archive SHA-256 after package and restore verification.
 - Add a concrete first-board path and durable release-storage checklist.
 - Schedule bounded monthly Python and GitHub Actions dependency-update pull requests.
+- Move checkout and artifact upload to their Node 24 action releases while retaining
+  immutable commit-SHA pins.
 - Correct the 1.0 publication record and surface the repository's remaining hosted
   governance responsibilities.
 
