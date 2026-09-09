@@ -6,7 +6,7 @@ import hashlib
 import sys
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Protocol, TypeVar
+from typing import Protocol
 
 from .hwrepo.contracts import read_model, repo_path, write_model
 from .hwrepo.discovery import load_config, load_registry, settings
@@ -32,10 +32,7 @@ class Identified(Protocol):
     id: str
 
 
-Record = TypeVar("Record", bound=Identified)
-
-
-def records_by_id(
+def records_by_id[Record: Identified](
     records: Iterable[Record], label: str, issues: list[str]
 ) -> dict[str, Record]:
     result: dict[str, Record] = {}

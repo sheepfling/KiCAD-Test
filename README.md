@@ -19,7 +19,8 @@ projects/<id>/
 ```
 
 Use [the folder standard](docs/REPOSITORY_STRUCTURE.md) for ownership and boundaries,
-[Start here](docs/START_HERE.md) for adoption, and [the contributor guide](docs/CONTRIBUTOR_GUIDE.md)
+[Start here](docs/START_HERE.md) for adoption, [First board](docs/FIRST_BOARD.md) for
+the shortest working path, and [the contributor guide](docs/CONTRIBUTOR_GUIDE.md)
 for branches, review and handoff. The [worked examples](examples/README.md) use this
 same layout and provide regression fixtures for the shared tools.
 See also the [quick reference](docs/QUICK_REFERENCE.md),
@@ -44,8 +45,8 @@ source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -e '.[dev]'
 # Once in your fork, before adding designs:
-python -B -m tools.template init --project-id my-hardware
-python -B -m tools.ci
+python -B -m tools.template doctor
+python -B -m tools.template adopt --project-id my-hardware
 ```
 
 If activation is unavailable, invoke `.venv/bin/python` or
@@ -54,6 +55,9 @@ Python dependencies are installed. Native checks require the exact version selec
 by the project's `toolchain_id` in `catalog/toolchains.json`.
 Initialization keeps examples as independent test fixtures, clears their live
 catalog entries, and names your repository. Repeating it preserves your work.
+`adopt` runs that transactional initialization and the complete portable gate in one
+command. Use `init` separately when you need to review each step or before a new
+bootstrap copy has Git history.
 An empty fork passes scaffold checks and reports that no hardware was validated.
 
 ## Start a board
@@ -68,6 +72,7 @@ and save the actual KiCad design in its `kicad/` folder, then complete its sourc
 inventory and electrical expectations. An incomplete scaffold intentionally fails
 checks. It never copies a training circuit into your design or overwrites a project.
 Discovery automatically adds each `projects/*/project.json` to CI.
+Before native work, run `python -B -m tools.template doctor --native --toolchain kicad-10.0.5`.
 
 For an existing design, use the [import workflow](docs/IMPORT_WORKFLOW.md).
 The [demo rehearsal](docs/DEMO_REHEARSAL.md) records real import and CI evidence.
@@ -99,7 +104,8 @@ Commit authored design and BOM inputs. Generate working BOMs and review exports;
 retain exact approved outputs when releasing or manufacturing. Authored assembly
 lists and frozen release BOMs can be tracked. A generated file is not automatically
 disposable, and a BOM should have one authoritative editing location. See the
-[BOM policy](docs/BOM_POLICY.md) and [versioning](docs/VERSIONING.md).
+[BOM policy](docs/BOM_POLICY.md), [release storage](docs/RELEASE_STORAGE.md) and
+[versioning](docs/VERSIONING.md).
 
 After committing reviewed source, prepare a standalone candidate with Docker running:
 

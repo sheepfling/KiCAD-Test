@@ -22,6 +22,8 @@ python -B -m tools.ci
 python -B -m tools.ci --matrix
 python -B -m tools.ci --kicad --project controller --output examples/projects/controller/build/review-001
 python -B -m tools.hardware generate
+python -B -m tools.template doctor
+python -B -m tools.template doctor --native --toolchain kicad-10.0.5
 python -B -m tools.template preflight
 python -B -m tools.docs_policy
 ```
@@ -56,6 +58,8 @@ image. The controller's native fault probes run only for its known reference pat
 Runtime and development-tool dependency versions, including their current Python
 transitive dependencies, are pinned together in `pyproject.toml`. Update them as a
 reviewed change and rerun the portable/native acceptance lanes.
+Dependabot opens bounded monthly Python and GitHub Actions update pull requests;
+these receive the same review and complete acceptance workflow as other tool changes.
 The final acceptance check requires the matrix, portable jobs, native jobs and a
 standalone release/restore rehearsal to pass. The rehearsal commits a disposable
 reference checkout, exports using pinned KiCad, prepares an engineering-review

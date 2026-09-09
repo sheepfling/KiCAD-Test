@@ -5,9 +5,10 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.support import reference_root
-from tools.check_toolchain import assessment, toolchain
+from tools.check_toolchain import assessment, cli_executable, toolchain
 from tools.ci_matrix import build_matrix
 from tools.hwrepo.contracts import read_model, write_model
 from tools.hwrepo.models import (
@@ -123,6 +124,17 @@ class GovernanceLintTests(unittest.TestCase):
         self.assertEqual(record.kicad_version, "10.0.5")
         self.assertEqual(assessment(record, "10.0.5").status, "PASS")
         self.assertEqual(assessment(record, "10.0.6").status, "FAIL")
+
+    def test_default_cli_discovers_the_standard_macos_application(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            executable = Path(temporary) / "kicad-cli"
+            executable.write_text("fixture", encoding="utf-8")
+            with (
+                patch("tools.check_toolchain.sys.platform", "darwin"),
+                patch("tools.check_toolchain.shutil.which", return_value=None),
+                patch("tools.check_toolchain.MACOS_KICAD_CLI", executable),
+            ):
+                self.assertEqual(cli_executable("kicad-cli"), str(executable))
 
     def test_library_provenance_or_licensing_change_requires_catalog_update(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

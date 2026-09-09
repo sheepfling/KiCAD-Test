@@ -11,6 +11,8 @@ from pathlib import Path
 from .hwrepo.contracts import read_model
 from .hwrepo.models import ToolchainAssessment, ToolchainRecord, ToolchainsCatalog
 
+MACOS_KICAD_CLI = Path("/Applications/KiCad/KiCad.app/Contents/MacOS/kicad-cli")
+
 
 def toolchain(root: Path, identifier: str) -> ToolchainRecord:
     catalog = read_model(root / "catalog/toolchains.json", ToolchainsCatalog)
@@ -47,6 +49,8 @@ def cli_executable(cli: str) -> str | None:
         return str(explicit)
     if cli != "kicad-cli":
         return None
+    if sys.platform == "darwin" and MACOS_KICAD_CLI.is_file():
+        return str(MACOS_KICAD_CLI)
     roots: list[Path] = []
     for variable in ("LOCALAPPDATA", "ProgramFiles"):
         value: str | None = os.environ.get(variable)

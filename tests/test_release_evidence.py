@@ -111,11 +111,17 @@ class ReleaseEvidenceTests(unittest.TestCase):
     def test_standalone_release_restores_exact_commit_and_verified_evidence(self) -> None:
         self.assertEqual(check(self.root, self.manifest).status, "PASS", check(self.root, self.manifest).issues)
         archive = self.parent / "release.zip"
-        self.assertEqual(package(self.root, self.manifest_name, archive).status, "PASS")
+        packaged = package(self.root, self.manifest_name, archive)
+        self.assertEqual(packaged.status, "PASS")
+        self.assertEqual(packaged.package_sha256, digest(archive))
         destination = self.parent / "restored"
-        self.assertEqual(restore(archive, destination).status, "PASS")
+        restored = restore(archive, destination)
+        self.assertEqual(restored.status, "PASS")
+        self.assertEqual(restored.package_sha256, digest(archive))
         self.assertEqual(source_state(destination), self.source)
-        self.assertEqual(verify(archive).status, "PASS")
+        verified = verify(archive)
+        self.assertEqual(verified.status, "PASS")
+        self.assertEqual(verified.package_sha256, digest(archive))
         with self.assertRaisesRegex(ValueError, "already exists"):
             restore(archive, destination)
 
