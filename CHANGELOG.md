@@ -3,10 +3,27 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/VERSIONING.md) and [adoption](docs/TEMPLATE_ADOPTION.md).
 
-## 1.0.0 — candidate
+## 1.1.0 — 2026-09-09
 
-The implementation is prepared for baseline review. Publication of the `v1.0.0`
-annotated tag remains pending; this heading is not evidence of a published release.
+- Require the same Python 3.12 minimum locally, in package metadata and in CI.
+- Add a read-only environment doctor and a one-command fresh-fork adoption path.
+- Print the complete release archive SHA-256 after package and restore verification.
+- Add a concrete first-board path and durable release-storage checklist.
+- Schedule bounded monthly Python and GitHub Actions dependency-update pull requests.
+- Move checkout and artifact upload to their Node 24 action releases while retaining
+  immutable commit-SHA pins.
+- Correct the 1.0 publication record and surface the repository's remaining hosted
+  governance responsibilities.
+
+Existing 1.0.0 adopters can preserve their project layout and live catalogs. Follow
+the short 1.0.0-to-1.1.0 migration to update the policy environment and tools.
+
+## 1.0.0 — 2026-09-08
+
+The reviewed baseline is published as the annotated `v1.0.0` tag at
+`37632266cb8b45631297e3ff7f6d1adb04cd41f2`. The post-merge
+[hosted acceptance run](https://github.com/sheepfling/KiCAD-Test/actions/runs/34266735257)
+passed all portable, pinned KiCad, failure-probe and release/restore jobs.
 
 - Repeatable project islands keep each deliverable's source, docs, tests and optional
   firmware together. Discovery adds projects and native CI lanes automatically.
@@ -28,4 +45,4 @@ or company licensing. Earlier versions follow the intervening plans. Keep the ol
 adoption version until review and verification finish.
 
 The [baseline review](docs/BASELINE_REVIEW.md) maps the requested workflow to source,
-tests and hosted evidence, and lists the remaining publication requirements.
+tests and hosted evidence.

@@ -37,7 +37,7 @@ class TemplateToolTests(unittest.TestCase):
     def test_preflight_accepts_the_declared_template_contract(self) -> None:
         report = preflight(self.root)
         self.assertEqual(report.status, "PASS", report.issues)
-        self.assertEqual(report.template_version, "1.0.0")
+        self.assertEqual(report.template_version, "1.1.0")
         self.assertFalse(report.build_authorized)
 
     def test_preflight_rejects_a_missing_required_template_path(self) -> None:
@@ -70,6 +70,8 @@ class TemplateToolTests(unittest.TestCase):
             self.assertFalse((destination / name).exists(), name)
 
     def test_upgrade_plan_requires_one_forward_catalog_path(self) -> None:
+        write_model(self.root / "template-adoption.json", TemplateAdoptionRecord(
+            template_version="1.0.0", project_id="adopted-board", status="initialized"))
         catalog_path = self.root / "templates/template-upgrades.json"
         catalog = read_model(catalog_path, TemplateUpgradesCatalog)
         write_model(
@@ -96,9 +98,16 @@ class TemplateToolTests(unittest.TestCase):
         self.assertEqual([upgrade.id for upgrade in report.upgrades], ["template-1.0-to-1.1"])
 
     def test_upgrade_plan_rejects_missing_forward_path(self) -> None:
-        report = plan_upgrade(self.root, "1.1.0")
+        report = plan_upgrade(self.root, "1.2.0")
         self.assertEqual(report.status, "FAIL")
         self.assertIn("TEMPLATE_UPGRADE_PATH", {issue.code for issue in report.issues})
+
+    def test_usability_release_has_a_forward_plan_from_1_0(self) -> None:
+        write_model(self.root / "template-adoption.json", TemplateAdoptionRecord(
+            template_version="1.0.0", project_id="adopted-board", status="initialized"))
+        report = plan_upgrade(self.root, "1.1.0")
+        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertEqual([upgrade.id for upgrade in report.upgrades], ["template-1.0-to-1.1"])
 
     def test_upgrade_uses_adopted_version_after_upstream_contract_is_updated(self) -> None:
         write_model(self.root / "template-adoption.json", TemplateAdoptionRecord(
@@ -128,7 +137,7 @@ class TemplateToolTests(unittest.TestCase):
 
     def test_same_version_plan_cannot_hide_failed_preflight(self) -> None:
         (self.root / "tools/ci.py").unlink()
-        report = plan_upgrade(self.root, "1.0.0")
+        report = plan_upgrade(self.root, "1.1.0")
         self.assertEqual(report.status, "FAIL")
 
 

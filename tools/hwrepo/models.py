@@ -859,6 +859,7 @@ class ReleasePackageReport(StrictModel):
     status: Literal["PASS", "FAIL"]
     source_commit: GitCommit
     package: str
+    package_sha256: Digest
     manifest: RepositoryPath
     build_authorized: Literal[False] = False
 
@@ -933,6 +934,44 @@ class TemplateInitReport(StrictModel):
     changed: tuple[RepositoryPath, ...] = ()
     removed: tuple[RepositoryPath, ...] = ()
     issues: tuple[PolicyIssue, ...] = ()
+
+
+class TemplateAdoptReport(StrictModel):
+    """One-command fork initialization and portable acceptance result."""
+
+    schema_version: Literal["1"] = "1"
+    lane: Literal["TEMPLATE_ADOPTION"] = "TEMPLATE_ADOPTION"
+    build_authorized: Literal[False] = False
+    project_id: Identifier
+    preflight: Literal["PASS", "FAIL"]
+    initialization: Literal["PASS", "FAIL", "NOT_RUN"]
+    portable: Literal["PASS", "FAIL", "NOT_RUN"]
+    status: Literal["PASS", "FAIL"]
+    changed: tuple[RepositoryPath, ...] = ()
+    removed: tuple[RepositoryPath, ...] = ()
+    issues: tuple[NonEmptyText, ...] = ()
+    next_actions: tuple[NonEmptyText, ...] = ()
+
+
+class EnvironmentCheck(StrictModel):
+    id: Identifier
+    required: bool
+    status: Literal["PASS", "FAIL", "OPTIONAL"]
+    expected: NonEmptyText
+    observed: NonEmptyText | None = None
+    next_action: NonEmptyText
+
+
+class TemplateDoctorReport(StrictModel):
+    """Local prerequisites and native-runner readiness without changing the repository."""
+
+    schema_version: Literal["1"] = "1"
+    lane: Literal["TEMPLATE_DOCTOR"] = "TEMPLATE_DOCTOR"
+    build_authorized: Literal[False] = False
+    native_requested: bool
+    checks: tuple[EnvironmentCheck, ...]
+    status: Literal["PASS", "FAIL"]
+    next_actions: tuple[NonEmptyText, ...] = ()
 
 
 class TemplatePreflightReport(StrictModel):

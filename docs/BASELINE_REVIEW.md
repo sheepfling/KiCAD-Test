@@ -40,17 +40,21 @@ match the hashes recorded before rehearsal. Detailed receipts and reports remain
 ignored local storage; the baseline contains the authored workflow and synthetic
 regression inputs.
 
-## Remaining publication requirements
+## Publication result
 
-Finish review of the final candidate and its hosted results, accept the baseline PR,
-and publish an annotated `v1.0.0` tag at the accepted source commit. The tag must not
-be created against a different or unchecked source tree. Record the final commit and
-acceptance links in the release notes; source metadata alone does not complete this.
+[PR #3](https://github.com/sheepfling/KiCAD-Test/pull/3) was merged at
+`37632266cb8b45631297e3ff7f6d1adb04cd41f2`. The
+[post-merge acceptance run](https://github.com/sheepfling/KiCAD-Test/actions/runs/34266735257)
+passed at that exact commit, and the annotated `v1.0.0` tag resolves to it. The run
+retained ten review artifacts. This completes the versioned technical baseline.
 
-GitHub currently reports `main` as unprotected and no submitted reviews on PR #3.
-The connected integration has no administration access. Actual branch enforcement
-and independent-review rehearsal remain unverified; they cannot be inferred from
-the passing workflow or a JSON governance record. See [GitHub governance](GITHUB_GOVERNANCE.md).
+## Remaining operational acceptance
+
+GitHub reported `main` as unprotected after publication and PR #3 had no submitted
+independent review. Configure branch enforcement and rehearse it with actual team
+accounts before treating an adopted repository as production controlled. These
+controls cannot be inferred from a passing workflow or a JSON governance record.
+See [GitHub governance](GITHUB_GOVERNANCE.md).
 
 Each adopting team must separately supply its actual engineering requirements,
 reviewers, hosted permissions, release authority and durable artifact retention.

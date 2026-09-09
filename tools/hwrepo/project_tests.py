@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .contracts import read_model, repo_path
@@ -35,7 +35,7 @@ def run_tests(root: Path, selected: tuple[str, ...] | None = None) -> ProjectTes
         if not any(directory.rglob("test_*.py")):
             continue
         argv = (sys.executable, "-B", "-m", "unittest", "discover", "-s", str(directory), "-v")
-        started = datetime.now(timezone.utc).isoformat()
+        started = datetime.now(UTC).isoformat()
         try:
             result = subprocess.run(argv, cwd=root, text=True, capture_output=True,
                                     check=False, timeout=120)

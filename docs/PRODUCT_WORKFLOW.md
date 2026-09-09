@@ -58,7 +58,7 @@ No command stashes, resets, commits, pushes, merges, buys parts or changes permi
 current inventory, use a new snapshot directory or download the CI artifact.
 CI checks fresh generation without requiring cached exports in the checkout.
 
-The helper uses Python 3.10+ and Pydantic 2.13.4, pinned in pyproject.toml; the
+The helper uses Python 3.12+ and Pydantic 2.13.4, pinned in pyproject.toml; the
 hosted matrix targets Python 3.12 on Windows, Linux and macOS. JSON avoids an
 extra YAML loader in the pinned KiCad container. Every repository JSON record is
 decoded once at the file boundary, rejects duplicate keys/non-finite numbers, then

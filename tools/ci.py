@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .ci_matrix import build_matrix
@@ -27,7 +27,7 @@ from .lint_registry import lint
 
 def run_command(root: Path, *argv: str) -> CommandEvidence:
     """Execute one quality tool and preserve its typed outcome for the CI report."""
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     try:
         result = subprocess.run(
             argv,
@@ -152,7 +152,7 @@ def checked_project_tests(root: Path, selected: tuple[str, ...] | None = None) -
     except (OSError, ValueError) as exc:
         return ProjectTestsReport(status="FAIL", commands={
             "discovery": CommandEvidence(argv=("project-test-discovery",),
-                started_utc=datetime.now(timezone.utc).isoformat(), returncode=1, error=str(exc)),
+                started_utc=datetime.now(UTC).isoformat(), returncode=1, error=str(exc)),
         })
 
 

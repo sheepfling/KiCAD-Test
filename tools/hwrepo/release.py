@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import subprocess
 from collections.abc import Iterable
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from .contracts import read_model, repo_path
@@ -412,7 +412,7 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
     evidence = frozenset(
         (*artifact_ids, *(record.id for product in products for record in product.evidence))
     )
-    effective_today = today or datetime.now(timezone.utc).date()
+    effective_today = today or datetime.now(UTC).date()
     seen_deviations: set[str] = set()
     for deviation in manifest.deviations:
         if deviation.id in seen_deviations:

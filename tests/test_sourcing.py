@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from tests.support import reference_root
 from tools.hwrepo.models import SourcingSnapshot, SupplierOffer
@@ -16,7 +16,7 @@ class SourcingSnapshotTests(unittest.TestCase):
         base = SourcingSnapshot(
             snapshot_id="training-offer-observation",
             source_commit="a" * 40,
-            observed_at=datetime(2026, 9, 7, tzinfo=timezone.utc),
+            observed_at=datetime(2026, 9, 7, tzinfo=UTC),
             offers=(
                 SupplierOffer(
                     id="offer-1",

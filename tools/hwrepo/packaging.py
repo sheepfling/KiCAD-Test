@@ -51,7 +51,8 @@ def package(root: Path, manifest_name: str, output: Path) -> ReleasePackageRepor
         with output.open("xb") as stream, temporary_archive.open("rb") as incoming:
             shutil.copyfileobj(incoming, stream)
     return ReleasePackageReport(status="PASS", source_commit=manifest.source_commit,
-                                package=str(output), manifest=manifest_name)
+                                package=str(output), package_sha256=digest(output),
+                                manifest=manifest_name)
 
 
 def restore(archive_path: Path, destination: Path) -> ReleasePackageReport:
@@ -117,7 +118,8 @@ def restore(archive_path: Path, destination: Path) -> ReleasePackageReport:
         git(checkout, "remote", "remove", "origin")
         os.replace(checkout, destination)
     return ReleasePackageReport(status="PASS", source_commit=index.source_commit,
-                                package=str(archive_path), manifest=index.manifest)
+                                package=str(archive_path), package_sha256=digest(archive_path),
+                                manifest=index.manifest)
 
 
 def verify(archive_path: Path) -> ReleasePackageReport:

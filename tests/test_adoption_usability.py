@@ -1,0 +1,103 @@
+"""Fast diagnostics and one-command adoption behavior."""
+from __future__ import annotations
+
+import shutil
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from tests.support import initialize_git, reference_root
+from tools.hwrepo.adoption import adopt
+from tools.hwrepo.doctor import doctor
+
+
+class AdoptionUsabilityTests(unittest.TestCase):
+    def setUp(self) -> None:
+        temporary = tempfile.TemporaryDirectory(prefix="kicad-adoption-usability-")
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name) / "repository"
+        shutil.copytree(reference_root(), self.root, ignore=shutil.ignore_patterns(".git"))
+        initialize_git(self.root)
+
+    @staticmethod
+    def command_output(argv: tuple[str, ...]) -> str | None:
+        if "--version" in argv:
+            return "git version 2.51.0"
+        if "rev-parse" in argv:
+            return "true"
+        if "version" in argv:
+            return "27.5.1"
+        return None
+
+    def test_doctor_passes_portable_setup_without_optional_native_tools(self) -> None:
+        def which(name: str) -> str | None:
+            return "/usr/bin/git" if name == "git" else None
+
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+        ):
+            report = doctor(self.root)
+        self.assertEqual(report.status, "PASS")
+        self.assertEqual({row.id: row.status for row in report.checks}["docker"], "OPTIONAL")
+        self.assertEqual(report.next_actions, ())
+
+    def test_native_doctor_accepts_docker_or_exact_local_kicad(self) -> None:
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value="/tool"),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+        ):
+            docker_report = doctor(self.root, native=True)
+        self.assertEqual(docker_report.status, "PASS")
+
+        def which(name: str) -> str | None:
+            return "/usr/bin/git" if name == "git" else None
+
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+            patch("tools.hwrepo.doctor.observed_version", return_value="10.0.5"),
+        ):
+            local_report = doctor(self.root, native=True, toolchain_id="kicad-10.0.5")
+        self.assertEqual(local_report.status, "PASS")
+
+    def test_native_doctor_fails_without_a_runner_and_python_minimum_is_enforced(self) -> None:
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 9)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value=None),
+        ):
+            report = doctor(self.root, native=True)
+        failures = {row.id for row in report.checks if row.status == "FAIL"}
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(failures, {"python", "git", "git-repository", "native-runner"})
+
+    def test_adopt_initializes_once_and_runs_complete_portable_acceptance(self) -> None:
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+            patch("tools.ci.static_pipeline", return_value=SimpleNamespace(status="PASS")) as pipeline,
+        ):
+            report = adopt(self.root, "company-hardware")
+        self.assertEqual(report.status, "PASS", report.issues)
+        self.assertEqual(report.initialization, "PASS")
+        self.assertEqual(report.portable, "PASS")
+        self.assertIn("template-adoption.json", report.changed)
+        pipeline.assert_called_once_with(self.root.resolve(), None)
+
+    def test_adopt_stops_before_initialization_when_preflight_fails(self) -> None:
+        (self.root / "tools/ci.py").unlink()
+        with patch("tools.hwrepo.adoption.initialize") as initialize:
+            report = adopt(self.root, "company-hardware")
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.initialization, "NOT_RUN")
+        initialize.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

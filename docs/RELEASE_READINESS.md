@@ -108,4 +108,6 @@ paths and links, checks out the exact source commit, and re-verifies retained re
 evidence. It never overwrites an existing checkout or executes the restored project's
 scripts. To reproduce checks, install its dependencies and rerun the documented
 commands separately. CI rehearsal artifacts expire after 30 days; approved release
-packages need the team's long-term immutable storage and retention policy.
+packages need the team's long-term immutable storage and retention policy. Package,
+verify and restore output includes `package_sha256`; record that digest with the
+storage URI and retention decision described in [release storage](RELEASE_STORAGE.md).

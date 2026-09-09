@@ -1,10 +1,12 @@
-"""Typed, safe template preflight, bootstrap and migration-plan command line."""
+"""Typed template diagnostics, adoption, scaffolding and migration command line."""
 from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
+from .hwrepo.adoption import adopt
+from .hwrepo.doctor import doctor
 from .hwrepo.importing import import_project
 from .hwrepo.initialization import initialize
 from .hwrepo.models import ProjectKind
@@ -14,19 +16,38 @@ from .hwrepo.template import bootstrap, plan_upgrade, preflight
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("init", "preflight", "bootstrap", "upgrade-plan", "new-project", "import-project"))
+    parser.add_argument(
+        "command",
+        choices=(
+            "doctor", "adopt", "init", "preflight", "bootstrap", "upgrade-plan",
+            "new-project", "import-project",
+        ),
+    )
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--destination", type=Path)
     parser.add_argument("--project-id")
     parser.add_argument("--target-version")
     parser.add_argument("--kind", choices=[kind.value for kind in ProjectKind], default="pcb")
     parser.add_argument("--toolchain")
+    parser.add_argument("--cli", default="kicad-cli", help="KiCad CLI to inspect with doctor")
+    parser.add_argument(
+        "--native", action="store_true",
+        help="Require doctor to find Docker or an exact selected KiCad CLI",
+    )
     parser.add_argument("--source", type=Path, help="Existing .kicad_pro file to import")
     parser.add_argument("--dry-run", action="store_true", help="Preview an import without writing files")
     args = parser.parse_args()
     if args.command != "import-project" and (args.dry_run or args.source is not None):
         parser.error("--source and --dry-run require import-project")
-    if args.command == "init":
+    if args.command != "doctor" and args.native:
+        parser.error("--native requires doctor")
+    if args.command == "doctor":
+        result = doctor(args.root, args.native, args.toolchain, args.cli)
+    elif args.command == "adopt":
+        if args.project_id is None:
+            parser.error("adopt requires --project-id (the repository identity)")
+        result = adopt(args.root, args.project_id)
+    elif args.command == "init":
         if args.project_id is None:
             parser.error("init requires --project-id (the repository identity)")
         result = initialize(args.root, args.project_id)

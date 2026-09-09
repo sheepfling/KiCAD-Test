@@ -11,7 +11,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, cast
 
@@ -174,7 +174,7 @@ def execute(
 ) -> CommandEvidence:
     record = CommandEvidence(
         argv=tuple(argv),
-        started_utc=datetime.now(timezone.utc).isoformat(),
+        started_utc=datetime.now(UTC).isoformat(),
         returncode=127,
     )
     try:
@@ -428,7 +428,7 @@ def validate(
         else "FAIL"
     )
     summary = ValidationSummary(
-        timestamp_utc=datetime.now(timezone.utc).isoformat(),
+        timestamp_utc=datetime.now(UTC).isoformat(),
         checked_commit=source_before.commit or "LOCAL_UNBOUND",
         source=source_before.model_copy(update={
             "clean": source_before.clean and source_state(root) == source_before,

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote
 
@@ -394,7 +394,7 @@ def check(root: Path, today: date | None = None) -> DocumentationPolicyReport:
                     "Markdown document is unreachable from a configured documentation root.",
                 )
             )
-    effective_today = today or datetime.now(timezone.utc).date()
+    effective_today = today or datetime.now(UTC).date()
     active, expiration_findings = active_exceptions(policy.exceptions, effective_today)
     report_findings.extend(expiration_findings)
     final_findings = apply_exceptions(tuple(report_findings), active)

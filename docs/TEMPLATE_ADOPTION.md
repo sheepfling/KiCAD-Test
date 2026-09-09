@@ -16,6 +16,17 @@ python -B -m tools.template init --project-id my-hardware
 python -B -m tools.ci
 ```
 
+For a fresh GitHub fork or template-generated repository, the equivalent guided path is:
+
+```sh
+python -B -m tools.template doctor
+python -B -m tools.template adopt --project-id my-hardware
+```
+
+`adopt` runs preflight, the same transactional initialization, and the complete
+portable gate. It is safe to repeat for the same repository identity. It does not
+create a project, commit, remote, license choice or manufacturing approval.
+
 This creates an empty live workspace with automatic discovery, preserves reference
 fixtures, and records the repository identity and template version. It validates all
 changes before writing, refuses customized catalogs/designs, and is repeatable after
@@ -99,7 +110,7 @@ updated upgrade catalog while retaining their old contract version to inspect th
 
 The 0.3.0-to-1.0.0 plan adds fresh-fork initialization, configurable team policy,
 per-reference component identities, root-license cleanup and the evidence-backed release/restore path.
-The current contract records 1.0.0. A new 1.0.0 copy needs no migration; an existing
+The 1.0.0 contract records 1.0.0. A new 1.0.0 copy needs no migration; an existing
 adopter keeps its earlier version in `template-adoption.json` and uses
 `upgrade-plan --target-version 1.0.0` with the updated tools and catalog. The planner
 then returns the intervening steps. Existing adopters keep their live project and
@@ -110,3 +121,12 @@ release evidence from a clean source commit. Retain historical approved packages
 they are; do not rewrite their reports to look like new-format evidence. Change the
 adoption version only after the migration and hosted checks are reviewed. The version
 tag is created after acceptance, not by the migration helper.
+
+## Version 1.1.0 usability migration
+
+Version 1.1.0 makes Python 3.12 the single supported local and hosted baseline, adds
+the environment doctor and fresh-fork adoption command, and reports the final release
+archive SHA-256. It does not move existing projects or catalogs. Existing adopters
+keep `template-adoption.json` at 1.0.0 while applying and reviewing the updated tools,
+then run `upgrade-plan --target-version 1.1.0`, portable CI and applicable native lanes.
+Update the adoption version only after those checks pass.

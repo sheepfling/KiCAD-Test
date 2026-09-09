@@ -42,6 +42,19 @@
         "Keep working outputs and generated manifests under ignored build/. Use tools.release package and restore to retain exact outputs and source history. Preserve existing approved archives; never rewrite historical evidence to the new schema.",
         "Preserve applicable licenses and attribution, and keep authored documentation images under docs/assets/. Run portable and pinned native gates, verify hosted acceptance and restore a package, then update the adoption record to 1.0.0 after review."
       ]
+    },
+    {
+      "id": "template-1.0-to-1.1",
+      "from_version": "1.0.0",
+      "to_version": "1.1.0",
+      "breaking": true,
+      "steps": [
+        "Move the policy environment to Python 3.12 or newer, recreate its virtual environment, and install the updated development dependencies.",
+        "Apply the 1.1 tools, tests, template contract and documentation while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
+        "Run tools.template doctor before editing. Existing forks do not rerun initialization; tools.template adopt is only the one-command path for a fresh template copy or fork.",
+        "Regenerate and verify a standalone release package when applicable. Record the package_sha256 emitted by tools.release package in the team's durable release-storage receipt.",
+        "Run the full portable and pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.1.0 after review."
+      ]
     }
   ]
 }

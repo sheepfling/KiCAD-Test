@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from ..lint_registry import lint
@@ -23,7 +23,7 @@ def deviation_metrics(
     deviations: Iterable[ReleaseDeviation], today: date | None = None
 ) -> DeviationMetrics:
     """Count declared release deviations without asserting their operational closure."""
-    effective_today = today or datetime.now(timezone.utc).date()
+    effective_today = today or datetime.now(UTC).date()
     values = tuple(deviations)
     return DeviationMetrics(
         total=len(values),

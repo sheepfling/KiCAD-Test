@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .contracts import read_model, repo_path, write_model
@@ -68,7 +68,7 @@ def run_native(root: Path, project: ProjectRecord, output: Path, cli: str | None
                     "-e", "PYTHONDONTWRITEBYTECODE=1", "-e", f"PYTHONPATH=/work/{dependencies.as_posix()}",
                     "-v", f"{root}:/work", "-w", "/work", config.image, "-B", "-m", *command,
                     "--root", "/work", "--output", output.relative_to(root).as_posix())
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     output.parent.mkdir(parents=True, exist_ok=True)
     log_path = output.parent / f"{project.id}.container.command.json"
     try:

@@ -7,7 +7,7 @@ import subprocess
 import sys
 import textwrap
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import StringIO
 from unittest.mock import patch
 
@@ -21,7 +21,7 @@ ROOT = reference_root()
 def evidence(returncode: int) -> CommandEvidence:
     return CommandEvidence(
         argv=("quality-tool",),
-        started_utc=datetime.now(timezone.utc).isoformat(),
+        started_utc=datetime.now(UTC).isoformat(),
         returncode=returncode,
     )
 
@@ -128,6 +128,13 @@ class CiDriverTests(unittest.TestCase):
         self.assertNotIn("tools/ci.py", workflow)
         for mode in ("tools.ci --matrix", "tools.ci --kicad", "tools.ci --fault-probes"):
             self.assertIn(mode, workflow)
+
+    def test_dependency_updates_are_bounded_and_cover_python_and_actions(self) -> None:
+        policy = (ROOT / ".github/dependabot.yml").read_text(encoding="utf-8")
+        self.assertIn("package-ecosystem: pip", policy)
+        self.assertIn("package-ecosystem: github-actions", policy)
+        self.assertEqual(policy.count("interval: monthly"), 2)
+        self.assertEqual(policy.count("open-pull-requests-limit: 3"), 2)
 
     @unittest.skipIf(os.name == "nt", "The hosted acceptance gate runs in Ubuntu Bash")
     def test_final_hosted_gate_rejects_incomplete_results(self) -> None:

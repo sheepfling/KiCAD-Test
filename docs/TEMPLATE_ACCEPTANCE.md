@@ -92,20 +92,21 @@ checked head `bb2808bdca60c742f46b0fadf0dcf73dc15c8311`: the matrix and portable
 jobs failed, native/release jobs were skipped, and `Template acceptance` failed.
 The defect is confined to the probe branch and must never be merged.
 
-## Remaining baseline acceptance
+## Baseline publication
 
 The [1.0.0 baseline review](BASELINE_REVIEW.md) maps the requested workflow to its
-implementation and evidence. The [changelog](../CHANGELOG.md) records the prepared
-version and migration impact; publication still requires the final review and tag.
+implementation and evidence. The [changelog](../CHANGELOG.md) records the published
+version and migration impact. The annotated `v1.0.0` tag and successful post-merge
+acceptance run resolve to `37632266cb8b45631297e3ff7f6d1adb04cd41f2`.
 
 The public repository's `main` branch reports no protection. Production enforcement must still
 be configured and verified with repository-administration access; the connected
 GitHub integration returns HTTP 403 for that administration endpoint.
 
 The original scaffold is licensed under 0BSD. [Adoption cleanup](LICENSING.md)
-leaves the company's root terms to its owner before the first commit. The final reviewed baseline, version tag and
-upgrade instructions follow completion of these acceptance steps. These are tracked
-work items, not claims satisfied by local test success.
+leaves the company's root terms to its owner before the first commit. The versioned
+baseline and upgrade instructions are published; hosted team controls and real-board
+approval remain operational responsibilities.
 
 ## Decisions owned by each adopting team
 
