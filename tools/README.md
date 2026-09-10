@@ -1,7 +1,7 @@
 # Repository tools
 
 Run every CLI from the repository root as `python -B -m tools.<command>`.
-`tools.ci` is the common local and hosted entry point. See the [command guide](../docs/CHECKS_AND_CI.md).
+`tools.ci` is the common local and hosted entry point. See the [command guide](../docs/workflow/CHECKS_AND_CI.md).
 
 | Module | Responsibility |
 | --- | --- |

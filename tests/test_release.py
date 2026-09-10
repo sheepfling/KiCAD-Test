@@ -47,7 +47,7 @@ class ReleaseReadinessTests(unittest.TestCase):
         write_model(product_path, product.model_copy(update={"maturity": "engineering_review"}))
 
     def manifest(self, **updates: object) -> ReleaseManifest:
-        artifact_path = self.root / "docs/PRODUCT_WORKFLOW.md"
+        artifact_path = self.root / "docs/workflow/PRODUCT_WORKFLOW.md"
         base = ReleaseManifest(
             release_id="status-review-A",
             release_class=ReleaseClass.ENGINEERING_REVIEW,
@@ -90,7 +90,7 @@ class ReleaseReadinessTests(unittest.TestCase):
                 ReleaseArtifact(
                     id="review-workflow-record",
                     kind=ReleaseArtifactKind.REVIEW_RECORD,
-                    path="docs/PRODUCT_WORKFLOW.md",
+                    path="docs/workflow/PRODUCT_WORKFLOW.md",
                     sha256=hashlib.sha256(artifact_path.read_bytes()).hexdigest(),
                     intended_use="Independent engineering review workflow record.",
                 ),

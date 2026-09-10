@@ -28,6 +28,17 @@ class ForkWorkflowTests(unittest.TestCase):
         initialize_git(self.root)
 
     def test_initialize_empty_fork_is_repeatable_and_retains_reference_tests(self) -> None:
+        team_notes = self.root / "docs/team/architecture.md"
+        team_notes.write_text("# Team architecture\n\nDurable adopter decision.\n", encoding="utf-8")
+        team_readme = self.root / "docs/team/README.md"
+        team_readme.write_text(
+            team_readme.read_text(encoding="utf-8")
+            + "\n## Team index\n\n- [Architecture](architecture.md)\n",
+            encoding="utf-8",
+        )
+        before_team_docs = {
+            path: path.read_bytes() for path in (team_notes, team_readme)
+        }
         result = initialize(self.root, "team-hardware")
         self.assertEqual(result.status, "PASS", result.issues)
         self.assertTrue(
@@ -38,6 +49,10 @@ class ForkWorkflowTests(unittest.TestCase):
         self.assertEqual(build_matrix(self.root).include, ())
         self.assertEqual(product_check(self.root).status, "PASS")
         self.assertEqual(check_generation(self.root), ())
+        self.assertEqual(
+            {path: path.read_bytes() for path in before_team_docs},
+            before_team_docs,
+        )
         self.add_project()
         self.assertEqual(initialize(self.root, "team-hardware").changed, ())
         self.assertEqual([row.project for row in build_matrix(self.root).include], ["team-signal"])

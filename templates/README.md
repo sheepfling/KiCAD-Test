@@ -17,7 +17,10 @@ Catalog examples describe shared identities. [Mechanical handoff](mechanical-han
 and governance examples become board-local reviewed records. The typed release-manifest
 example illustrates the checker schema. Use `tools.release prepare` to populate
 real source, dependency and evidence hashes automatically; placeholders cannot pass.
+`OPTIONAL_NO_AUTO_MERGE.gitattributes` is an opt-in policy fragment for teams that
+want every KiCad file conflict to require deliberate file-level resolution. Review
+and append it to the root `.gitattributes` only when that matches the team's process.
 
 The template contract and upgrade catalog describe supported adoption steps. See
-[template adoption](../docs/TEMPLATE_ADOPTION.md), [BOM policy](../docs/BOM_POLICY.md),
-[sourcing](../docs/IDENTITY_AND_SOURCING.md) and [library policy](../docs/LIBRARIES.md).
+[template adoption](../docs/workflow/TEMPLATE_ADOPTION.md), [BOM policy](../docs/workflow/BOM_POLICY.md),
+[sourcing](../docs/workflow/IDENTITY_AND_SOURCING.md) and [library policy](../docs/workflow/LIBRARIES.md).

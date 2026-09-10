@@ -43,7 +43,7 @@ For a PCB, fill in the independent component/net expectations in `tests/contract
 Native net names can include supply signs, buses and hierarchy; an unassigned
 footprint can be represented but still receives KiCad's own checks. An empty PCB
 contract cannot pass native validation. Add local `test_*.py` files for requirements
-that need executable assertions; see [test extension](../tests/README.md).
+that need executable assertions; see [test extension](../../tests/README.md).
 
 An exported netlist can seed an explicitly labelled observation snapshot for import
 regression testing. It does not independently prove the circuit is correct. Keep
@@ -65,5 +65,6 @@ resolve the findings. Do not change the assurance profile merely to make an impo
 green. Simulation-only examples can require a different engineering policy or a
 future simulation lane; importing model files does not execute a SPICE simulation.
 
-The [demo rehearsal](DEMO_REHEARSAL.md) records the tested boundaries, failures and
-workflow fixes. Use [checks and CI](CHECKS_AND_CI.md) for pinned-container execution.
+Use [checks and CI](CHECKS_AND_CI.md) for pinned-container execution. Keep rehearsal
+receipts and reports in the temporary workspace or CI artifacts; promote only stable
+requirements and decisions into the project or team documentation.

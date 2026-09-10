@@ -18,6 +18,8 @@ content rather than conventional documents and have a separately scoped format.
   exact on-disk case, resolve to a file, and name a real local heading fragment.
 - `DOC104` and `DOC105`: configured documentation roots and all source documents
   must form a reachable documentation graph.
+- `DOC106`: repository-wide Markdown must remain under a configured `docs/`
+  namespace, apart from the `docs/README.md` entry point.
 
 This combines the useful distinction between document linting and repository-link
 policy: document layout is not a substitute for verifying links, anchors and
@@ -25,10 +27,11 @@ portable paths; graph validation is not a substitute for readable Markdown.
 
 ## Roots and narrow exceptions
 
-`docs/documentation-policy.json` is the typed, versioned policy record. It lists
-the entry-point documents for each documentation area. Add a new root only when it
-is intentionally an independent entry point; otherwise link the document from an
-existing root.
+`catalog/documentation-policy.json` is the typed, versioned policy record. It lists
+the entry-point documents and the allowed repository-wide documentation namespaces.
+The default namespaces are scaffold-owned `docs/workflow/` and adopter-owned
+`docs/team/`. Add a new root only when it is intentionally an independent entry
+point; otherwise link the document from an existing root.
 
 An exception must be scoped to one policy code and one repository path, include a
 reason and an expiry date. Expired or unused exceptions fail the same gate. Do not

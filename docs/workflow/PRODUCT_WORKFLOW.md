@@ -152,4 +152,5 @@ Do not relabel the legacy `production` assurance profile as completed product
 release support. Its local metadata requirements are prerequisites, not proof of
 live hosting controls, mechanical acceptance or release authority.
 
-See [acceptance coverage and remaining work](TEMPLATE_ACCEPTANCE.md).
+Use [checks and CI](CHECKS_AND_CI.md) for executable acceptance and
+[release readiness](RELEASE_READINESS.md) for production evidence boundaries.

@@ -13,7 +13,7 @@ A standalone board owns its revision, for example `battery-board-v1.2.0`. A prod
 owns its integration revision and selected variants independently. The scaffold's
 version describes workflow compatibility, not a board revision.
 
-The [scaffold changelog](../CHANGELOG.md) names each baseline and its adoption impact.
+The [scaffold changelog](../../CHANGELOG.md) names each baseline and its adoption impact.
 The Python package, `tools.hwrepo.__version__` and template contract carry the same
 version. Candidate metadata alone does not publish a release: the accepted baseline
 gets an annotated `v<version>` source tag after review and passing hosted checks.

@@ -92,7 +92,7 @@ Update the contract and adoption record when the migration is reviewed. On a cur
 
 This migration removes committed reproducible exports, retains reference test inputs
 independently from the live catalogs, and centralizes dependency installation. See
-[the audit](REPOSITORY_AUDIT.md) and [folder standard](REPOSITORY_STRUCTURE.md).
+the [folder standard](REPOSITORY_STRUCTURE.md).
 
 ## Version 0.3.0 project islands
 
@@ -131,11 +131,14 @@ keep `template-adoption.json` at 1.0.0 while applying and reviewing the updated 
 then run `upgrade-plan --target-version 1.1.0`, portable CI and applicable native lanes.
 Update the adoption version only after those checks pass.
 
-## Version 1.1.1 Markdown-generator migration
+## Version 1.2.0 documentation and Markdown migration
 
-Version 1.1.1 moves project scaffolds, imported-project notes and release-review
-records to shared typed SnakeMD builders. Existing projects and authored Markdown
-remain unchanged. Reinstall the pinned dependencies, apply the updated tools and
-tests, then run `upgrade-plan --target-version 1.1.1`, portable CI and applicable
-native lanes. Inspect newly generated workflow documents before updating the
-adoption version.
+Version 1.2.0 moves project scaffolds, imported-project notes and release-review
+records to shared typed SnakeMD builders. It also moves scaffold-owned guidance to
+`docs/workflow/` and reserves `docs/team/` for organization-wide adopter material.
+Board and product docs remain in their islands. Reinstall the pinned dependencies,
+apply the updated tools and tests, move existing repository-wide adopter docs into
+`docs/team/`, and update local links. Then run
+`upgrade-plan --target-version 1.2.0`, portable CI and applicable native lanes.
+Inspect generated workflow documents and the documentation graph before updating
+the adoption version.
