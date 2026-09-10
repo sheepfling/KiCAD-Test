@@ -30,6 +30,11 @@ class ForkWorkflowTests(unittest.TestCase):
     def test_initialize_empty_fork_is_repeatable_and_retains_reference_tests(self) -> None:
         result = initialize(self.root, "team-hardware")
         self.assertEqual(result.status, "PASS", result.issues)
+        self.assertTrue(
+            (self.root / "README.md").read_text(encoding="utf-8").startswith(
+                "# team-hardware\n\n"
+            )
+        )
         self.assertEqual(build_matrix(self.root).include, ())
         self.assertEqual(product_check(self.root).status, "PASS")
         self.assertEqual(check_generation(self.root), ())

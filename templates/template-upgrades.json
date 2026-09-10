@@ -55,6 +55,18 @@
         "Regenerate and verify a standalone release package when applicable. Record the package_sha256 emitted by tools.release package in the team's durable release-storage receipt.",
         "Run the full portable and pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.1.0 after review."
       ]
+    },
+    {
+      "id": "template-1.1.0-to-1.1.1",
+      "from_version": "1.1.0",
+      "to_version": "1.1.1",
+      "breaking": false,
+      "steps": [
+        "Apply the 1.1.1 Python tools, tests, dependency pins and template contract while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
+        "Recreate or update the policy virtual environment from pyproject.toml so SnakeMD 2.4.1 and snakemd-stubs 2.4.1.0 are installed together.",
+        "Create and import a disposable project, inspect its generated Markdown, and prepare an engineering-review candidate when applicable.",
+        "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.1.1 after review."
+      ]
     }
   ]
 }

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .contracts import read_model, repo_path, write_model
 from .discovery import load_registry, settings
+from .markdown import design_notes, project_readme, write_markdown
 from .models import ProjectKind, ProjectManifest, ProjectScaffoldReport, ToolchainsCatalog
 
 
@@ -38,19 +39,8 @@ def write_scaffold(root: Path, stage: Path, manifest: ProjectManifest) -> None:
         (stage / folder).mkdir()
     write_model(stage / "project.json", manifest)
     shutil.copy2(repo_path(root, f"templates/project-tests/{manifest.kind.value}.json"), stage / "tests/contract.json")
-    (stage / "README.md").write_text(
-        f"# {manifest.id}\n\nDevelopment project — NOT FOR MANUFACTURE.\n\n"
-        "Create the native project in `kicad/` using the toolchain selected in\n"
-        "[project.json](project.json). Complete the source inventory and\n"
-        "[test contract](tests/contract.json). See [design notes](docs/README.md).\n\n"
-        f"From the repository root: `python -B -m tools.ci --project {manifest.id}`.\n"
-        "Checks will fail until the native files and engineering expectations exist.\n",
-        encoding="utf-8",
-    )
-    (stage / "docs/README.md").write_text(
-        "# Design notes\n\nRecord purpose, requirements, interfaces, design decisions and bring-up results here.\n",
-        encoding="utf-8",
-    )
+    write_markdown(stage / "README.md", project_readme(manifest.id))
+    write_markdown(stage / "docs/README.md", design_notes())
 
 
 def new_project(root: Path, project_id: str, kind: ProjectKind, toolchain_id: str) -> ProjectScaffoldReport:

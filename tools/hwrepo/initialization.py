@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .contracts import read_model, repo_path
 from .licensing import template_license
+from .markdown import markdown_text, retitled_document
 from .models import (
     InterfacesCatalog,
     LibrariesCatalog,
@@ -58,8 +59,9 @@ def initialize(root: Path, project_id: str) -> TemplateInitReport:
             for name, model in updates.items()
         }
         readme = repo_path(root, "README.md")
-        _, _, remaining = readme.read_text(encoding="utf-8").partition("\n")
-        payloads[readme] = (f"# {project_id}\n" + remaining).encode()
+        payloads[readme] = markdown_text(
+            retitled_document(readme.read_text(encoding="utf-8"), project_id)
+        ).encode("utf-8")
         license_path = template_license(root)
         if license_path is not None:
             payloads[license_path] = None

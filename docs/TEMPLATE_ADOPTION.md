@@ -130,3 +130,12 @@ archive SHA-256. It does not move existing projects or catalogs. Existing adopte
 keep `template-adoption.json` at 1.0.0 while applying and reviewing the updated tools,
 then run `upgrade-plan --target-version 1.1.0`, portable CI and applicable native lanes.
 Update the adoption version only after those checks pass.
+
+## Version 1.1.1 Markdown-generator migration
+
+Version 1.1.1 moves project scaffolds, imported-project notes and release-review
+records to shared typed SnakeMD builders. Existing projects and authored Markdown
+remain unchanged. Reinstall the pinned dependencies, apply the updated tools and
+tests, then run `upgrade-plan --target-version 1.1.1`, portable CI and applicable
+native lanes. Inspect newly generated workflow documents before updating the
+adoption version.

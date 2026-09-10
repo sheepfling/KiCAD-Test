@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kicad-team-template-policy"
-version = "1.1.0"
+version = "1.1.1"
 description = "Typed policy and deterministic review tooling for the generic KiCad team template"
 requires-python = ">=3.12"
 dependencies = [
   "pydantic==2.13.4",
   "pydantic-core==2.46.4",
   "annotated-types==0.8.0",
+  "snakemd==2.4.1",
   "typing-extensions==4.16.0",
   "typing-inspection==0.4.4",
 ]
@@ -20,6 +21,7 @@ dev = [
   "pyright==1.1.411",
   "nodeenv==1.10.0",
   "ruff==0.16.1",
+  "snakemd-stubs==2.4.1.0",
 ]
 
 [tool.setuptools.packages.find]

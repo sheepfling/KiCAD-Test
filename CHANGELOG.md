@@ -3,6 +3,18 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/VERSIONING.md) and [adoption](docs/TEMPLATE_ADOPTION.md).
 
+## 1.1.1 — 2026-09-10
+
+- Replace hand-built project, import and release-review Markdown with shared typed
+  SnakeMD document builders.
+- Pin SnakeMD 2.4.1 at runtime and snakemd-stubs 2.4.1.0 for strict static analysis.
+- Add deterministic generator contracts for links, native paths, lists, inline code
+  and final-newline behavior.
+
+Existing 1.1.0 adopters can preserve all project and catalog records. Apply the
+updated Python tools and dependency pins, inspect regenerated workflow documents,
+and follow the nonbreaking 1.1.0-to-1.1.1 migration.
+
 ## 1.1.0 — 2026-09-09
 
 - Require the same Python 3.12 minimum locally, in package metadata and in CI.

@@ -10,6 +10,7 @@ from .contracts import read_model, repo_path, write_model
 from .discovery import load_config, load_registry
 from .evidence import digest, evidence_path, source_state, verify_portable
 from .generation import expected_outputs
+from .markdown import release_review, write_markdown
 from .models import (
     CommandEvidence,
     EvidenceFile,
@@ -145,11 +146,10 @@ def prepare(root: Path, release_id: str, project_ids: tuple[str, ...],
                 destination = output / "products" / selection.product / Path(name).name
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(content)
-    (output / "review.md").write_text(
-        f"# {release_id}\n\nSource: `{source.commit}`. Class: `{release_class.value}`.\n\n"
-        "Candidate for engineering review. This report records executed checks; it is not human approval.\n"
-        "Manufacturing and assembly files require review of layers, origin, population, and supplier requirements.\n",
-        encoding="utf-8")
+    write_markdown(
+        output / "review.md",
+        release_review(release_id, source.commit, release_class.value),
+    )
     artifacts = tuple(ReleaseArtifact(id=f"artifact-{index}", kind=artifact_kind(path, output),
                         path=path.relative_to(root).as_posix(), sha256=digest(path),
                         intended_use="Release candidate review; see approval and release class.")
