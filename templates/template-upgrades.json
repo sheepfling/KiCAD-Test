@@ -92,6 +92,17 @@
         "Keep complete existing boards as pcb. For each pcb_only island that needs electrical or manufacturing authority, add or adopt its matching schematic, complete the independent component/net contract and migrate it to pcb in a reviewed change.",
         "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.3.0 after review."
       ]
+    },
+    {
+      "id": "template-1.3.0-to-1.3.1",
+      "from_version": "1.3.0",
+      "to_version": "1.3.1",
+      "breaking": false,
+      "steps": [
+        "Apply the 1.3.1 policy tools, templates, tests and documentation while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
+        "For each development or production pcb or pcb_only island, inspect the KiCad DRC settings before native validation. Enable KiCad 10.0.5 default ignored checks; do not copy them into tests/contract.json merely to make CI pass.",
+        "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.3.1 after review."
+      ]
     }
   ]
 }

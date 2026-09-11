@@ -12,6 +12,11 @@ authoritative schematic: it stays not for manufacture, validates board DRC/layou
 and cannot supply a product assembly BOM or non-review release. The production template
 adds explicit release controls.
 
+PCB and PCB-only development contracts start with no ignored DRC checks. KiCad 10.0.5
+may mark several checks ignored in a new project's Board Setup. Enable those checks in
+KiCad before the first native run; do not copy default ignores into the contract to
+make a development board pass.
+
 Manifest source paths are project-relative. Only `shared_source_roots` and
 `shared_inputs` are repository-relative. Toolchain version and image are resolved
 from `toolchain_id`, so they are not duplicated in project files.

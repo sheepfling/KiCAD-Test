@@ -38,6 +38,7 @@ class IslandTests(unittest.TestCase):
         self.assertEqual(report.status, "PASS", report.issues)
         island = self.root / "projects/battery-board"
         manifest = read_model(island / "project.json", ProjectManifest)
+        contract = read_model(island / "tests/contract.json", ProjectTestContract)
         self.assertEqual(manifest.assurance_profile, "development")
         self.assertFalse((island / manifest.project).exists())
         self.assertTrue((island / manifest.checks).is_file())
@@ -45,6 +46,7 @@ class IslandTests(unittest.TestCase):
         self.assertIn("battery-board", {project.id for project in load_registry(self.root).projects})
         self.assertEqual(lint(self.root, ["battery-board"]).status, "FAIL")
         self.assertEqual(documentation_check(self.root).status, "PASS")
+        self.assertEqual(contract.validation.expected_ignored_checks, IgnoredChecks(erc=(), drc=()))
         # Repeating a scaffold must not overwrite a contributor's work.
         (island / "docs/README.md").write_text("keep these notes", encoding="utf-8")
         self.assertEqual(new_project(self.root, "battery-board", ProjectKind.PCB, "kicad-10.0.5").status, "FAIL")
@@ -66,6 +68,7 @@ class IslandTests(unittest.TestCase):
         self.assertEqual(manifest.assurance_profile, "development")
         self.assertIsInstance(contract.validation, PcbOnlyValidationContract)
         self.assertIn(".kicad_pcb", " ".join(manifest.required_inputs))
+        self.assertEqual(contract.validation.expected_ignored_checks, IgnoredChecks(erc=(), drc=()))
         self.assertIn("PCB-only capture lane", (island / "README.md").read_text(encoding="utf-8"))
 
     def test_local_manifest_paths_cannot_escape_the_island(self) -> None:

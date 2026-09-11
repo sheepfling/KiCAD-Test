@@ -3,6 +3,16 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/workflow/VERSIONING.md) and [adoption](docs/workflow/TEMPLATE_ADOPTION.md).
 
+## 1.3.1 — 2026-09-11
+
+- Clarify the first-board step required to enable KiCad 10.0.5's default ignored DRC
+  checks before native validation of a development board.
+- Preserve the strict rule that development and production contracts cannot suppress
+  ERC or DRC checks.
+
+Existing 1.3.0 adopters should review their board-level KiCad DRC settings before
+following the 1.3.0-to-1.3.1 migration.
+
 ## 1.3.0 — 2026-09-11
 
 - Add a typed `pcb_only` project kind for importing a `.kicad_pcb` that lacks a
