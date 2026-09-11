@@ -9,7 +9,7 @@ description = "Typed policy and deterministic review tooling for the generic KiC
 requires-python = ">=3.12"
 dependencies = [
   "pydantic==2.13.4",
-  "pydantic-core==2.46.4",
+  "pydantic-core==2.48.0",
   "annotated-types==0.8.0",
   "snakemd==2.4.1",
   "typing-extensions==4.16.0",
