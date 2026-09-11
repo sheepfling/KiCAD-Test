@@ -7,6 +7,8 @@ from urllib.parse import quote
 
 from snakemd import Document, Inline, MDList, Paragraph
 
+from .models import ProjectKind
+
 
 def paragraph(document: Document, *content: str | Inline) -> None:
     """Append one structured paragraph while preserving inline semantics."""
@@ -45,10 +47,16 @@ def design_notes() -> Document:
     return document
 
 
-def project_readme(project_id: str) -> Document:
+def project_readme(project_id: str, kind: ProjectKind = ProjectKind.PCB) -> Document:
     document = Document()
     document.add_heading(project_id)
     document.add_paragraph("Development project — NOT FOR MANUFACTURE.")
+    if kind is ProjectKind.PCB_ONLY:
+        document.add_paragraph(
+            "PCB-only capture lane: native DRC and layout review apply, but ERC, netlist "
+            "parity, product assembly and non-review release authority require an "
+            "authoritative schematic and migration to pcb."
+        )
     paragraph(
         document,
         "Create the native project in ",
@@ -74,11 +82,21 @@ def project_readme(project_id: str) -> Document:
 
 
 def imported_project_readme(
-    project_id: str, project_path: str, upstream_documents: Iterable[str]
+    project_id: str,
+    project_path: str,
+    upstream_documents: Iterable[str],
+    kind: ProjectKind = ProjectKind.PCB,
 ) -> Document:
     document = Document()
     document.add_heading(project_id)
     document.add_paragraph("Imported development project — NOT FOR MANUFACTURE.")
+    if kind is ProjectKind.PCB_ONLY:
+        document.add_paragraph(
+            "PCB-only import: this island preserves a board with no matching schematic. "
+            "It has DRC/layout checks only and cannot support product assembly or a "
+            "non-review release until an authoritative schematic is added and it is "
+            "migrated to pcb."
+        )
     paragraph(
         document,
         "Open ",
@@ -91,7 +109,8 @@ def imported_project_readme(
         Inline("import receipt", link="docs/import.json"),
         ", including excluded files, and ",
         Inline("design notes", link="docs/README.md"),
-        ". Complete the independent ",
+        ". Complete the ",
+        "board-local " if kind is ProjectKind.PCB_ONLY else "independent ",
         Inline("test contract", link="tests/contract.json"),
         " and ",
         Inline("project metadata", link="project.json"),

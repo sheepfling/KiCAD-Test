@@ -22,6 +22,11 @@ This is the shortest path from a fresh fork to a checked project island. Use
 4. Create and save the design under `projects/battery-board/kicad/`. Complete its
    `project.json`, `tests/contract.json` and design notes; the generated skeleton is
    intentionally incomplete and fails until it describes the real board.
+
+   A legacy `.kicad_pcb` with no matching schematic can instead use `--kind pcb_only`
+   or the import command. That is a not-for-manufacture capture lane with DRC/layout
+   checks; add an authoritative schematic and migrate it to `pcb` before product or
+   manufacturing work.
 5. Run the fast island check, then the pinned native check:
 
    ```sh

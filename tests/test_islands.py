@@ -12,7 +12,13 @@ from tools.ci import project_static_pipeline
 from tools.hwrepo.contracts import read_model, write_model
 from tools.hwrepo.discovery import load_config, load_registry
 from tools.hwrepo.documentation import check as documentation_check
-from tools.hwrepo.models import IgnoredChecks, ProjectKind, ProjectManifest, ProjectTestContract
+from tools.hwrepo.models import (
+    IgnoredChecks,
+    PcbOnlyValidationContract,
+    ProjectKind,
+    ProjectManifest,
+    ProjectTestContract,
+)
 from tools.hwrepo.project_tests import run_tests
 from tools.hwrepo.scaffold import new_project
 from tools.lint_registry import lint
@@ -49,6 +55,18 @@ class IslandTests(unittest.TestCase):
             with self.subTest(identifier=identifier):
                 self.assertEqual(new_project(self.root, identifier, ProjectKind.PCB, pin).status, "FAIL")
         self.assertFalse((self.root / "projects/new-board").exists())
+
+    def test_pcb_only_scaffold_declares_a_not_for_manufacture_board_capture_lane(self) -> None:
+        report = new_project(self.root, "legacy-layout", ProjectKind.PCB_ONLY, "kicad-10.0.5")
+        self.assertEqual(report.status, "PASS", report.issues)
+        island = self.root / "projects/legacy-layout"
+        manifest = read_model(island / "project.json", ProjectManifest)
+        contract = read_model(island / "tests/contract.json", ProjectTestContract)
+        self.assertEqual(manifest.kind, ProjectKind.PCB_ONLY)
+        self.assertEqual(manifest.assurance_profile, "development")
+        self.assertIsInstance(contract.validation, PcbOnlyValidationContract)
+        self.assertIn(".kicad_pcb", " ".join(manifest.required_inputs))
+        self.assertIn("PCB-only capture lane", (island / "README.md").read_text(encoding="utf-8"))
 
     def test_local_manifest_paths_cannot_escape_the_island(self) -> None:
         path = self.root / "examples/projects/controller/project.json"

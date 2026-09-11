@@ -151,3 +151,14 @@ run `upgrade-plan --target-version 1.2.1`, portable CI and applicable native lan
 Pydantic selects the compatible `pydantic-core` distribution; do not add that or
 other Pydantic transitive packages as direct pins unless repository source imports
 them directly.
+
+## Version 1.3.0 PCB-only import migration
+
+Version 1.3.0 adds the `pcb_only` project kind for board sources that have no matching
+schematic. Apply the templates, typed policy tools and documentation, then use the
+new kind only for not-for-manufacture training or development work. It runs board DRC
+and rendering, but has no ERC, schematic-parity, netlist identity, product assembly
+or non-review release authority. Keep existing complete boards as `pcb`; reconstruct
+or adopt a schematic before changing a PCB-only island into a manufacturing-capable
+board. Run `upgrade-plan --target-version 1.3.0`, portable CI and applicable native
+lanes before updating the adoption version.

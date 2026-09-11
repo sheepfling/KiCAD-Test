@@ -99,7 +99,7 @@ def verify_portable(root: Path, reference: EvidenceFile, source: SourceState) ->
 def verify_native(root: Path, reference: EvidenceFile, source: SourceState,
                   project_id: str) -> ValidationSummary:
     from .discovery import load_config, load_registry
-    from .models import ProjectKind, SchematicValidationContract
+    from .models import PcbOnlyValidationContract, ProjectKind, SchematicValidationContract
 
     path = evidence_path(root, reference)
     report = read_model(path, ValidationSummary)
@@ -112,13 +112,17 @@ def verify_native(root: Path, reference: EvidenceFile, source: SourceState,
             or report.not_for_manufacture != config.not_for_manufacture):
         raise ValueError("Native report metadata differs from the project manifest")
     required = {"governance", "repository", "product_policy", "source_scope", "source_unchanged",
-                "toolchain", "erc", "schematic_svg"}
+                "toolchain"}
     if project.kind is ProjectKind.PCB:
-        required.update({"drc", "netlist", "pcb_svg"})
+        required.update({"erc", "schematic_svg", "drc", "netlist", "pcb_svg"})
+    elif project.kind is ProjectKind.PCB_ONLY:
+        required.update({"drc", "pcb_svg"})
     elif project.kind is ProjectKind.SYSTEM_WIRING:
-        required.add("system_contract")
+        required.update({"erc", "schematic_svg", "system_contract"})
     elif project.kind is ProjectKind.HARNESS_INTERFACE:
-        required.add("harness_contract")
+        required.update({"erc", "schematic_svg", "harness_contract"})
+    else:
+        required.update({"erc", "schematic_svg"})
     if config.component_identity.required or (
         isinstance(config.validation, SchematicValidationContract) and config.validation.components
     ):
@@ -143,10 +147,17 @@ def verify_native(root: Path, reference: EvidenceFile, source: SourceState,
     from ..validate import check_netlist, check_report, svg_files
     from .models import PcbValidationContract
 
-    commands = {"version", "erc", "schematic_svg"}
-    if check_report(path.parent / "erc.json", "erc", config):
-        raise ValueError("Retained ERC report contains findings")
-    svg_files(path.parent, "schematic_svg")
+    commands = {"version"}
+    if isinstance(config.validation, PcbOnlyValidationContract):
+        commands.update({"drc", "pcb_svg"})
+        if check_report(path.parent / "drc.json", "drc", config):
+            raise ValueError("Retained DRC report contains findings")
+        svg_files(path.parent, "pcb_svg")
+    else:
+        commands.update({"erc", "schematic_svg"})
+        if check_report(path.parent / "erc.json", "erc", config):
+            raise ValueError("Retained ERC report contains findings")
+        svg_files(path.parent, "schematic_svg")
     if isinstance(config.validation, PcbValidationContract):
         commands.update({"drc", "netlist", "pcb_svg"})
         if check_report(path.parent / "drc.json", "drc", config):

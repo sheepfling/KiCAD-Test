@@ -19,12 +19,12 @@ bytes under `projects/battery-board/kicad/`. Import leaves the originals untouch
 never overwrites an existing island and publishes the destination only after copying
 and verifying its complete inventory.
 
-The importer follows hierarchical `Sheetfile` references, includes local symbols,
-footprints, simulation models and other permitted supporting files, and inventories
-all copied inputs. Separate sibling/nested projects get separate imports. Symlinks,
-case conflicts, escaping or missing sheets and unsupported PCB-only projects fail
-with a diagnostic. Dependencies outside the selected project directory need a
-separate, explicit migration into local or declared shared storage.
+The importer follows hierarchical `Sheetfile` references when a schematic exists,
+includes local symbols, footprints, simulation models and other permitted supporting
+files, and inventories all copied inputs. Separate sibling/nested projects get
+separate imports. Symlinks, case conflicts and escaping or missing sheets fail with a
+diagnostic. Dependencies outside the selected project directory need a separate,
+explicit migration into local or declared shared storage.
 
 Review `docs/import.json` before accepting the import. It records file hashes and
 exclusions: local preferences/caches, working fabrication exports, separate designs
@@ -39,11 +39,20 @@ Import success means the copy completed. It does not mean the design passes chec
 The importer creates a **development** manifest and a test-contract skeleton without
 inventing part IDs, approved suppliers or electrical requirements.
 
-For a PCB, fill in the independent component/net expectations in `tests/contract.json`.
+For a PCB with its matching schematic, fill in the independent component/net
+expectations in `tests/contract.json`.
 Native net names can include supply signs, buses and hierarchy; an unassigned
 footprint can be represented but still receives KiCad's own checks. An empty PCB
 contract cannot pass native validation. Add local `test_*.py` files for requirements
 that need executable assertions; see [test extension](../../tests/README.md).
+
+When the source has a `.kicad_pcb` but no matching `.kicad_sch`, import creates a
+`pcb_only` island. It preserves and inventories the board, runs native DRC and a PCB
+render, and marks the island development/not-for-manufacture. It intentionally does
+not claim ERC, schematic parity, a netlist/component contract, product assembly BOM
+coverage or manufacturing-release readiness. Treat it as a capture and review lane:
+reconstruct or adopt an authoritative schematic, then migrate the island to `pcb`
+before it becomes an electrical or production deliverable.
 
 An exported netlist can seed an explicitly labelled observation snapshot for import
 regression testing. It does not independently prove the circuit is correct. Keep

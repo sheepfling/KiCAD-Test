@@ -11,11 +11,17 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.support import initialize_git, reference_root
-from tools.hwrepo.contracts import read_model
+from tools.hwrepo.contracts import read_model, write_model
 from tools.hwrepo.discovery import load_registry
 from tools.hwrepo.importing import import_project
-from tools.hwrepo.models import ProjectManifest
+from tools.hwrepo.models import (
+    PcbOnlyValidationContract,
+    ProjectKind,
+    ProjectManifest,
+    ProjectTestContract,
+)
 from tools.hwrepo.repository import cad_dependencies
+from tools.lint_registry import lint
 
 
 class ImportTests(unittest.TestCase):
@@ -89,11 +95,47 @@ class ImportTests(unittest.TestCase):
             self.assertEqual(report.status, "FAIL")
             self.assertFalse((self.root / report.directory).exists())
 
-    def test_board_without_schematic_is_explicitly_unsupported(self) -> None:
+    def test_pcb_only_import_is_inventoried_and_limited_to_board_validation(self) -> None:
         self.project.with_suffix(".kicad_sch").unlink()
+        shutil.rmtree(self.source / "sheets")
+        (self.source / "shared.kicad_sch").unlink()
+        before = {
+            path.relative_to(self.source).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in self.source.rglob("*") if path.is_file()
+        }
+        dry_run = self.run_import(True)
+        self.assertEqual(dry_run.status, "PASS", dry_run.issues)
+        self.assertFalse((self.root / dry_run.directory).exists())
+        self.assertIn("authoritative schematic", dry_run.next_step)
+        result = self.run_import()
+        self.assertEqual(result.status, "PASS", result.issues)
+        island = self.root / result.directory
+        manifest = read_model(island / "project.json", ProjectManifest)
+        contract = read_model(island / "tests/contract.json", ProjectTestContract)
+        self.assertEqual(manifest.kind, ProjectKind.PCB_ONLY)
+        self.assertEqual(set(manifest.required_inputs), {f"kicad/{name}" for name in before})
+        self.assertFalse(manifest.component_identity.required)
+        self.assertIsInstance(contract.validation, PcbOnlyValidationContract)
+        self.assertIn("PCB-only import", (island / "README.md").read_text(encoding="utf-8"))
+        self.assertEqual(lint(self.root, [manifest.id]).status, "PASS")
+        self.assertEqual(
+            {path.relative_to(self.source).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+             for path in self.source.rglob("*") if path.is_file()},
+            before,
+        )
+        write_model(
+            island / "project.json",
+            manifest.model_copy(update={"assurance_profile": "production"}),
+        )
+        self.assertTrue(any("pcb_only must remain" in issue for issue in lint(self.root, [manifest.id]).issues))
+
+    def test_project_without_a_schematic_or_board_fails_without_publishing(self) -> None:
+        self.project.with_suffix(".kicad_sch").unlink()
+        self.project.with_suffix(".kicad_pcb").unlink()
         result = self.run_import()
         self.assertEqual(result.status, "FAIL")
-        self.assertIn("PCB-only", result.issues[0])
+        self.assertIn("matching .kicad_sch or .kicad_pcb", result.issues[0])
+        self.assertFalse((self.root / result.directory).exists())
 
     def test_symlink_rejected_and_interrupted_copy_cleans_staging(self) -> None:
         link = self.source / "linked.kicad_sym"

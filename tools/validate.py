@@ -23,6 +23,7 @@ from .hwrepo.models import (
     CommandEvidence,
     ComponentContract,
     NetlistContract,
+    PcbOnlyValidationContract,
     PcbValidationContract,
     ProjectConfig,
     ProjectKind,
@@ -110,9 +111,12 @@ def check_report(
             for sheet in sheets
         )
     else:
+        drc_categories = ("violations", "unconnected_items")
+        if config is None or config.kind is not ProjectKind.PCB_ONLY:
+            drc_categories += ("schematic_parity",)
         findings = tuple(
             _sequence(data.get(key), f"DRC {key}")
-            for key in ("violations", "unconnected_items", "schematic_parity")
+            for key in drc_categories
         )
     return sum(len(items) for items in findings)
 def read_netlist(path: Path) -> NetlistContract:
@@ -285,23 +289,22 @@ def validate(
             image=config.image,
         )
         base = repo_path(root, config.project)
-        commands: dict[str, tuple[str, ...]] = {
-            "erc": (
-                "sch", "erc", "--format", "json", "--severity-all",
-                "--exit-code-violations", "--output", str(output / "erc.json"),
-                str(base.with_suffix(".kicad_sch")),
-            ),
-            "schematic_svg": (
-                "sch", "export", "svg", "--output", str(output / "schematic"),
-                str(base.with_suffix(".kicad_sch")),
-            ),
-        }
+        commands: dict[str, tuple[str, ...]] = {}
         if config.kind is ProjectKind.PCB:
             validation = config.validation
             if not isinstance(validation, PcbValidationContract):
                 raise ValueError("PCB project requires a PCB validation contract")
             commands.update(
                 {
+                    "erc": (
+                        "sch", "erc", "--format", "json", "--severity-all",
+                        "--exit-code-violations", "--output", str(output / "erc.json"),
+                        str(base.with_suffix(".kicad_sch")),
+                    ),
+                    "schematic_svg": (
+                        "sch", "export", "svg", "--output", str(output / "schematic"),
+                        str(base.with_suffix(".kicad_sch")),
+                    ),
                     "drc": (
                         "pcb", "drc", "--format", "json", "--severity-all",
                         "--exit-code-violations", "--schematic-parity", "--refill-zones",
@@ -317,7 +320,38 @@ def validate(
                     ),
                 }
             )
-        elif config.kind is ProjectKind.SYSTEM_WIRING:
+        elif config.kind is ProjectKind.PCB_ONLY:
+            validation = config.validation
+            if not isinstance(validation, PcbOnlyValidationContract):
+                raise ValueError("PCB-only project requires a PCB-only validation contract")
+            commands.update(
+                {
+                    "drc": (
+                        "pcb", "drc", "--format", "json", "--severity-all",
+                        "--exit-code-violations", "--refill-zones",
+                        "--output", str(output / "drc.json"), str(base.with_suffix(".kicad_pcb")),
+                    ),
+                    "pcb_svg": (
+                        "pcb", "export", "svg", "--layers", "F.Cu,F.SilkS,Edge.Cuts,Cmts.User",
+                        "--output", str(output / "pcb.svg"), str(base.with_suffix(".kicad_pcb")),
+                    ),
+                }
+            )
+        else:
+            commands.update(
+                {
+                    "erc": (
+                        "sch", "erc", "--format", "json", "--severity-all",
+                        "--exit-code-violations", "--output", str(output / "erc.json"),
+                        str(base.with_suffix(".kicad_sch")),
+                    ),
+                    "schematic_svg": (
+                        "sch", "export", "svg", "--output", str(output / "schematic"),
+                        str(base.with_suffix(".kicad_sch")),
+                    ),
+                }
+            )
+        if config.kind is ProjectKind.SYSTEM_WIRING:
             check_system_wiring_contract(root, config)
             checks["system_contract"] = CheckEvidence(status="PASS")
         elif config.kind is ProjectKind.HARNESS_INTERFACE:
@@ -340,9 +374,8 @@ def validate(
                     kind: Literal["erc", "drc"] = "erc" if name == "erc" else "drc"
                     # KiCad uses exit 5 for findings. Retain their count and report
                     # identity even when the gate correctly rejects the design.
-                    findings = check_report(output / f"{name}.json", kind)
+                    findings = check_report(output / f"{name}.json", kind, config)
                     evidence = evidence.model_copy(update={"findings": findings})
-                    check_report(output / f"{name}.json", kind, config)
                     ignored = (
                         config.validation.expected_ignored_checks.erc
                         if kind == "erc"
@@ -410,13 +443,17 @@ def validate(
     except (OSError, ValueError) as exc:
         checks["source_unchanged"] = CheckEvidence(status="FAIL", error=str(exc))
 
-    required = {"source_scope", "toolchain", "erc", "schematic_svg", "source_unchanged"}
+    required = {"source_scope", "toolchain", "source_unchanged"}
     if config is not None and config.kind is ProjectKind.PCB:
-        required.update({"drc", "netlist", "pcb_svg"})
-    elif config is not None and config.kind is ProjectKind.SYSTEM_WIRING:
-        required.add("system_contract")
-    elif config is not None and config.kind is ProjectKind.HARNESS_INTERFACE:
-        required.add("harness_contract")
+        required.update({"erc", "schematic_svg", "drc", "netlist", "pcb_svg"})
+    elif config is not None and config.kind is ProjectKind.PCB_ONLY:
+        required.update({"drc", "pcb_svg"})
+    else:
+        required.update({"erc", "schematic_svg"})
+        if config is not None and config.kind is ProjectKind.SYSTEM_WIRING:
+            required.add("system_contract")
+        elif config is not None and config.kind is ProjectKind.HARNESS_INTERFACE:
+            required.add("harness_contract")
     if config is not None and (config.component_identity.required or (
         isinstance(config.validation, SchematicValidationContract) and config.validation.components
     )):

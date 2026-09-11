@@ -80,6 +80,18 @@
         "Recreate or update the policy virtual environment from pyproject.toml. Pydantic owns its published compatible pydantic-core requirement; do not add Pydantic transitive packages as direct pins unless repository source imports them directly.",
         "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.2.1 after review."
       ]
+    },
+    {
+      "id": "template-1.2.1-to-1.3.0",
+      "from_version": "1.2.1",
+      "to_version": "1.3.0",
+      "breaking": false,
+      "steps": [
+        "Apply the 1.3.0 policy tools, templates, tests and documentation while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
+        "Use pcb_only only for an imported or layout-only board that has no authoritative matching schematic. It remains not for manufacture and cannot be selected for a product assembly or a non-review release.",
+        "Keep complete existing boards as pcb. For each pcb_only island that needs electrical or manufacturing authority, add or adopt its matching schematic, complete the independent component/net contract and migrate it to pcb in a reviewed change.",
+        "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.3.0 after review."
+      ]
     }
   ]
 }

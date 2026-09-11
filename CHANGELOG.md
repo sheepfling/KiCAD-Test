@@ -3,6 +3,19 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/workflow/VERSIONING.md) and [adoption](docs/workflow/TEMPLATE_ADOPTION.md).
 
+## 1.3.0 — 2026-09-11
+
+- Add a typed `pcb_only` project kind for importing a `.kicad_pcb` that lacks a
+  matching authoritative schematic.
+- Preserve and inventory the board, run board DRC and render checks, while excluding
+  ERC, schematic parity and netlist/component assertions that cannot be supported.
+- Keep PCB-only islands not for manufacture and block their use in product assemblies
+  and non-review releases until they are migrated to a complete `pcb` project.
+
+Existing 1.2.1 adopters can retain all complete projects. Apply the templates and
+policy tools, use the PCB-only lane only for board capture/review, and follow the
+1.2.1-to-1.3.0 migration before updating their adoption record.
+
 ## 1.2.1 — 2026-09-11
 
 - Update Pydantic to 2.13.5.

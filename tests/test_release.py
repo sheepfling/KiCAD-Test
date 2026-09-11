@@ -16,6 +16,7 @@ from tools.hwrepo.models import (
     InterfacesCatalog,
     LibrariesCatalog,
     ProductRecord,
+    ProjectKind,
     ReleaseArtifact,
     ReleaseArtifactKind,
     ReleaseClass,
@@ -27,6 +28,7 @@ from tools.hwrepo.models import (
     ReleaseVariant,
 )
 from tools.hwrepo.release import check
+from tools.hwrepo.scaffold import new_project
 
 ROOT = reference_root()
 COMMIT = "a" * 40
@@ -149,6 +151,17 @@ class ReleaseReadinessTests(unittest.TestCase):
         with patch("tools.hwrepo.release.git", side_effect=self.git):
             report = check(self.root, manifest)
         self.assertIn("RELEASE_ASSURANCE", {finding.code for finding in report.issues})
+
+    def test_pcb_only_project_cannot_enter_a_build_release(self) -> None:
+        created = new_project(self.root, "legacy-layout", ProjectKind.PCB_ONLY, "kicad-10.0.5")
+        self.assertEqual(created.status, "PASS", created.issues)
+        manifest = self.manifest(
+            release_class=ReleaseClass.PROTOTYPE,
+            projects=("legacy-layout",),
+        )
+        with patch("tools.hwrepo.release.git", side_effect=self.git):
+            report = check(self.root, manifest)
+        self.assertIn("RELEASE_PROJECT_KIND", {finding.code for finding in report.issues})
 
     def test_revision_and_library_binding_cannot_be_stale(self) -> None:
         base = self.manifest()

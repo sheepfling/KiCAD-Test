@@ -299,6 +299,13 @@ def lint(
                     issues.append(f"project {identifier}: mechanical_handoff: {exc}")
             lint_governance_record(root, project.governance_record, identifier, issues)
 
+        if project.kind is ProjectKind.PCB_ONLY and (
+            project.assurance_profile == "production" or not config.not_for_manufacture
+        ):
+            issues.append(
+                f"project {identifier}: pcb_only must remain not_for_manufacture with a training or development profile"
+            )
+
         try:
             source = hashes(root, list(config.source_roots))
             if set(source) != set(config.required_inputs):
@@ -310,20 +317,34 @@ def lint(
             issues.append(f"project {identifier}: invalid source scope: {exc}")
 
         schematic = project_file.with_suffix(".kicad_sch")
-        if not schematic.is_file():
-            issues.append(f"project {identifier}: schematic source is missing")
-        elif schematic.relative_to(root).as_posix() not in config.required_inputs:
-            issues.append(f"project {identifier}: schematic source is not inventoried")
         pcb = project_file.with_suffix(".kicad_pcb")
         if project.kind is ProjectKind.PCB:
+            if not schematic.is_file():
+                issues.append(f"project {identifier}: schematic source is missing")
+            elif schematic.relative_to(root).as_posix() not in config.required_inputs:
+                issues.append(f"project {identifier}: schematic source is not inventoried")
             if not pcb.is_file():
                 issues.append(f"project {identifier}: PCB source is missing")
             elif pcb.relative_to(root).as_posix() not in config.required_inputs:
                 issues.append(f"project {identifier}: PCB source is not inventoried")
-        elif pcb.exists():
-            issues.append(
-                f"project {identifier}: {project.kind.value} project must not contain a PCB source"
-            )
+        elif project.kind is ProjectKind.PCB_ONLY:
+            if schematic.exists():
+                issues.append(
+                    f"project {identifier}: pcb_only must not contain a matching schematic source; use pcb instead"
+                )
+            if not pcb.is_file():
+                issues.append(f"project {identifier}: PCB source is missing")
+            elif pcb.relative_to(root).as_posix() not in config.required_inputs:
+                issues.append(f"project {identifier}: PCB source is not inventoried")
+        else:
+            if not schematic.is_file():
+                issues.append(f"project {identifier}: schematic source is missing")
+            elif schematic.relative_to(root).as_posix() not in config.required_inputs:
+                issues.append(f"project {identifier}: schematic source is not inventoried")
+            if pcb.exists():
+                issues.append(
+                    f"project {identifier}: {project.kind.value} project must not contain a PCB source"
+                )
 
         identity = project.component_identity
         if project.assurance_profile == "production" and project.kind in {ProjectKind.PCB, ProjectKind.SCHEMATIC} and not identity.required:

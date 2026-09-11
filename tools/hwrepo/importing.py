@@ -51,14 +51,21 @@ def import_project(root: Path, source_project: Path, project_id: str,
         project = repo_path(source, source_project.name)
         if project.suffix != ".kicad_pro" or not project.is_file():
             raise ValueError("Select an existing .kicad_pro file, not a directory")
-        if not project.with_suffix(".kicad_sch").is_file():
-            raise ValueError("PCB-only projects are not yet supported; a matching schematic is required")
-        kind = ProjectKind.PCB if project.with_suffix(".kicad_pcb").is_file() else ProjectKind.SCHEMATIC
+        schematic = project.with_suffix(".kicad_sch")
+        pcb = project.with_suffix(".kicad_pcb")
+        if schematic.is_file():
+            kind = ProjectKind.PCB if pcb.is_file() else ProjectKind.SCHEMATIC
+        elif pcb.is_file():
+            kind = ProjectKind.PCB_ONLY
+        else:
+            raise ValueError("A matching .kicad_sch or .kicad_pcb source is required")
         manifest = prepare_manifest(root, project_id, kind, toolchain_id)
         destination = repo_path(root, f"projects/{manifest.id}")
         if source == root or source in destination.parents or destination in source.parents:
             raise ValueError("Source and destination directories must not overlap")
-        sheets = schematic_files(source, project.with_suffix(".kicad_sch"))
+        sheets: set[Path] = set()
+        if schematic.is_file():
+            sheets = schematic_files(source, schematic)
         nested = {path.parent for path in source.rglob("*.kicad_pro") if path.parent != source}
         seen: set[str] = set()
         for path in sorted(source.rglob("*")):
@@ -92,11 +99,30 @@ def import_project(root: Path, source_project: Path, project_id: str,
                 excluded[name] = reason
             else:
                 copied[name] = hashlib.sha256(path.read_bytes()).hexdigest()
-        required = {project.name, *(path.relative_to(source).as_posix() for path in sheets)}
+        required: set[str] = {
+            project.name,
+            *(path.relative_to(source).as_posix() for path in sheets),
+        }
+        if kind is ProjectKind.PCB_ONLY:
+            required.add(pcb.name)
         if not required.issubset(copied):
             raise ValueError(f"Required design sources were excluded: {sorted(required - set(copied))}")
-        report = ProjectImportReport(status="PASS", directory=f"projects/{manifest.id}",
-            source_project=project.name, dry_run=dry_run, copied_sha256=copied, excluded=excluded)
+        next_step = (
+            "Review board dependencies and DRC/layout expectations, then run tools.ci. "
+            "Add an authoritative schematic and migrate to pcb before product or manufacturing work."
+            if kind is ProjectKind.PCB_ONLY
+            else "Review dependencies, populate independent test expectations, then run tools.ci. "
+            "Import does not approve the design."
+        )
+        report = ProjectImportReport(
+            status="PASS",
+            directory=f"projects/{manifest.id}",
+            source_project=project.name,
+            dry_run=dry_run,
+            copied_sha256=copied,
+            excluded=excluded,
+            next_step=next_step,
+        )
         if dry_run:
             return report
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -118,7 +144,7 @@ def import_project(root: Path, source_project: Path, project_id: str,
         upstream_docs = sorted(name for name in copied if name.lower().endswith(".md"))
         write_markdown(
             stage / "README.md",
-            imported_project_readme(manifest.id, manifest.project, upstream_docs),
+            imported_project_readme(manifest.id, manifest.project, upstream_docs, manifest.kind),
         )
         os.rename(stage, destination)
         stage = None
