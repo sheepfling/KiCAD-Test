@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "template_version": "1.2.1",
+  "template_version": "1.3.0",
   "required_paths": [
     "README.md",
     "CHANGELOG.md",
@@ -25,6 +25,8 @@
     "tools/hwrepo/scaffold.py",
     "tools/hwrepo/markdown.py",
     "templates/pcb-project-config.example.json",
+    "templates/pcb-only-project-config.example.json",
+    "templates/project-tests/pcb_only.json",
     "tools/hwrepo/importing.py",
     "tools/native_deps.py",
     "docs/workflow/IMPORT_WORKFLOW.md",

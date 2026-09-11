@@ -39,7 +39,7 @@ def write_scaffold(root: Path, stage: Path, manifest: ProjectManifest) -> None:
         (stage / folder).mkdir()
     write_model(stage / "project.json", manifest)
     shutil.copy2(repo_path(root, f"templates/project-tests/{manifest.kind.value}.json"), stage / "tests/contract.json")
-    write_markdown(stage / "README.md", project_readme(manifest.id))
+    write_markdown(stage / "README.md", project_readme(manifest.id, manifest.kind))
     write_markdown(stage / "docs/README.md", design_notes())
 
 

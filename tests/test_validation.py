@@ -6,11 +6,21 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tests.support import initialize_git, reference_root
 from tools.check_all import check_all
 from tools.hwrepo.discovery import load_config
-from tools.hwrepo.models import IgnoredChecks, PcbValidationContract, ProjectKind
+from tools.hwrepo.models import (
+    CommandEvidence,
+    ComponentIdentity,
+    IgnoredChecks,
+    PcbOnlyValidationContract,
+    PcbValidationContract,
+    ProjectConfig,
+    ProjectKind,
+)
+from tools.hwrepo.scaffold import new_project
 from tools.validate import check_netlist, check_report, hashes, read_netlist, validate
 
 ROOT: Path = reference_root()
@@ -74,6 +84,104 @@ class ValidationTests(unittest.TestCase):
         data: JsonObject = {"kicad_version": "10.0.0", "violations": [{}], "unconnected_items": [{}], "schematic_parity": [{}]}
         self.assertEqual(check_report(self.report(data), "drc"), 3)
     ####
+
+    def test_pcb_only_drc_has_no_schematic_parity_requirement(self) -> None:
+        config = ProjectConfig(
+            schema_version="1",
+            kind=ProjectKind.PCB_ONLY,
+            assurance_profile="development",
+            not_for_manufacture=True,
+            project_id="legacy-layout",
+            component_identity=ComponentIdentity(required=False, part_ids=()),
+            toolchain_id="kicad-10.0.0",
+            kicad_version="10.0.0",
+            image="example.invalid/kicad@sha256:" + "a" * 64,
+            project="projects/legacy-layout/kicad/legacy-layout.kicad_pro",
+            source_roots=("projects/legacy-layout/kicad",),
+            required_inputs=(
+                "projects/legacy-layout/kicad/legacy-layout.kicad_pro",
+                "projects/legacy-layout/kicad/legacy-layout.kicad_pcb",
+            ),
+            validation=PcbOnlyValidationContract(
+                kind=ProjectKind.PCB_ONLY,
+                expected_ignored_checks=IgnoredChecks(erc=(), drc=()),
+            ),
+        )
+        data: JsonObject = {
+            "$schema": "https://schemas.kicad.org/drc.v1.json",
+            "kicad_version": "10.0.0",
+            "included_severities": ["error", "warning", "exclusion"],
+            "ignored_checks": [],
+            "violations": [],
+            "unconnected_items": [],
+        }
+        self.assertEqual(check_report(self.report(data), "drc", config), 0)
+
+    def test_pcb_only_native_lane_runs_board_checks_without_schematic_commands(self) -> None:
+        self.fixture()
+        for name in (
+            "templates/pcb-only-project-config.example.json",
+            "templates/project-tests/pcb_only.json",
+        ):
+            destination = self.root / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / name, destination)
+        created = new_project(self.root, "legacy-layout", ProjectKind.PCB_ONLY, "kicad-10.0.5")
+        self.assertEqual(created.status, "PASS", created.issues)
+        island = self.root / "projects/legacy-layout/kicad"
+        (island / "legacy-layout.kicad_pro").write_text("{}", encoding="utf-8")
+        (island / "legacy-layout.kicad_pcb").write_text("(kicad_pcb)", encoding="utf-8")
+        commands: list[tuple[str, ...]] = []
+
+        def run_kicad(argv: tuple[str, ...], _cwd: Path, output: Path, name: str) -> CommandEvidence:
+            commands.append(argv)
+            if name == "version":
+                return CommandEvidence(
+                    argv=argv,
+                    started_utc="2026-01-01T00:00:00+00:00",
+                    returncode=0,
+                    stdout="10.0.5\n",
+                )
+            if name == "drc":
+                (output / "drc.json").write_text(json.dumps({
+                    "$schema": "https://schemas.kicad.org/drc.v1.json",
+                    "kicad_version": "10.0.5",
+                    "included_severities": ["error", "warning", "exclusion"],
+                    "ignored_checks": [],
+                    "violations": [],
+                    "unconnected_items": [],
+                }), encoding="utf-8")
+            elif name == "pcb_svg":
+                (output / "pcb.svg").write_text(
+                    '<svg xmlns="http://www.w3.org/2000/svg"/>', encoding="utf-8"
+                )
+            else:
+                raise AssertionError(f"Unexpected KiCad command: {name}")
+            return CommandEvidence(
+                argv=argv,
+                started_utc="2026-01-01T00:00:00+00:00",
+                returncode=0,
+            )
+
+        with (
+            patch("tools.validate.shutil.which", return_value="fake-kicad-cli"),
+            patch("tools.validate.execute", side_effect=run_kicad),
+        ):
+            result = validate(
+                self.root,
+                self.root / "pcb-only-native",
+                "fake-kicad-cli",
+                Path("projects/legacy-layout/project.json"),
+            )
+        self.assertEqual(result.status, "PASS", result.checks)
+        self.assertEqual(set(result.checks), {
+            "governance", "repository", "product_policy", "source_scope", "toolchain",
+            "drc", "pcb_svg", "source_unchanged",
+        })
+        calls = "\n".join(" ".join(command[1:]) for command in commands)
+        self.assertIn("pcb drc", calls)
+        self.assertIn("pcb export svg", calls)
+        self.assertNotIn("sch ", calls)
 
     def test_empty_netlist_cannot_pass(self) -> None:
         path: Path = self.root / "netlist.xml"

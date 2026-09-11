@@ -35,8 +35,10 @@ See [test extension](../../tests/README.md).
 
 Native output directories and review snapshots are write-once. Use a fresh path each
 attempt and close KiCad first. PCB projects receive ERC, DRC/parity, netlist identity
-and schematic/PCB SVG checks. Schematic projects receive ERC and schematic SVG;
-wiring and harness views also receive their typed relationship coverage checks.
+and schematic/PCB SVG checks. PCB-only projects receive DRC and a PCB SVG only; they
+remain not for manufacture until an authoritative schematic makes full electrical
+validation possible. Schematic projects receive ERC and schematic SVG; wiring and
+harness views also receive their typed relationship coverage checks.
 All native kinds protect declared source hashes.
 
 ## Adding and sharing projects

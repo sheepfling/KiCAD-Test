@@ -6,8 +6,11 @@ The scaffold contains no circuit. Create the real KiCad design and complete its 
 For manual creation, copy the appropriate `*-project-config.example.json` to
 `projects/<id>/project.json` and the matching `project-tests/<kind>.json` to
 `projects/<id>/tests/contract.json`. Replace placeholders, set local native paths,
-and declare actual required inputs. The PCB/schematic/wiring/harness templates all
-use the same island layout. The production template adds explicit release controls.
+and declare actual required inputs. The PCB, PCB-only, schematic, wiring and harness
+templates all use the same island layout. Use `pcb_only` only while a board has no
+authoritative schematic: it stays not for manufacture, validates board DRC/layout,
+and cannot supply a product assembly BOM or non-review release. The production template
+adds explicit release controls.
 
 Manifest source paths are project-relative. Only `shared_source_roots` and
 `shared_inputs` are repository-relative. Toolchain version and image are resolved

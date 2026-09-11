@@ -308,6 +308,14 @@ def check(root: Path, manifest: ReleaseManifest, today: date | None = None) -> R
 
     required_maturity = RELEASE_MATURITY[manifest.release_class]
     for project in projects:
+        if project.kind is ProjectKind.PCB_ONLY and manifest.release_class is not ReleaseClass.ENGINEERING_REVIEW:
+            findings.append(
+                issue(
+                    "RELEASE_PROJECT_KIND",
+                    project.id,
+                    "pcb_only has no authoritative schematic and is limited to engineering review",
+                )
+            )
         if manifest.release_class is not ReleaseClass.ENGINEERING_REVIEW and (
             project.assurance_profile != "production" or project.status != "release_candidate"
         ):

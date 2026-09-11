@@ -147,6 +147,7 @@ class ProjectKind(str, Enum):
     """The engineering deliverable represented by one native KiCad project."""
 
     PCB = "pcb"
+    PCB_ONLY = "pcb_only"
     SCHEMATIC = "schematic"
     SYSTEM_WIRING = "system_wiring"
     HARNESS_INTERFACE = "harness_interface"
@@ -156,6 +157,7 @@ class ProjectKind(str, Enum):
         """Return the human-facing directory name for this design kind."""
         return {
             ProjectKind.PCB: "pcb",
+            ProjectKind.PCB_ONLY: "pcb-only",
             ProjectKind.SCHEMATIC: "schematic",
             ProjectKind.SYSTEM_WIRING: "system-wiring",
             ProjectKind.HARNESS_INTERFACE: "harness-interface",
@@ -226,6 +228,13 @@ class PcbValidationContract(StrictModel):
     expected_ignored_checks: IgnoredChecks
 
 
+class PcbOnlyValidationContract(StrictModel):
+    """Native board-layout checks where no authoritative schematic is available."""
+
+    kind: Literal[ProjectKind.PCB_ONLY]
+    expected_ignored_checks: IgnoredChecks
+
+
 class SchematicValidationContract(StrictModel):
     """Native checks for a schematic-only deliverable with no manufactured PCB."""
 
@@ -284,6 +293,7 @@ class HarnessInterfaceValidationContract(ProductTraceabilityValidationContract):
 
 ProjectValidationContract = Annotated[
     PcbValidationContract
+    | PcbOnlyValidationContract
     | SchematicValidationContract
     | SystemWiringValidationContract
     | HarnessInterfaceValidationContract,
