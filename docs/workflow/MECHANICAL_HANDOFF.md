@@ -16,7 +16,7 @@ The PCB's `Edge.Cuts`, mechanical layers, footprints, and 3D models must agree w
 
 The synthetic controller fixture has no approved dimensions, stackup, or enclosure interface. It is for training only.
 
-The [system example](../examples/products/status-indicator-system/docs/mechanical.md) and
+The [system example](../../examples/products/status-indicator-system/docs/mechanical.md) and
 [product workflow](PRODUCT_WORKFLOW.md) add machine-checked instance references,
 units, drawing paths and scoped evidence to this process. They intentionally leave
 physical fit, dimensional accuracy, collision/tolerance analysis and human review

@@ -14,7 +14,7 @@ from .models import (
     DocumentationPolicyReport,
 )
 
-POLICY_PATH = "docs/documentation-policy.json"
+POLICY_PATH = "catalog/documentation-policy.json"
 DEFAULT_ROOTS = ("README.md",)
 PRESERVED_LEGAL_NAMES = frozenset({"license.md", "licence.md", "copying.md", "notice.md"})
 IGNORED_DIRECTORIES = frozenset(
@@ -260,9 +260,42 @@ def validate_policy_paths(root: Path, policy: DocumentationPolicy) -> Documentat
     """Apply the shared portable-path contract to typed documentation policy values."""
     for configured_root in policy.roots:
         repo_path(root, configured_root)
+    for namespace in policy.documentation_namespaces:
+        repo_path(root, namespace)
+        parts = PurePosixPath(namespace).parts
+        if len(parts) < 2 or parts[0] != "docs":
+            raise ValueError("Documentation namespaces must be directories below docs/")
     for exception in policy.exceptions:
         repo_path(root, exception.path)
     return policy
+
+
+def namespace_issues(
+    documents: tuple[Path, ...], root: Path, namespaces: tuple[str, ...]
+) -> tuple[DocumentationIssue, ...]:
+    """Keep repository-wide guides in explicit scaffold or adopter namespaces."""
+    if not namespaces:
+        return ()
+    allowed = tuple(PurePosixPath(namespace).parts for namespace in namespaces)
+    findings: list[DocumentationIssue] = []
+    for document in documents:
+        relative = PurePosixPath(label(document, root))
+        if not relative.parts or relative.parts[0] != "docs":
+            continue
+        if relative == PurePosixPath("docs/README.md"):
+            continue
+        if any(relative.parts[: len(namespace)] == namespace for namespace in allowed):
+            continue
+        findings.append(
+            issue(
+                "DOC106",
+                document,
+                root,
+                1,
+                "Repository-wide Markdown must live in a configured docs namespace.",
+            )
+        )
+    return tuple(findings)
 
 
 def active_exceptions(
@@ -343,6 +376,9 @@ def check(root: Path, today: date | None = None) -> DocumentationPolicyReport:
             )
         )
     documents = markdown_files(resolved_root)
+    report_findings.extend(
+        namespace_issues(documents, resolved_root, policy.documentation_namespaces)
+    )
     anchors_by_path: dict[str, dict[str, int]] = {}
     document_text: dict[str, str] = {}
     for document in documents:

@@ -7,5 +7,5 @@ guidance is tracked. Product variant views are generated inside each product's o
 
 Use a new `python -B -m tools.hardware snapshot --output build/review-001` directory
 for a retained review package and `tools.hardware verify-snapshot --output build/review-001`
-to verify its bytes. See the [BOM policy](../docs/BOM_POLICY.md) for the distinction
+to verify its bytes. See the [BOM policy](../docs/workflow/BOM_POLICY.md) for the distinction
 between authored inputs, working exports and frozen released outputs.

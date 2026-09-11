@@ -8,7 +8,8 @@ in `project.json`; it does not add another directory level.
 | --- | --- | --- |
 | `projects/<id>/` | Board or deliverable owner | Native design, local libraries, manifest, docs, tests, optional firmware and release records |
 | `products/<id>/` | System integrator | `product.json`, integration docs/tests and release records linking project IDs |
-| `docs/` | Process maintainers | Team workflow, common policy and adoption guidance |
+| `docs/workflow/` | Scaffold maintainers | Durable reusable workflow, policy and adoption guidance |
+| `docs/team/` | Adopting team | Durable organization-wide decisions and process |
 | `tools/` | Tool maintainers | Shared runners, typed models, discovery, validation and exports |
 | `tests/` | Tool maintainers | Regression tests of the shared tooling |
 | `catalog/` | Library, electrical and process owners | Shared identities, approved toolchains, product index and project discovery roots |
@@ -18,6 +19,21 @@ in `project.json`; it does not add another directory level.
 | `.github/` | Repository maintainers | Shared workflows and review forms |
 | `generated/`, `schemas/` | Tooling | Only their guidance files; derived shared exports are ignored |
 | Any `build/` | The generating run | Nothing tracked; local generated views, native exports and test evidence |
+
+## Documentation ownership
+
+The [documentation map](../README.md) is the single entry point for repository-wide
+documentation. Scaffold guidance lives in `docs/workflow/`, which keeps upstream
+template changes separate from adopter content. Organization-wide documentation
+lives in `docs/team/`. Add team subfolders only when they contain real documents,
+and link those pages from `docs/team/README.md`.
+
+Keep board documentation in `projects/<id>/docs/` and product integration material
+in `products/<id>/docs/`. This repeatable island pattern lets a board remain useful
+on its own and prevents the repository-wide docs tree from becoming a second project
+catalog. Dated run reports, trial results and investigation logs belong in issues,
+pull requests, CI artifacts or ignored `build/` directories. Approved release
+evidence follows the [release-storage policy](RELEASE_STORAGE.md).
 
 ## Inside a project
 

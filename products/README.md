@@ -11,6 +11,6 @@ not mistaken for product definitions.
 
 Generated variant BOMs, system/connection views and harness schedules go into that
 product's ignored `build/` directory. Authored assembly definitions stay in Git;
-retain exact release artifacts according to the [BOM policy](../docs/BOM_POLICY.md).
-See [product workflow](../docs/PRODUCT_WORKFLOW.md) and the
+retain exact release artifacts according to the [BOM policy](../docs/workflow/BOM_POLICY.md).
+See [product workflow](../docs/workflow/PRODUCT_WORKFLOW.md) and the
 [reference system](../examples/products/status-indicator-system/README.md).

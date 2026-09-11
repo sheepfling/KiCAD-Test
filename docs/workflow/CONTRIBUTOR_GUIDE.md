@@ -8,7 +8,7 @@ project identity and branch names to the adopted repository.
 ## 01 / Get set up once
 
 Install Git, Python 3.12+ and the repository's approved KiCad build. Follow the
-[Python environment setup](../README.md#checks) before running checks. Clone your repository, keeping the complete project and its adjacent libraries together. Replace `REPOSITORY_URL` and `REVIEW_BRANCH` below with the repository and branch assigned for the work. Confirm the default branch and the example's availability with the maintainer.
+[Python environment setup](../../README.md#checks) before running checks. Clone your repository, keeping the complete project and its adjacent libraries together. Replace `REPOSITORY_URL` and `REVIEW_BRANCH` below with the repository and branch assigned for the work. Confirm the default branch and the example's availability with the maintainer.
 
 ```sh
 git clone "REPOSITORY_URL" kicad-project

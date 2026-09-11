@@ -13,4 +13,4 @@ selects the required native inventory and checks; kinds are not folder categorie
 PCB and schematic projects can stand alone. Wiring/harness views reference the
 optional product whose relationships they describe. A schematic line by itself does
 not establish cable construction, mechanical fit or an approved electrical interface.
-Use [project-local test contracts](../tests/README.md) and the [product workflow](PRODUCT_WORKFLOW.md).
+Use [project-local test contracts](../../tests/README.md) and the [product workflow](PRODUCT_WORKFLOW.md).

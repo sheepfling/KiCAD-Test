@@ -31,7 +31,7 @@ python -B -m tools.docs_policy
 Repeated IDs/tags are OR selections; exclusions apply afterward. A selection matching
 no projects fails. No selection means the full set. Custom project/product tests run
 in separate Python processes; add `test_*.py` files without editing the workflow.
-See [test extension](../tests/README.md).
+See [test extension](../../tests/README.md).
 
 Native output directories and review snapshots are write-once. Use a fresh path each
 attempt and close KiCad first. PCB projects receive ERC, DRC/parity, netlist identity

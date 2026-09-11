@@ -17,6 +17,7 @@ class DocumentationPolicyTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         (self.root / "docs").mkdir()
+        (self.root / "catalog").mkdir()
 
     def write_policy(
         self,
@@ -24,7 +25,7 @@ class DocumentationPolicyTests(unittest.TestCase):
         exceptions: tuple[DocumentationException, ...] = (),
     ) -> None:
         write_model(
-            self.root / "docs/documentation-policy.json",
+            self.root / "catalog/documentation-policy.json",
             DocumentationPolicy(roots=roots, exceptions=exceptions),
         )
 
@@ -99,6 +100,40 @@ class DocumentationPolicyTests(unittest.TestCase):
         self.write("docs/orphan.md", "# Orphan\n")
 
         self.assertEqual(self.codes(), {"DOC101", "DOC105"})
+
+    def test_configured_documentation_namespaces_keep_the_root_uncluttered(self) -> None:
+        write_model(
+            self.root / "catalog/documentation-policy.json",
+            DocumentationPolicy(
+                roots=("README.md",),
+                documentation_namespaces=("docs/workflow", "docs/team"),
+            ),
+        )
+        self.write(
+            "README.md",
+            "# Root\n\n[Docs](docs/README.md)\n",
+        )
+        self.write(
+            "docs/README.md",
+            "# Documentation\n\n[Workflow](workflow/guide.md)\n[Team](team/README.md)\n"
+        )
+        self.write("docs/workflow/guide.md", "# Guide\n")
+        self.write("docs/team/README.md", "# Team documentation\n")
+        self.assertEqual(self.codes(), set())
+
+        self.write("docs/run-2026-09-10.md", "# One run\n")
+        self.assertEqual(self.codes(), {"DOC105", "DOC106"})
+
+    def test_documentation_namespace_must_be_below_docs(self) -> None:
+        write_model(
+            self.root / "catalog/documentation-policy.json",
+            DocumentationPolicy(
+                roots=("README.md",),
+                documentation_namespaces=("reports",),
+            ),
+        )
+        self.write("README.md", "# Root\n")
+        self.assertEqual(self.codes(), {"DOC900"})
 
     def test_unsafe_policy_path_fails_closed(self) -> None:
         self.write_policy(roots=("../outside.md",))

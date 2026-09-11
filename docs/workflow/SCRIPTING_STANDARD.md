@@ -55,6 +55,7 @@ temporary directory and tests deterministic output without requiring committed c
 - tools/hwrepo/generation.py — deterministic typed projections.
 - tools/hwrepo/repository.py — portability and discovery adapters.
 - tools/hwrepo/documentation.py — typed Markdown layout and repository-documentation graph policy.
+- tools/hwrepo/markdown.py — typed SnakeMD builders for workflow-created Markdown.
 - tools/*.py — narrow CLI/KiCad adapters, invoked from the repository root as
   `python -m tools.<command>`. Direct execution (`python tools/<command>.py`) is
   unsupported because it changes Python's import root.
@@ -77,8 +78,9 @@ direct-entry-point test proving a policy check cannot be bypassed.
 Run `python -B -m tools.ci`; it invokes Markdown documentation policy, Ruff, Pyright
 and behavior tests before reporting the portable policy result. `python -m tools.ci
 --matrix`, `python -m tools.ci --kicad` and `python -m tools.ci --fault-probes`
-are the corresponding GitHub pipeline modes. The pinned
-development set is Pydantic 2.13.4, Ruff 0.16.1 and Pyright 1.1.411; hosted CI
+are the corresponding GitHub pipeline modes. The pinned runtime and development set
+includes Pydantic 2.13.4, SnakeMD 2.4.1, snakemd-stubs 2.4.1.0, Ruff 0.16.1 and
+Pyright 1.1.411; hosted CI
 installs those exact versions before running the same checks on Windows, Linux
 and macOS. Native KiCad remains a separate, pinned-toolchain lane.
 

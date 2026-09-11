@@ -45,5 +45,9 @@ def reference_root() -> Path:
         if readme.exists():
             shutil.copy2(readme, destination / directory / "README.md")
     shutil.copytree(SOURCE_ROOT / "examples/catalog", destination / "catalog", dirs_exist_ok=True)
+    shutil.copy2(
+        SOURCE_ROOT / "catalog/documentation-policy.json",
+        destination / "catalog/documentation-policy.json",
+    )
     initialize_git(destination)
     return destination

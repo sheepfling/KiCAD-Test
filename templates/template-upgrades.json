@@ -55,6 +55,20 @@
         "Regenerate and verify a standalone release package when applicable. Record the package_sha256 emitted by tools.release package in the team's durable release-storage receipt.",
         "Run the full portable and pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.1.0 after review."
       ]
+    },
+    {
+      "id": "template-1.1.0-to-1.2.0",
+      "from_version": "1.1.0",
+      "to_version": "1.2.0",
+      "breaking": true,
+      "steps": [
+        "Apply the 1.2.0 Python tools, tests, dependency pins and template contract while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
+        "Recreate or update the policy virtual environment from pyproject.toml so SnakeMD 2.4.1 and snakemd-stubs 2.4.1.0 are installed together.",
+        "Move scaffold-owned repository guidance from docs/ into docs/workflow/, move organization-wide adopter documentation into docs/team/, and update links. Keep board and product documentation inside their existing islands.",
+        "Delete dated audit, rehearsal and acceptance snapshots after preserving any required evidence in the applicable pull request, CI run or release storage. Move the documentation policy record to catalog/documentation-policy.json.",
+        "Create and import a disposable project, inspect its generated Markdown, and prepare an engineering-review candidate when applicable.",
+        "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.2.0 after review."
+      ]
     }
   ]
 }

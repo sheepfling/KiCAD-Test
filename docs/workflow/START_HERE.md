@@ -7,11 +7,11 @@ to understand what belongs with each board and what is shared.
 
 1. For private company work, start with [bootstrap](TEMPLATE_ADOPTION.md#bootstrap)
    and choose [company licensing terms](LICENSING.md) before the first commit.
-   For a public fork or existing copy, complete the [Python setup](../README.md#first-run-setup).
+   For a public fork or existing copy, complete the [Python setup](../../README.md#first-run-setup).
    Run `python -B -m tools.template doctor`, then
    `python -B -m tools.template adopt --project-id my-hardware`. The adoption command
    initializes the fresh fork and runs the full portable gate.
-2. For an optional [reference-project rehearsal](../examples/README.md), use a separate
+2. For an optional [reference-project rehearsal](../../examples/README.md), use a separate
    uninitialized template checkout: initialization disables live example discovery.
    Check Git status before and after opening it in the exact catalogued KiCad version.
 3. Create an adopted project with `tools.template new-project`, choosing its ID, kind

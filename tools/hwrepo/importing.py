@@ -7,9 +7,9 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from urllib.parse import quote
 
 from .contracts import repo_path, write_model
+from .markdown import imported_project_readme, write_markdown
 from .models import ComponentIdentity, ProjectImportReport, ProjectKind
 from .repository import ephemeral, generated_artifact, unmanaged_artifact
 from .scaffold import prepare_manifest, write_scaffold
@@ -115,17 +115,11 @@ def import_project(root: Path, source_project: Path, project_id: str,
             if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
                 raise ValueError(f"Source changed during import: {name}")
         write_model(stage / "docs/import.json", report)
-        upstream_docs = "".join(f"- [Upstream {name}]({quote('kicad/' + name)})\n"
-                                for name in copied if name.lower().endswith(".md"))
-        (stage / "README.md").write_text(
-            f"# {manifest.id}\n\nImported development project — NOT FOR MANUFACTURE.\n\n"
-            f"Open [the native project]({quote(manifest.project)}). Filenames and native bytes are preserved.\n"
-            "Review the [import receipt](docs/import.json), including excluded files,\n"
-            "and [design notes](docs/README.md). Complete the independent\n"
-            "[test contract](tests/contract.json) and [project metadata](project.json).\n\n"
-            f"From the repository root: `python -B -m tools.ci --project {manifest.id}`.\n"
-            "Import success means source was copied, not that native validation passes.\n"
-            + ("\n" + upstream_docs if upstream_docs else ""), encoding="utf-8")
+        upstream_docs = sorted(name for name in copied if name.lower().endswith(".md"))
+        write_markdown(
+            stage / "README.md",
+            imported_project_readme(manifest.id, manifest.project, upstream_docs),
+        )
         os.rename(stage, destination)
         stage = None
         return report

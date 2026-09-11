@@ -879,6 +879,7 @@ class DocumentationPolicy(StrictModel):
 
     schema_version: Literal["1"] = "1"
     roots: tuple[RepositoryPath, ...]
+    documentation_namespaces: tuple[RepositoryPath, ...] = ()
     exceptions: tuple[DocumentationException, ...] = ()
 
 

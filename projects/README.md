@@ -9,5 +9,5 @@ from the repository root to create a development scaffold. Save the real design 
 complete the inventory/contract before checking it. Discovery adds its CI lane.
 
 Firmware, custom Python tests and release records are optional. Keep outputs under
-this project's ignored `build/`. See the [folder standard](../docs/REPOSITORY_STRUCTURE.md),
+this project's ignored `build/`. See the [folder standard](../docs/workflow/REPOSITORY_STRUCTURE.md),
 [test guide](../tests/README.md) and [worked examples](../examples/README.md).

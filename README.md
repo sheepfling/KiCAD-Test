@@ -18,20 +18,21 @@ projects/<id>/
   build/               # ignored exports and test evidence
 ```
 
-Use [the folder standard](docs/REPOSITORY_STRUCTURE.md) for ownership and boundaries,
-[Start here](docs/START_HERE.md) for adoption, [First board](docs/FIRST_BOARD.md) for
-the shortest working path, and [the contributor guide](docs/CONTRIBUTOR_GUIDE.md)
+Use [the documentation map](docs/README.md) to choose where information belongs,
+[the folder standard](docs/workflow/REPOSITORY_STRUCTURE.md) for ownership and boundaries,
+[Start here](docs/workflow/START_HERE.md) for adoption, [First board](docs/workflow/FIRST_BOARD.md) for
+the shortest working path, and [the contributor guide](docs/workflow/CONTRIBUTOR_GUIDE.md)
 for branches, review and handoff. The [worked examples](examples/README.md) use this
 same layout and provide regression fixtures for the shared tools.
-See also the [quick reference](docs/QUICK_REFERENCE.md),
-[mechanical handoff](docs/MECHANICAL_HANDOFF.md), [metrics](docs/METRICS.md)
-and [Markdown policy](docs/MARKDOWN_POLICY.md). The [scaffold changelog](CHANGELOG.md)
+See also the [quick reference](docs/workflow/QUICK_REFERENCE.md),
+[mechanical handoff](docs/workflow/MECHANICAL_HANDOFF.md), [metrics](docs/workflow/METRICS.md)
+and [Markdown policy](docs/workflow/MARKDOWN_POLICY.md). The [scaffold changelog](CHANGELOG.md)
 records workflow versions; these are separate from each board's revision.
 
 The original scaffold uses 0BSD; adopters choose their own project terms. For a
-private company repository, use [bootstrap](docs/TEMPLATE_ADOPTION.md#bootstrap)
+private company repository, use [bootstrap](docs/workflow/TEMPLATE_ADOPTION.md#bootstrap)
 to start without upstream Git history or its root license, then choose company
-terms before the first commit. See [licensing and adoption](docs/LICENSING.md).
+terms before the first commit. See [licensing and adoption](docs/workflow/LICENSING.md).
 
 ## First-run setup
 
@@ -74,8 +75,8 @@ checks. It never copies a training circuit into your design or overwrites a proj
 Discovery automatically adds each `projects/*/project.json` to CI.
 Before native work, run `python -B -m tools.template doctor --native --toolchain kicad-10.0.5`.
 
-For an existing design, use the [import workflow](docs/IMPORT_WORKFLOW.md).
-The [demo rehearsal](docs/DEMO_REHEARSAL.md) records real import and CI evidence.
+For an existing design, use the [import workflow](docs/workflow/IMPORT_WORKFLOW.md).
+Exercise imports in a temporary copy and retain each run through its PR or CI artifacts.
 
 ## Checks
 
@@ -92,7 +93,7 @@ python -B -m tools.ci --kicad --project battery-board --output projects/battery-
 python -B -m unittest discover -s tests -v
 ```
 
-See [checks and CI](docs/CHECKS_AND_CI.md) and [extending tests](tests/README.md).
+See [checks and CI](docs/workflow/CHECKS_AND_CI.md) and [extending tests](tests/README.md).
 In an uninitialized template checkout, select `arduino-uno-status-led`,
 `raspberry-pi-status-led` or `controller` for a bundled rehearsal. Initialization
 removes these examples from live discovery; shared-tool tests still use their
@@ -104,8 +105,8 @@ Commit authored design and BOM inputs. Generate working BOMs and review exports;
 retain exact approved outputs when releasing or manufacturing. Authored assembly
 lists and frozen release BOMs can be tracked. A generated file is not automatically
 disposable, and a BOM should have one authoritative editing location. See the
-[BOM policy](docs/BOM_POLICY.md), [release storage](docs/RELEASE_STORAGE.md) and
-[versioning](docs/VERSIONING.md).
+[BOM policy](docs/workflow/BOM_POLICY.md), [release storage](docs/workflow/RELEASE_STORAGE.md) and
+[versioning](docs/workflow/VERSIONING.md).
 
 After committing reviewed source, prepare a standalone candidate with Docker running:
 
@@ -117,7 +118,7 @@ python -B -m tools.release restore --archive build/battery-review-001.zip --dest
 
 Preparation runs portable tests and the pinned KiCad container. Packaging verifies
 the evidence and performs a restore before completing. The default is an engineering
-review candidate; production requires the controls in [release readiness](docs/RELEASE_READINESS.md).
+review candidate; production requires the controls in [release readiness](docs/workflow/RELEASE_READINESS.md).
 
 ## Shared areas
 
@@ -130,8 +131,8 @@ review candidate; production requires the controls in [release readiness](docs/R
 - [Generated shared views](generated/README.md) and [schemas](schemas/README.md)
   are optional local exports, ignored except for their guidance files.
 
-The [authority model](docs/AUTHORITY_MODEL.md) distinguishes source, fixtures and
-release evidence. [Assurance profiles](docs/ASSURANCE_PROFILES.md) distinguish
-training, development and production. Complete [hosted governance](docs/GITHUB_GOVERNANCE.md)
-before production adoption. [Template upgrades](docs/TEMPLATE_ADOPTION.md) record
-layout migrations; [the audit](docs/REPOSITORY_AUDIT.md) records earlier findings.
+The [authority model](docs/workflow/AUTHORITY_MODEL.md) distinguishes source, fixtures and
+release evidence. [Assurance profiles](docs/workflow/ASSURANCE_PROFILES.md) distinguish
+training, development and production. Complete [hosted governance](docs/workflow/GITHUB_GOVERNANCE.md)
+before production adoption. [Template upgrades](docs/workflow/TEMPLATE_ADOPTION.md) record
+layout migrations.

@@ -31,7 +31,7 @@ can remove the current root template notice; it does not rewrite earlier commits
 
 Both bootstrap and first-time initialization recognize only the exact bytes of the
 upstream root `LICENSE`, using the fingerprint in
-[the licensing helper](../tools/hwrepo/licensing.py). Their reports include
+[the licensing helper](../../tools/hwrepo/licensing.py). Their reports include
 `"removed": ["LICENSE"]` when that file was removed from the new workspace.
 
 A modified or replacement root license is preserved byte for byte. Nested licenses,

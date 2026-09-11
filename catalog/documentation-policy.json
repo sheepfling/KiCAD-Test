@@ -3,5 +3,9 @@
   "roots": [
     "README.md"
   ],
+  "documentation_namespaces": [
+    "docs/workflow",
+    "docs/team"
+  ],
   "exceptions": []
 }

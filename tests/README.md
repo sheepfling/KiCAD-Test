@@ -41,8 +41,8 @@ belong in their separately declared workflow.
 
 Ruff checks the shared code/tests; strict Pyright checks shared tools. Project Python
 suites execute automatically. New substantial shared services are also discovered by
-the architecture test. See the [scripting standard](../docs/SCRIPTING_STANDARD.md).
+the architecture test. See the [scripting standard](../docs/workflow/SCRIPTING_STANDARD.md).
 
-Existing projects can use the [import workflow](../docs/IMPORT_WORKFLOW.md). The
-[demo rehearsal](../docs/DEMO_REHEARSAL.md) exercised temporary island suites and
-proved that source and connectivity mutations fail their intended checks.
+Existing projects can use the [import workflow](../docs/workflow/IMPORT_WORKFLOW.md).
+Temporary imported projects should exercise source and connectivity mutations in
+their own local suites without adding run reports or imported source to the template.
