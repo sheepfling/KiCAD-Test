@@ -1,3 +1,3 @@
 """Portable, typed hardware product policy (not build approval)."""
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"

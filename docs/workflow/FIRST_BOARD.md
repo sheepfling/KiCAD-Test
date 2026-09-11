@@ -21,7 +21,12 @@ This is the shortest path from a fresh fork to a checked project island. Use
 
 4. Create and save the design under `projects/battery-board/kicad/`. Complete its
    `project.json`, `tests/contract.json` and design notes; the generated skeleton is
-   intentionally incomplete and fails until it describes the real board.
+   intentionally incomplete and fails until it describes the real board. Development
+   contracts allow no ignored DRC checks. KiCad 10.0.5 may initially ignore
+   `missing_courtyard`, `track_not_centered_on_via`, `tuning_profile_track_geometries`,
+   `footprint_filters_mismatch` and `footprint_type_mismatch`; enable them through
+   Board Setup before the first native run. Do not copy those defaults into the
+   contract to make a development board pass.
 
    A legacy `.kicad_pcb` with no matching schematic can instead use `--kind pcb_only`
    or the import command. That is a not-for-manufacture capture lane with DRC/layout
