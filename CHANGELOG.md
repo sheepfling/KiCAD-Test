@@ -3,6 +3,17 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/workflow/VERSIONING.md) and [adoption](docs/workflow/TEMPLATE_ADOPTION.md).
 
+## 1.2.1 — 2026-09-11
+
+- Update Pydantic to 2.13.5.
+- Stop declaring Pydantic's unused transitive dependencies as direct project pins.
+  This lets Pydantic select its published compatible core and prevents separate,
+  incompatible dependency-update pull requests.
+
+Existing 1.2.0 adopters can update the shared tools and recreate their policy
+environment, then follow the 1.2.0-to-1.2.1 migration before updating their
+adoption record.
+
 ## 1.2.0 — 2026-09-10
 
 - Replace hand-built project, import and release-review Markdown with shared typed

@@ -142,3 +142,12 @@ apply the updated tools and tests, move existing repository-wide adopter docs in
 `upgrade-plan --target-version 1.2.0`, portable CI and applicable native lanes.
 Inspect generated workflow documents and the documentation graph before updating
 the adoption version.
+
+## Version 1.2.1 dependency maintenance migration
+
+Version 1.2.1 updates Pydantic and removes unused direct declarations of its
+transitive packages. Recreate the policy environment from `pyproject.toml`, then
+run `upgrade-plan --target-version 1.2.1`, portable CI and applicable native lanes.
+Pydantic selects the compatible `pydantic-core` distribution; do not add that or
+other Pydantic transitive packages as direct pins unless repository source imports
+them directly.
