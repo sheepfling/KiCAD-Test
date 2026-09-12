@@ -33,6 +33,20 @@ def initialize(root: Path, project_id: str) -> TemplateInitReport:
             if previous.project_id != project_id:
                 raise ValueError("This fork is already assigned a different project ID")
             if previous.status == "initialized":
+                if previous.template_version != contract.template_version:
+                    return TemplateInitReport(
+                        status="FAIL",
+                        project_id=project_id,
+                        issues=(PolicyIssue(
+                            code="TEMPLATE_UPGRADE",
+                            location="template-adoption.json",
+                            message=(
+                                f"Adoption record {previous.template_version} differs from template "
+                                f"{contract.template_version}; run python -B -m tools.template "
+                                f"upgrade-plan --target-version {contract.template_version} before adoption."
+                            ),
+                        ),),
+                    )
                 return TemplateInitReport(status="PASS", project_id=project_id)
         # Initialization retires only known reference records, never adopter data.
         for directory in ("projects", "products", "libraries"):

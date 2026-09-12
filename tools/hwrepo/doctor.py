@@ -73,7 +73,15 @@ def doctor(
         "Install Git and make it available on PATH.",
     ))
     git_repository = None if git_path is None else command_output(
-        (git_path, "-C", str(resolved), "rev-parse", "--is-inside-work-tree")
+        (
+            git_path,
+            "-c",
+            f"safe.directory={resolved.as_posix()}",
+            "-C",
+            str(resolved),
+            "rev-parse",
+            "--is-inside-work-tree",
+        )
     )
     checks.append(environment_check(
         "git-repository", True, "Repository is inside a Git worktree", git_repository,
@@ -107,7 +115,7 @@ def doctor(
             local_version = observed_version(cli)
             local_ok = assessment(record, local_version).status == "PASS"
             expected_local = f"KiCad {record.kicad_version} for {toolchain_id}"
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
             checks.append(environment_check(
                 "toolchain", True, f"One catalogued {toolchain_id} record", str(exc),
                 False, "The selected toolchain is catalogued.",

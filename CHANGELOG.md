@@ -3,6 +3,21 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/workflow/VERSIONING.md) and [adoption](docs/workflow/TEMPLATE_ADOPTION.md).
 
+## 1.3.2 — 2026-09-11
+
+- Include every project declared for a selected product in release evidence checks.
+- Make every textual value in generated review and purchasing BOM CSVs safe to open in
+  spreadsheet software.
+- Require initialized adopters on an older template version to use `upgrade-plan`
+  rather than reporting a fresh-fork adoption pass.
+- Make doctor safe for shared worktrees and turn a timed-out KiCad version probe into
+  a typed diagnostic.
+- Reject component-identity claims for PCB-only islands and complete the first-board
+  ERC/DRC setup and dependency-maintenance guidance.
+
+Existing 1.3.1 adopters should follow the 1.3.1-to-1.3.2 migration before updating
+their adoption record.
+
 ## 1.3.1 — 2026-09-11
 
 - Clarify the first-board step required to enable KiCad 10.0.5's default ignored DRC

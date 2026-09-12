@@ -67,9 +67,12 @@ def observed_version(cli: str) -> str | None:
     executable: str | None = cli_executable(cli)
     if executable is None:
         return None
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        [executable, "version"], text=True, capture_output=True, timeout=30, check=False,
-    )
+    try:
+        result: subprocess.CompletedProcess[str] = subprocess.run(
+            [executable, "version"], text=True, capture_output=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
     return result.stdout.strip() if result.returncode == 0 else None
 
 

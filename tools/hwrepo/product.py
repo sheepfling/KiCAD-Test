@@ -55,6 +55,7 @@ class ProductRepository:
     """Validated repository records indexed once for policy services."""
 
     products: tuple[ProductRecord, ...]
+    product_project_ids: Mapping[str, tuple[str, ...]]
     parts: Mapping[str, PartRecord]
     interfaces: Mapping[str, InterfaceRecord]
     projects: Mapping[str, ProjectRecord]
@@ -436,6 +437,7 @@ def load_repository(
     selected = None if selected_project_ids is None else frozenset(selected_project_ids)
     issues: list[PolicyIssue] = []
     products: list[ProductRecord] = []
+    product_project_ids: dict[str, tuple[str, ...]] = {}
     parts: Mapping[str, PartRecord] = {}
     interfaces: Mapping[str, InterfaceRecord] = {}
     projects: Mapping[str, ProjectRecord] = {}
@@ -464,6 +466,7 @@ def load_repository(
 
         declared: set[str] = set()
         for entry in index.products:
+            product_project_ids[entry.id] = entry.project_ids
             path = repo_path(root, entry.path)
             if (
                 not (
@@ -577,6 +580,7 @@ def load_repository(
         )
     return ProductRepository(
         products=tuple(products),
+        product_project_ids=product_project_ids,
         parts=parts,
         interfaces=interfaces,
         projects=projects,

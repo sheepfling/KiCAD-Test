@@ -41,6 +41,9 @@ def adopt(root: Path, project_id: str) -> TemplateAdoptReport:
 
     initialized = initialize(resolved, project_id)
     if initialized.status != "PASS":
+        upgrade_actions = tuple(
+            item.message for item in initialized.issues if item.code == "TEMPLATE_UPGRADE"
+        )
         return TemplateAdoptReport(
             project_id=project_id,
             preflight="PASS",
@@ -48,7 +51,9 @@ def adopt(root: Path, project_id: str) -> TemplateAdoptReport:
             portable="NOT_RUN",
             status="FAIL",
             issues=tuple(f"{issue.code}: {issue.message}" for issue in initialized.issues),
-            next_actions=("Resolve the initialization finding without deleting adopter work, then rerun adoption.",),
+            next_actions=upgrade_actions or (
+                "Resolve the initialization finding without deleting adopter work, then rerun adoption.",
+            ),
         )
 
     # Import here so template services remain independent of the CLI orchestration layer.

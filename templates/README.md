@@ -15,7 +15,10 @@ adds explicit release controls.
 PCB and PCB-only development contracts start with no ignored DRC checks. KiCad 10.0.5
 may mark several checks ignored in a new project's Board Setup. Enable those checks in
 KiCad before the first native run; do not copy default ignores into the contract to
-make a development board pass.
+make a development board pass. A complete PCB project also starts with no ignored ERC
+checks: enable KiCad's default `single_global_label`, `four_way_junction`,
+`simulation_model_issue` and `footprint_filter` checks in Schematic Setup. PCB-only
+projects have no schematic or ERC lane.
 
 Manifest source paths are project-relative. Only `shared_source_roots` and
 `shared_inputs` are repository-relative. Toolchain version and image are resolved

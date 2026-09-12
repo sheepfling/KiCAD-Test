@@ -47,6 +47,11 @@ from .product import excluded, load_repository, occurrences
 from .repository import ephemeral
 
 
+def csv_cell(value: str) -> str:
+    """Protect every textual CSV value from spreadsheet formula evaluation."""
+    return "'" + value if value.lstrip().startswith(("=", "+", "-", "@")) else value
+
+
 def model_json_bytes(model: BaseModel) -> bytes:
     return (
         model.model_dump_json(
@@ -128,18 +133,14 @@ def csv_bytes(rows: tuple[BomRow, ...]) -> bytes:
     for row in rows:
         writer.writerow(
             {
-                "part_id": row.part_id,
-                "revision": row.revision,
+                "part_id": csv_cell(row.part_id),
+                "revision": csv_cell(row.revision),
                 "quantity": row.quantity,
-                "unit": row.unit,
-                "instances": row.instances,
-                "manufacturer": row.manufacturer,
-                "mpn": (
-                    "'" + row.mpn
-                    if row.mpn.lstrip().startswith(("=", "+", "-", "@"))
-                    else row.mpn
-                ),
-                "disposition": row.disposition,
+                "unit": csv_cell(row.unit),
+                "instances": csv_cell(row.instances),
+                "manufacturer": csv_cell(row.manufacturer),
+                "mpn": csv_cell(row.mpn),
+                "disposition": csv_cell(row.disposition),
             }
         )
     return stream.getvalue().encode("utf-8")
@@ -220,16 +221,16 @@ def harness_schedule_csv_bytes(schedule: HarnessSchedule) -> bytes:
     for row in schedule.rows:
         writer.writerow(
             {
-                "harness_id": row.harness_id,
-                "revision": row.revision,
-                "instance": row.instance,
+                "harness_id": csv_cell(row.harness_id),
+                "revision": csv_cell(row.revision),
+                "instance": csv_cell(row.instance),
                 "length_mm": row.length_mm,
                 "conductor_area_mm2": row.conductor_area_mm2,
-                "electrical_connection_ids": ";".join(row.electrical_connection_ids),
-                "endpoint_terminal_ids": ";".join(row.endpoint_terminal_ids),
-                "assurance": row.assurance.value,
-                "evidence": ";".join(row.evidence),
-                "disposition": row.disposition,
+                "electrical_connection_ids": csv_cell(";".join(row.electrical_connection_ids)),
+                "endpoint_terminal_ids": csv_cell(";".join(row.endpoint_terminal_ids)),
+                "assurance": csv_cell(row.assurance.value),
+                "evidence": csv_cell(";".join(row.evidence)),
+                "disposition": csv_cell(row.disposition),
             }
         )
     return stream.getvalue().encode("utf-8")

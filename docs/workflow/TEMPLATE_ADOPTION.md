@@ -163,12 +163,23 @@ or adopt a schematic before changing a PCB-only island into a manufacturing-capa
 board. Run `upgrade-plan --target-version 1.3.0`, portable CI and applicable native
 lanes before updating the adoption version.
 
-## Version 1.3.1 board DRC settings migration
+## Version 1.3.1 board ERC and DRC settings migration
 
 Version 1.3.1 clarifies that development and production contracts must retain no
 ignored ERC or DRC checks. Apply the updated documentation and tools, then inspect
-each board's KiCad settings before its next native run. Enable KiCad 10.0.5's default
-ignored DRC checks or move genuinely experimental work to a reviewed training fixture;
-do not copy the defaults into a development contract merely to make CI pass. Run
+each board's KiCad settings before its next native run. For complete PCB projects,
+enable KiCad 10.0.5's default ignored ERC checks in Schematic Setup and default
+ignored DRC checks in Board Setup. PCB-only projects have no schematic/ ERC lane and
+need the DRC changes only. Move genuinely experimental work to a reviewed training
+fixture; do not copy defaults into a development contract merely to make CI pass. Run
 `upgrade-plan --target-version 1.3.1`, portable CI and the applicable native lanes
 before updating the adoption version.
+
+## Version 1.3.2 corrective migration
+
+Version 1.3.2 fixes release project scoping, spreadsheet-safe CSV rendering and
+adoption/version diagnostics. It also rejects a component-identity claim on a PCB-only
+island because that lane has no authoritative schematic or netlist. Apply the updated
+tools and documentation, review product release evidence for every declared
+product-view project, then run `upgrade-plan --target-version 1.3.2`, portable CI and
+the applicable native lanes before updating the adoption version.

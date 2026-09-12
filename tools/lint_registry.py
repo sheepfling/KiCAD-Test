@@ -347,6 +347,10 @@ def lint(
                 )
 
         identity = project.component_identity
+        if project.kind is ProjectKind.PCB_ONLY and identity.required:
+            issues.append(
+                f"project {identifier}: pcb_only cannot require component identity without an authoritative schematic"
+            )
         if project.assurance_profile == "production" and project.kind in {ProjectKind.PCB, ProjectKind.SCHEMATIC} and not identity.required:
             issues.append(
                 f"project {identifier}: production profile must require component identity"
