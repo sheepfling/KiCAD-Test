@@ -27,7 +27,8 @@ from tools.hwrepo.models import (
     ReleaseStatus,
     ReleaseVariant,
 )
-from tools.hwrepo.release import check
+from tools.hwrepo.product import load_repository
+from tools.hwrepo.release import check, selected_project_records
 from tools.hwrepo.scaffold import new_project
 
 ROOT = reference_root()
@@ -162,6 +163,19 @@ class ReleaseReadinessTests(unittest.TestCase):
         with patch("tools.hwrepo.release.git", side_effect=self.git):
             report = check(self.root, manifest)
         self.assertIn("RELEASE_PROJECT_KIND", {finding.code for finding in report.issues})
+
+    def test_variant_release_includes_every_declared_product_project(self) -> None:
+        repository = load_repository(self.root)
+        selected = selected_project_records(repository, repository.products)
+        self.assertEqual(
+            {project.id for project in selected},
+            {
+                "arduino-uno-status-led",
+                "raspberry-pi-status-led",
+                "status-indicator-wiring",
+                "status-indicator-harness-interface",
+            },
+        )
 
     def test_revision_and_library_binding_cannot_be_stale(self) -> None:
         base = self.manifest()

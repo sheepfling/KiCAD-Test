@@ -6,7 +6,7 @@ import hashlib
 import sys
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from .hwrepo.contracts import read_model, repo_path, write_model
 from .hwrepo.discovery import load_config, load_registry, settings
@@ -32,7 +32,10 @@ class Identified(Protocol):
     id: str
 
 
-def records_by_id[Record: Identified](
+Record = TypeVar("Record", bound=Identified)
+
+
+def records_by_id(
     records: Iterable[Record], label: str, issues: list[str]
 ) -> dict[str, Record]:
     result: dict[str, Record] = {}
@@ -347,6 +350,10 @@ def lint(
                 )
 
         identity = project.component_identity
+        if project.kind is ProjectKind.PCB_ONLY and identity.required:
+            issues.append(
+                f"project {identifier}: pcb_only cannot require component identity without an authoritative schematic"
+            )
         if project.assurance_profile == "production" and project.kind in {ProjectKind.PCB, ProjectKind.SCHEMATIC} and not identity.required:
             issues.append(
                 f"project {identifier}: production profile must require component identity"

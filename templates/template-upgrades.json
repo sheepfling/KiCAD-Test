@@ -49,7 +49,7 @@
       "to_version": "1.1.0",
       "breaking": true,
       "steps": [
-        "Move the policy environment to Python 3.12 or newer, recreate its virtual environment, and install the updated development dependencies.",
+        "Move the policy environment to the template-supported Python version, recreate its virtual environment, and install the updated development dependencies.",
         "Apply the 1.1 tools, tests, template contract and documentation while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
         "Run tools.template doctor before editing. Existing forks do not rerun initialization; tools.template adopt is only the one-command path for a fresh template copy or fork.",
         "Regenerate and verify a standalone release package when applicable. Record the package_sha256 emitted by tools.release package in the team's durable release-storage receipt.",
@@ -100,8 +100,20 @@
       "breaking": false,
       "steps": [
         "Apply the 1.3.1 policy tools, templates, tests and documentation while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
-        "For each development or production pcb or pcb_only island, inspect the KiCad DRC settings before native validation. Enable KiCad 10.0.5 default ignored checks; do not copy them into tests/contract.json merely to make CI pass.",
+        "For each development or production pcb island, inspect KiCad's Schematic Setup and Board Setup before native validation. Enable the default ignored ERC and DRC checks; a pcb_only island has no schematic/ERC lane and needs its Board Setup DRC checks enabled. Do not copy defaults into tests/contract.json merely to make CI pass.",
         "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.3.1 after review."
+      ]
+    },
+    {
+      "id": "template-1.3.1-to-1.3.2",
+      "from_version": "1.3.1",
+      "to_version": "1.3.2",
+      "breaking": false,
+      "steps": [
+        "Apply the 1.3.2 policy tools, templates, tests and documentation while preserving live projects, catalogs, company terms and template-adoption.json until review completes.",
+        "Move the policy environment to Python 3.11 or newer. Recreate it from pyproject.toml so the 3.11-compatible policy tools and quality gates are installed.",
+        "Review release evidence for every product project declared in catalog/products.json. Keep spreadsheet-safe CSV handling in generated review and purchasing BOMs, and remove any component-identity requirement from pcb_only islands until they have an authoritative schematic.",
+        "Run the full portable and applicable pinned native gates, verify hosted acceptance, then update template-adoption.json to 1.3.2 after review."
       ]
     }
   ]

@@ -79,7 +79,7 @@ Run `python -B -m tools.ci`; it invokes Markdown documentation policy, Ruff, Pyr
 and behavior tests before reporting the portable policy result. `python -m tools.ci
 --matrix`, `python -m tools.ci --kicad` and `python -m tools.ci --fault-probes`
 are the corresponding GitHub pipeline modes. The pinned runtime and development set
-includes Pydantic 2.13.4, SnakeMD 2.4.1, snakemd-stubs 2.4.1.0, Ruff 0.16.1 and
+includes Pydantic 2.13.5, SnakeMD 2.4.1, snakemd-stubs 2.4.1.0, Ruff 0.16.1 and
 Pyright 1.1.411; hosted CI
 installs those exact versions before running the same checks on Windows, Linux
 and macOS. Native KiCad remains a separate, pinned-toolchain lane.

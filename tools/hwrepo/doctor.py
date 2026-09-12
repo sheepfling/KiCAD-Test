@@ -11,7 +11,7 @@ from tools.check_toolchain import assessment, observed_version, toolchain
 from .models import EnvironmentCheck, TemplateDoctorReport
 from .template import preflight
 
-MINIMUM_PYTHON = (3, 12)
+MINIMUM_PYTHON = (3, 11)
 
 
 def command_output(argv: tuple[str, ...]) -> str | None:
@@ -60,9 +60,9 @@ def doctor(
     python_version = ".".join(str(value) for value in sys.version_info[:3])
     python_ok = sys.version_info[:2] >= MINIMUM_PYTHON
     checks.append(environment_check(
-        "python", True, "Python 3.12 or newer", python_version, python_ok,
+        "python", True, "Python 3.11 or newer", python_version, python_ok,
         "Python can run the supported policy tools.",
-        "Install Python 3.12 or newer, recreate the virtual environment, and reinstall .[dev].",
+        "Install Python 3.11 or newer, recreate the virtual environment, and reinstall .[dev].",
     ))
 
     git_path = shutil.which("git")
@@ -73,7 +73,15 @@ def doctor(
         "Install Git and make it available on PATH.",
     ))
     git_repository = None if git_path is None else command_output(
-        (git_path, "-C", str(resolved), "rev-parse", "--is-inside-work-tree")
+        (
+            git_path,
+            "-c",
+            f"safe.directory={resolved.as_posix()}",
+            "-C",
+            str(resolved),
+            "rev-parse",
+            "--is-inside-work-tree",
+        )
     )
     checks.append(environment_check(
         "git-repository", True, "Repository is inside a Git worktree", git_repository,
@@ -107,7 +115,7 @@ def doctor(
             local_version = observed_version(cli)
             local_ok = assessment(record, local_version).status == "PASS"
             expected_local = f"KiCad {record.kicad_version} for {toolchain_id}"
-        except (OSError, ValueError) as exc:
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
             checks.append(environment_check(
                 "toolchain", True, f"One catalogued {toolchain_id} record", str(exc),
                 False, "The selected toolchain is catalogued.",

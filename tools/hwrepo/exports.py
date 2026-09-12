@@ -8,6 +8,7 @@ from ..validate import execute
 from .contracts import read_model, repo_path, write_model
 from .discovery import load_config, load_registry
 from .evidence import digest, evidence_path, source_state, verify_source
+from .generation import csv_cell
 from .models import (
     EvidenceFile,
     PartsCatalog,
@@ -92,8 +93,10 @@ def purchasing_bom(root: Path, native_bom: Path, output: Path) -> None:
             part = parts.get(row["PartID"])
             if part is None:
                 raise ValueError(f"BOM reference {row['Reference']} has no controlled PART_ID")
-            writer.writerow((row["Reference"], row["Value"], row["Footprint"], part.id,
-                             part.revision, part.manufacturer, part.mpn, part.status.value))
+            writer.writerow(tuple(csv_cell(value) for value in (
+                row["Reference"], row["Value"], row["Footprint"], part.id,
+                part.revision, part.manufacturer, part.mpn, part.status.value,
+            )))
 
 
 def verify_exports(root: Path, reference: EvidenceFile, source: SourceState,

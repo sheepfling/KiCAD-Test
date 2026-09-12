@@ -15,6 +15,7 @@ from tools.hwrepo.contracts import read_model, write_model
 from tools.hwrepo.discovery import load_registry
 from tools.hwrepo.importing import import_project
 from tools.hwrepo.models import (
+    ComponentIdentity,
     PcbOnlyValidationContract,
     ProjectKind,
     ProjectManifest,
@@ -128,6 +129,15 @@ class ImportTests(unittest.TestCase):
             manifest.model_copy(update={"assurance_profile": "production"}),
         )
         self.assertTrue(any("pcb_only must remain" in issue for issue in lint(self.root, [manifest.id]).issues))
+        write_model(
+            island / "project.json",
+            manifest.model_copy(
+                update={"component_identity": ComponentIdentity(required=True, part_ids=())}
+            ),
+        )
+        self.assertTrue(
+            any("pcb_only cannot require component identity" in issue for issue in lint(self.root, [manifest.id]).issues)
+        )
 
     def test_project_without_a_schematic_or_board_fails_without_publishing(self) -> None:
         self.project.with_suffix(".kicad_sch").unlink()

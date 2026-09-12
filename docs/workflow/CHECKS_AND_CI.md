@@ -57,9 +57,10 @@ discovered project; changed-file optimization is not implemented.
 Actions installs dependencies from `pyproject.toml`, runs the portable gate on
 Windows/macOS/Linux, and runs native validation in each project's digest-pinned KiCad
 image. The controller's native fault probes run only for its known reference path.
-Runtime and development-tool dependency versions, including their current Python
-transitive dependencies, are pinned together in `pyproject.toml`. Update them as a
-reviewed change and rerun the portable/native acceptance lanes.
+The template pins its direct runtime and development-tool dependencies in
+`pyproject.toml`; each direct dependency selects its published compatible transitive
+requirements. Update direct pins as a reviewed change and rerun the portable/native
+acceptance lanes.
 Dependabot opens bounded monthly Python and GitHub Actions update pull requests;
 these receive the same review and complete acceptance workflow as other tool changes.
 The final acceptance check requires the matrix, portable jobs, native jobs and a

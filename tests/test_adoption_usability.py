@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,7 +11,9 @@ from unittest.mock import patch
 
 from tests.support import initialize_git, reference_root
 from tools.hwrepo.adoption import adopt
+from tools.hwrepo.contracts import write_model
 from tools.hwrepo.doctor import doctor
+from tools.hwrepo.models import TemplateAdoptionRecord
 
 
 class AdoptionUsabilityTests(unittest.TestCase):
@@ -36,7 +39,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
             return "/usr/bin/git" if name == "git" else None
 
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
         ):
@@ -47,7 +50,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_native_doctor_accepts_docker_or_exact_local_kicad(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", return_value="/tool"),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
         ):
@@ -58,7 +61,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
             return "/usr/bin/git" if name == "git" else None
 
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
             patch("tools.hwrepo.doctor.observed_version", return_value="10.0.5"),
@@ -68,7 +71,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_native_doctor_fails_without_a_runner_and_python_minimum_is_enforced(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 9)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 10, 9)),
             patch("tools.hwrepo.doctor.shutil.which", return_value=None),
         ):
             report = doctor(self.root, native=True)
@@ -78,7 +81,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_adopt_initializes_once_and_runs_complete_portable_acceptance(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
             patch("tools.ci.static_pipeline", return_value=SimpleNamespace(status="PASS")) as pipeline,
@@ -97,6 +100,71 @@ class AdoptionUsabilityTests(unittest.TestCase):
         self.assertEqual(report.status, "FAIL")
         self.assertEqual(report.initialization, "NOT_RUN")
         initialize.assert_not_called()
+
+    def test_adopt_directs_an_outdated_initialized_fork_to_upgrade_plan(self) -> None:
+        write_model(
+            self.root / "template-adoption.json",
+            TemplateAdoptionRecord(
+                template_version="1.0.0", project_id="company-hardware", status="initialized"
+            ),
+        )
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+        ):
+            report = adopt(self.root, "company-hardware")
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.initialization, "FAIL")
+        self.assertIn("TEMPLATE_UPGRADE", report.issues[0])
+        self.assertIn("upgrade-plan --target-version 1.3.2", report.next_actions[0])
+
+    def test_adopt_reports_a_newer_record_without_recommending_a_downgrade(self) -> None:
+        write_model(
+            self.root / "template-adoption.json",
+            TemplateAdoptionRecord(
+                template_version="1.3.3", project_id="company-hardware", status="initialized"
+            ),
+        )
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+        ):
+            report = adopt(self.root, "company-hardware")
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.initialization, "FAIL")
+        self.assertIn("TEMPLATE_VERSION_AHEAD", report.issues[0])
+        self.assertIn("downgrades are not supported", report.next_actions[0])
+        self.assertNotIn("upgrade-plan", report.next_actions[0])
+
+    def test_doctor_trusts_the_inspected_worktree_for_git_status(self) -> None:
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output) as command,
+        ):
+            report = doctor(self.root)
+        self.assertEqual(report.status, "PASS")
+        probe = next(call.args[0] for call in command.call_args_list if "rev-parse" in call.args[0])
+        self.assertIn(f"safe.directory={self.root.resolve().as_posix()}", probe)
+
+    def test_doctor_reports_a_timed_out_kicad_probe_without_a_traceback(self) -> None:
+        def which(name: str) -> str | None:
+            return "/usr/bin/git" if name == "git" else None
+
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+            patch(
+                "tools.hwrepo.doctor.observed_version",
+                side_effect=subprocess.TimeoutExpired("kicad-cli", 30),
+            ),
+        ):
+            report = doctor(self.root, native=True, toolchain_id="kicad-10.0.5")
+        self.assertEqual(report.status, "FAIL")
+        self.assertIn("toolchain", {check.id for check in report.checks if check.status == "FAIL"})
 
 
 if __name__ == "__main__":

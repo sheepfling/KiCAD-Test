@@ -20,4 +20,4 @@ Run `python -B -m tools.ci --project <project-id>` for the selected board's port
 checks and `python -B -m tools.ci` for the full shared gate. With its exact catalogued
 KiCad installed, run `python -B -m tools.ci --kicad --project <project-id> --output build/review-001`
 using a fresh output name each time. The template exercises KiCad 10.0.0 and 10.0.5.
-Use Python 3.12+ and preserve every declared local/shared library dependency.
+Use Python 3.11+ and preserve every declared local/shared library dependency.

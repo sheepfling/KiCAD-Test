@@ -3,6 +3,22 @@
 These versions describe the reusable workflow, independently of board and product
 revisions. See [versioning](docs/workflow/VERSIONING.md) and [adoption](docs/workflow/TEMPLATE_ADOPTION.md).
 
+## 1.3.2 — 2026-09-11
+
+- Include every project declared for a selected product in release evidence checks.
+- Make every textual value in generated review and purchasing BOM CSVs safe to open in
+  spreadsheet software.
+- Require initialized adopters on an older template version to use `upgrade-plan`
+  rather than reporting a fresh-fork adoption pass.
+- Make doctor safe for shared worktrees and turn a timed-out KiCad version probe into
+  a typed diagnostic.
+- Reject component-identity claims for PCB-only islands and complete the first-board
+  ERC/DRC setup and dependency-maintenance guidance.
+- Support Python 3.11 throughout the policy tools, strict type checks and hosted CI.
+
+Existing 1.3.1 adopters should follow the 1.3.1-to-1.3.2 migration before updating
+their adoption record.
+
 ## 1.3.1 — 2026-09-11
 
 - Clarify the first-board step required to enable KiCad 10.0.5's default ignored DRC
@@ -58,7 +74,7 @@ links, and follow the 1.1.0-to-1.2.0 migration.
 
 ## 1.1.0 — 2026-09-09
 
-- Require the same Python 3.12 minimum locally, in package metadata and in CI.
+- Establish one shared Python minimum locally, in package metadata and in CI.
 - Add a read-only environment doctor and a one-command fresh-fork adoption path.
 - Print the complete release archive SHA-256 after package and restore verification.
 - Add a concrete first-board path and durable release-storage checklist.

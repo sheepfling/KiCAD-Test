@@ -17,6 +17,7 @@ from .models import (
     TemplateContract,
     TemplateInitReport,
 )
+from .template import version_key
 
 
 def initialize(root: Path, project_id: str) -> TemplateInitReport:
@@ -33,6 +34,35 @@ def initialize(root: Path, project_id: str) -> TemplateInitReport:
             if previous.project_id != project_id:
                 raise ValueError("This fork is already assigned a different project ID")
             if previous.status == "initialized":
+                if version_key(previous.template_version) < version_key(contract.template_version):
+                    return TemplateInitReport(
+                        status="FAIL",
+                        project_id=project_id,
+                        issues=(PolicyIssue(
+                            code="TEMPLATE_UPGRADE",
+                            location="template-adoption.json",
+                            message=(
+                                f"Adoption record {previous.template_version} differs from template "
+                                f"{contract.template_version}; run python -B -m tools.template "
+                                f"upgrade-plan --target-version {contract.template_version} before adoption."
+                            ),
+                        ),),
+                    )
+                if version_key(previous.template_version) > version_key(contract.template_version):
+                    return TemplateInitReport(
+                        status="FAIL",
+                        project_id=project_id,
+                        issues=(PolicyIssue(
+                            code="TEMPLATE_VERSION_AHEAD",
+                            location="template-adoption.json",
+                            message=(
+                                f"Adoption record {previous.template_version} is newer than template "
+                                f"{contract.template_version}; downgrades are not supported. Restore or "
+                                "check out a template version at least as new as the adoption record before "
+                                "rerunning adoption."
+                            ),
+                        ),),
+                    )
                 return TemplateInitReport(status="PASS", project_id=project_id)
         # Initialization retires only known reference records, never adopter data.
         for directory in ("projects", "products", "libraries"):

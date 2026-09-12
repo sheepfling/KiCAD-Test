@@ -58,9 +58,9 @@ No command stashes, resets, commits, pushes, merges, buys parts or changes permi
 current inventory, use a new snapshot directory or download the CI artifact.
 CI checks fresh generation without requiring cached exports in the checkout.
 
-The helper uses Python 3.12+, Pydantic 2.13.4 and SnakeMD 2.4.1, pinned in
+The helper uses Python 3.11+, Pydantic 2.13.5 and SnakeMD 2.4.1, pinned in
 pyproject.toml; snakemd-stubs 2.4.1.0 covers generated Markdown under strict
-Pyright. The hosted matrix targets Python 3.12 on Windows, Linux and macOS. JSON
+Pyright. The hosted matrix targets Python 3.11 on Windows, Linux and macOS. JSON
 avoids an extra YAML loader in the pinned KiCad container. Every repository JSON record is
 decoded once at the file boundary, rejects duplicate keys/non-finite numbers, then
 becomes a strict immutable Pydantic model. Extra fields, wrong types and unsupported

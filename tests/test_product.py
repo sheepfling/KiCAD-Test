@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import csv
 import hashlib
 import json
 import shutil
@@ -15,8 +16,9 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 from tests.support import reference_root
-from tools.hwrepo.contracts import read_model, repo_path
+from tools.hwrepo.contracts import read_model, repo_path, write_model
 from tools.hwrepo.discovery import load_config
+from tools.hwrepo.exports import purchasing_bom
 from tools.hwrepo.generation import (
     bom_rows,
     csv_bytes,
@@ -30,6 +32,7 @@ from tools.hwrepo.generation import (
     verify_snapshot,
 )
 from tools.hwrepo.models import (
+    PartsCatalog,
     ProductRecord,
     ProjectManifest,
     ReleaseManifest,
@@ -314,12 +317,43 @@ class ProductTests(unittest.TestCase):
         self.assertEqual(before, csv_bytes(bom_rows(product, self.parts, product.variants[0])))
 
     def test_bom_escapes_spreadsheet_formulas(self):
-        cable = self.parts["training-generic-cable"].model_copy(update={"mpn": "=1+1"})
+        cable = self.parts["training-generic-cable"].model_copy(
+            update={"manufacturer": "=supplier", "mpn": "+1+1"}
+        )
         product = self.model()
         content = csv_bytes(
             bom_rows(product, {**self.parts, cable.id: cable}, product.variants[0])
         )
-        self.assertIn(b"'=1+1", content)
+        row = next(csv.DictReader(content.decode(encoding="utf-8").splitlines()))
+        cable_row = next(
+            item for item in csv.DictReader(content.decode(encoding="utf-8").splitlines())
+            if item["part_id"] == cable.id
+        )
+        self.assertIn("part_id", row)
+        self.assertEqual(cable_row["manufacturer"], "'=supplier")
+        self.assertEqual(cable_row["mpn"], "'+1+1")
+
+    def test_purchasing_bom_escapes_catalog_and_native_text_fields(self):
+        root = self.stage()
+        catalog_path = root / "catalog/parts.json"
+        catalog = read_model(catalog_path, PartsCatalog)
+        part = catalog.parts[0].model_copy(
+            update={"manufacturer": "=supplier", "mpn": "+part-number"}
+        )
+        write_model(catalog_path, catalog.model_copy(update={"parts": (part, *catalog.parts[1:])}))
+        native = root / "native-bom.csv"
+        native.write_text(
+            "Reference,Value,Footprint,PartID,DNP\n@R1,-value,=footprint,"
+            + part.id
+            + ",DNP\n",
+            encoding="utf-8",
+        )
+        output = root / "purchasing-bom.csv"
+        purchasing_bom(root, native, output)
+        with output.open(newline="", encoding="utf-8") as stream:
+            row = next(csv.DictReader(stream))
+        for column in ("Reference", "Value", "Footprint", "Manufacturer", "MPN"):
+            self.assertTrue(row[column].startswith("'"), column)
 
     def test_stale_and_missing_generated_outputs(self):
         root = self.stage()

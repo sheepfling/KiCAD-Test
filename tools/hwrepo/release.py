@@ -165,12 +165,13 @@ def selected_project_records(
             raise ValueError(f"Unknown project {identifier}")
         projects[identifier] = repository.projects[identifier]
     for product in products:
-        for assembly in product.assemblies:
-            if assembly.project_id is None:
-                continue
-            project = repository.projects.get(assembly.project_id)
+        project_ids = repository.product_project_ids.get(product.id)
+        if project_ids is None:
+            raise ValueError(f"Selected product has no declared project scope: {product.id}")
+        for project_id in project_ids:
+            project = repository.projects.get(project_id)
             if project is None:
-                raise ValueError(f"Selected product uses unknown project {assembly.project_id}")
+                raise ValueError(f"Selected product uses unknown project {project_id}")
             projects[project.id] = project
     return tuple(projects[identifier] for identifier in sorted(projects))
 
