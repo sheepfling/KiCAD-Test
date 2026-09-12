@@ -36,7 +36,7 @@ terms before the first commit. See [licensing and adoption](docs/workflow/LICENS
 
 ## First-run setup
 
-Install Git and Python 3.12+ (`python3` may be the executable name on macOS/Linux).
+Install Git and Python 3.11+ (`python3` may be the executable name on macOS/Linux).
 From the repository root:
 
 ```sh

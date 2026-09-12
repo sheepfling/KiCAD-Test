@@ -7,8 +7,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
+
+Model = TypeVar("Model", bound=BaseModel)
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -24,7 +27,7 @@ def _invalid_number(value: str) -> None:
     raise ValueError(f"Invalid JSON number: {value}")
 
 
-def read_model[Model: BaseModel](path: Path, model: type[Model]) -> Model:
+def read_model(path: Path, model: type[Model]) -> Model:
     """Decode one JSON file and validate it before it reaches application code."""
     document = path.read_text(encoding="utf-8")
     # This first decode exists solely to fail duplicate keys/non-finite numbers.

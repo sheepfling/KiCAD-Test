@@ -3,7 +3,7 @@
 This is the shortest path from a fresh fork to a checked project island. Use
 [Start here](START_HERE.md) when adopting company licensing or production controls.
 
-1. Install Python 3.12+, create a virtual environment and install `.[dev]` as shown
+1. Install Python 3.11+, create a virtual environment and install `.[dev]` as shown
    in the [root setup](../../README.md#first-run-setup).
 2. Check the workstation and initialize the fresh repository:
 

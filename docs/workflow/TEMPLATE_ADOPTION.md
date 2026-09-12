@@ -124,7 +124,7 @@ tag is created after acceptance, not by the migration helper.
 
 ## Version 1.1.0 usability migration
 
-Version 1.1.0 makes Python 3.12 the single supported local and hosted baseline, adds
+Version 1.1.0 establishes one shared local and hosted Python baseline, adds
 the environment doctor and fresh-fork adoption command, and reports the final release
 archive SHA-256. It does not move existing projects or catalogs. Existing adopters
 keep `template-adoption.json` at 1.0.0 while applying and reviewing the updated tools,

@@ -39,7 +39,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
             return "/usr/bin/git" if name == "git" else None
 
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
         ):
@@ -50,7 +50,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_native_doctor_accepts_docker_or_exact_local_kicad(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", return_value="/tool"),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
         ):
@@ -61,7 +61,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
             return "/usr/bin/git" if name == "git" else None
 
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
             patch("tools.hwrepo.doctor.observed_version", return_value="10.0.5"),
@@ -71,7 +71,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_native_doctor_fails_without_a_runner_and_python_minimum_is_enforced(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 9)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 10, 9)),
             patch("tools.hwrepo.doctor.shutil.which", return_value=None),
         ):
             report = doctor(self.root, native=True)
@@ -81,7 +81,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_adopt_initializes_once_and_runs_complete_portable_acceptance(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
             patch("tools.ci.static_pipeline", return_value=SimpleNamespace(status="PASS")) as pipeline,
@@ -109,7 +109,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
             ),
         )
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
         ):
@@ -121,7 +121,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
 
     def test_doctor_trusts_the_inspected_worktree_for_git_status(self) -> None:
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output) as command,
         ):
@@ -135,7 +135,7 @@ class AdoptionUsabilityTests(unittest.TestCase):
             return "/usr/bin/git" if name == "git" else None
 
         with (
-            patch("tools.hwrepo.doctor.sys.version_info", (3, 12, 1)),
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
             patch("tools.hwrepo.doctor.shutil.which", side_effect=which),
             patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
             patch(

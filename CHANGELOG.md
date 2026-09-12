@@ -14,6 +14,7 @@ revisions. See [versioning](docs/workflow/VERSIONING.md) and [adoption](docs/wor
   a typed diagnostic.
 - Reject component-identity claims for PCB-only islands and complete the first-board
   ERC/DRC setup and dependency-maintenance guidance.
+- Support Python 3.11 throughout the policy tools, strict type checks and hosted CI.
 
 Existing 1.3.1 adopters should follow the 1.3.1-to-1.3.2 migration before updating
 their adoption record.
@@ -73,7 +74,7 @@ links, and follow the 1.1.0-to-1.2.0 migration.
 
 ## 1.1.0 — 2026-09-09
 
-- Require the same Python 3.12 minimum locally, in package metadata and in CI.
+- Establish one shared Python minimum locally, in package metadata and in CI.
 - Add a read-only environment doctor and a one-command fresh-fork adoption path.
 - Print the complete release archive SHA-256 after package and restore verification.
 - Add a concrete first-board path and durable release-storage checklist.

@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from .contracts import read_model, repo_path
 from .discovery import load_config, load_registry
@@ -50,6 +50,9 @@ class HasIdentifier(Protocol):
     id: str
 
 
+Record = TypeVar("Record", bound=HasIdentifier)
+
+
 @dataclass(frozen=True)
 class ProductRepository:
     """Validated repository records indexed once for policy services."""
@@ -62,7 +65,7 @@ class ProductRepository:
     issues: tuple[PolicyIssue, ...]
 
 
-def index_by_id[Record: HasIdentifier](
+def index_by_id(
     records: Iterable[Record], label: str, issues: list[PolicyIssue]
 ) -> dict[str, Record]:
     result: dict[str, Record] = {}
