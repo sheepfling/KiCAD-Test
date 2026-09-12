@@ -119,6 +119,25 @@ class AdoptionUsabilityTests(unittest.TestCase):
         self.assertIn("TEMPLATE_UPGRADE", report.issues[0])
         self.assertIn("upgrade-plan --target-version 1.3.2", report.next_actions[0])
 
+    def test_adopt_reports_a_newer_record_without_recommending_a_downgrade(self) -> None:
+        write_model(
+            self.root / "template-adoption.json",
+            TemplateAdoptionRecord(
+                template_version="1.3.3", project_id="company-hardware", status="initialized"
+            ),
+        )
+        with (
+            patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),
+            patch("tools.hwrepo.doctor.shutil.which", return_value="/usr/bin/git"),
+            patch("tools.hwrepo.doctor.command_output", side_effect=self.command_output),
+        ):
+            report = adopt(self.root, "company-hardware")
+        self.assertEqual(report.status, "FAIL")
+        self.assertEqual(report.initialization, "FAIL")
+        self.assertIn("TEMPLATE_VERSION_AHEAD", report.issues[0])
+        self.assertIn("downgrades are not supported", report.next_actions[0])
+        self.assertNotIn("upgrade-plan", report.next_actions[0])
+
     def test_doctor_trusts_the_inspected_worktree_for_git_status(self) -> None:
         with (
             patch("tools.hwrepo.doctor.sys.version_info", (3, 11, 1)),

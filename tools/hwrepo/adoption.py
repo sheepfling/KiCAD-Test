@@ -41,8 +41,10 @@ def adopt(root: Path, project_id: str) -> TemplateAdoptReport:
 
     initialized = initialize(resolved, project_id)
     if initialized.status != "PASS":
-        upgrade_actions = tuple(
-            item.message for item in initialized.issues if item.code == "TEMPLATE_UPGRADE"
+        version_actions = tuple(
+            item.message
+            for item in initialized.issues
+            if item.code in {"TEMPLATE_UPGRADE", "TEMPLATE_VERSION_AHEAD"}
         )
         return TemplateAdoptReport(
             project_id=project_id,
@@ -51,7 +53,7 @@ def adopt(root: Path, project_id: str) -> TemplateAdoptReport:
             portable="NOT_RUN",
             status="FAIL",
             issues=tuple(f"{issue.code}: {issue.message}" for issue in initialized.issues),
-            next_actions=upgrade_actions or (
+            next_actions=version_actions or (
                 "Resolve the initialization finding without deleting adopter work, then rerun adoption.",
             ),
         )
